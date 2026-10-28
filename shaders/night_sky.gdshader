@@ -20,7 +20,7 @@ void sky() {
 		// A few darker maria on the disc.
 		vec2 m = (EYEDIR - LIGHT0_DIRECTION * d).xy / moon_size;
 		float maria = smoothstep(0.35, 0.1, length(m - vec2(-0.25, 0.2))) * 0.25 + smoothstep(0.3, 0.05, length(m - vec2(0.3, -0.15))) * 0.2;
-		col += moon_color * (disc * (2.5 - maria * 4.0) + halo);
+		col += moon_color * (disc * (2.0 - maria * 3.0) + halo);
 	}
 	// Ragged cloud. (No TIME here: a sky that changes every frame makes the
 	// renderer rebuild its reflections every frame.)

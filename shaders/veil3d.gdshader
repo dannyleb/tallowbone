@@ -19,6 +19,6 @@ void fragment() {
 	float veins = smoothstep(0.55, 0.75, a * 0.6 + b * 0.6);
 	// Brighter where you see it edge-on, like a soap film.
 	float edge = 1.0 - abs(dot(NORMAL, VIEW));
-	ALBEDO = color * (0.6 + 0.4 * b + 0.8 * veins + 0.6 * edge);
-	ALPHA = 0.18 + 0.32 * veins + 0.25 * edge;
+	ALBEDO = color * (0.35 + 0.25 * b + 0.6 * veins + 0.4 * edge);
+	ALPHA = 0.1 + 0.3 * veins + 0.2 * edge;
 }

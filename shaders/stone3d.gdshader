@@ -84,7 +84,8 @@ void fragment() {
 	albedo *= mix(1.0, 0.55, wet);              // wet stone darkens
 	albedo = mix(albedo, albedo * 0.45, puddle);
 	rough = mix(rough, rough * 0.35, wet);
-	rough = mix(rough, 0.03, max(puddle, sheet * 0.8));
+	// Not quite mirrors: rain pocks the puddles, so reflections blur a little.
+	rough = mix(rough, 0.09, max(puddle, sheet * 0.8));
 	// Standing water is flat; running water smooths the bumps a little.
 	wn = normalize(mix(wn, n, max(puddle, sheet * 0.5)));
 

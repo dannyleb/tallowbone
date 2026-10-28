@@ -389,8 +389,8 @@ func _build_level() -> void:
 	counts.back_faces = back.faces()
 
 
-## The veils, rebuilt whenever one burns: three thin sheets through the
-## doorway, so it reads as a membrane, not a wall.
+## The veils, rebuilt whenever one burns: two thin sheets across the
+## doorway, so it reads as a membrane you half see through.
 func _build_veil() -> void:
 	if _veil:
 		_veil.queue_free()
@@ -407,8 +407,8 @@ func _build_veil() -> void:
 	for r in h:
 		for c in w:
 			if lv.kind_at(Vector2i(c, r)) == "veil":
-				for z in [-0.5, 0.0, 0.5]:
-					b.box(Vector3(c, -(r + 1), z - 0.02), Vector3(c + 1, -r, z + 0.02))
+				for z in [-0.35, 0.35]:
+					b.quad(Vector3(c, -r, z), Vector3(c + 1, -r, z), Vector3(c + 1, -(r + 1), z), Vector3(c, -(r + 1), z), Vector3.BACK)
 				cells += 1
 	counts.veil = cells
 	if cells > 0:
