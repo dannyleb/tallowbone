@@ -16,6 +16,13 @@ var checks := 0
 
 func _initialize() -> void:
 	seed(1)
+	# A script that fails to compile would otherwise log errors every frame
+	# for the whole run: stop at once instead.
+	var broken := _broken_scripts("res://scripts")
+	if not broken.is_empty():
+		print("FAIL  scripts don't compile: ", ", ".join(broken))
+		quit(1)
+		return
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	_run.call_deferred()
@@ -59,6 +66,18 @@ func _run() -> void:
 
 
 # --- Helpers ---------------------------------------------------------------
+
+func _broken_scripts(dir: String) -> PackedStringArray:
+	var broken := PackedStringArray()
+	for f in DirAccess.get_files_at(dir):
+		if f.ends_with(".gd"):
+			var script: GDScript = load(dir.path_join(f))
+			if script == null or not script.can_instantiate():
+				broken.append(f)
+	for d in DirAccess.get_directories_at(dir):
+		broken.append_array(_broken_scripts(dir.path_join(d)))
+	return broken
+
 
 ## Runs one scenario, announcing it first, so a log that stops short shows
 ## where.

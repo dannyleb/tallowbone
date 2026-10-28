@@ -68,17 +68,17 @@ jobs:
         timeout-minutes: 5
         run: |
           set -o pipefail
-          # A runaway (endless loop, memory) gets killed here instead of
-          # taking the runner down with it.
+          # A runaway (endless loop, memory, an error logged every frame)
+          # gets cut off here instead of taking the runner down with it.
           ulimit -v 8000000
-          timeout -k 10 240 godot --headless --audio-driver Dummy --path . --fixed-fps 60 --script res://tests/playtest.gd 2>&1 | tee ci-out/playtest.log
+          timeout -k 10 240 godot --headless --audio-driver Dummy --path . --fixed-fps 60 --script res://tests/playtest.gd 2>&1 | head -c 20000000 | tee ci-out/playtest.log
 
       - name: Screenshots
         if: always()
         timeout-minutes: 5
         run: |
           xvfb-run -a -s "-screen 0 1280x720x24" timeout -k 10 240 godot --audio-driver Dummy --path . --rendering-driver opengl3 --resolution 1280x720 \
-            --fixed-fps 60 --script res://tests/screenshots.gd -- "$PWD/ci-out/shots" 2>&1 | tee ci-out/screenshots.log
+            --fixed-fps 60 --script res://tests/screenshots.gd -- "$PWD/ci-out/shots" 2>&1 | head -c 20000000 | tee ci-out/screenshots.log
 
       - name: Export web build
         if: always()

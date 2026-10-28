@@ -100,7 +100,7 @@ func _ready() -> void:
 ## sight). Draw a speck of each such material by the camera for the first
 ## few frames, behind the title screen, so that happens before you play.
 func _prewarm() -> void:
-	var water := level.get_node_or_null("Water")
+	var water: Node = level.get_node_or_null("Water")
 	if water == null or water.get_child_count() == 0:
 		return
 	var canal: CanvasItem = water.get_child(0)
