@@ -281,13 +281,26 @@ The Metroidvania-native mechanic.
   size); indoor back walls are on light mask 2 so the moon skips them.
   Glints and embers draw unshaded on top.
 - Actors paint their greybox drawing into a SubViewport (`scripts/figure.gd`)
-  shown through `shaders/volume.gdshader`. The canal is
-  `shaders/water.gdshader` (screen reflection).
+  shown through `shaders/volume.gdshader`, re-rendered only when on screen
+  and changed. The canal is `shaders/water.gdshader` (screen reflection).
+- **Web performance [slice]:** the world (and backdrop) draw into their own
+  viewport at no more than 3 render px per world px (1920x1080), shown
+  scaled; menus and text stay at the window's resolution. Frames averaging
+  over 24 ms drop the render scale a step (2x, 1.5x, 1x). Firefox pays far
+  more per draw call than Chrome, so the backdrop's skyline is painted once
+  into textures and scrolled, rain is one batch of lines, and pickups glow
+  with drawn halos instead of lights. Physics catches up at most 3 ticks a
+  frame, so a slow frame slows the game instead of spiralling.
+- `?bench` runs a frame-time benchmark (each system switched off in turn,
+  then lower render scales) and shows the table; `?perf` shows fps and the
+  render size; `?scale=1.5` fixes the render scale. CI runs `?bench` in
+  Firefox and Chrome (`tools/bench_web.py`, CPU-drawn, so compare rows).
 - Levels are scenes with TileMapLayers (`Ground`, `BackWall`) and placed
   entities. The first was generated from ASCII by `tools/build_level.py`.
 - CI (GitHub Actions) imports the project, runs a headless scripted
   playtest, renders screenshots, exports the web build and deploys it to
-  GitHub Pages on every push to `main`.
+  GitHub Pages on every push to `main`, then benchmarks the build in
+  Firefox and Chrome.
 - H shows hitboxes when playing from the editor; `?debug` does it on the
   web build.
 
@@ -304,6 +317,7 @@ The Metroidvania-native mechanic.
 | — | Engine move: JavaScript prototype → Godot 4.7, same slice | **done** |
 | — | Easy controls: mouse-first layout, keys named for your device, lessons for the parry and Visceral | **done** |
 | — | Lit greybox: normal and gloss maps, moonlight, rounded characters, rain, mist, reflective water | **done** |
+| — | Web performance: capped, adaptive render scale; far fewer draw calls; Firefox and Chrome benchmark in CI | **done** |
 | — | Easier start: canal of short hops, ledge assist, five starting keys with the rest found along the way, hold strike to transform, pause-screen map, shortcut gates, Climbing Irons | **done** |
 
 ## 14. Open questions

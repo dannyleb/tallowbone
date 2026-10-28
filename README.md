@@ -36,6 +36,10 @@ Where things are:
   `scripts/tuning.gd`.
 - **Hitboxes:** press **H** while playing from the editor. On the web build,
   add `?debug` to the address.
+- **Performance:** add `?perf` to the address for fps and the render size,
+  `?scale=1.5` to fix how sharp the world is drawn (it otherwise starts at
+  up to 3x and steps down when frames run slow), or `?bench` to run the
+  frame-time benchmark and get a table of what each system costs.
 
 ## Controls
 
@@ -74,15 +78,20 @@ Actions with Godot 4.7.2:
 3. **Screenshots:** `tests/screenshots.gd` renders key moments.
 4. **Export** the web build.
 5. **Deploy** to GitHub Pages (pushes to `main` only).
+6. **Benchmark:** `tools/bench_web.py` runs the build's `?bench` in Firefox
+   and Chrome on a virtual display (drawn by the CPU, so compare the rows,
+   not the speed).
 
-Logs and screenshots for the latest push land on the `ci-reports` branch.
+Logs, screenshots and the benchmark (`bench/bench.md`) for the latest push
+land on the `ci-reports` branch.
 
 ## Layout
 
 ```
 project.godot        settings, input map
 scenes/
-  main.tscn          title, pause, backdrop, HUD around the World
+  main.tscn          title, pause, HUD; the World and backdrop in their own
+                     viewport (View/Game), drawn at the render scale
   world.tscn         the night: level, player, effects, camera
   levels/            levels (TileMapLayers + placed entities)
   actors/            player, Communicant, Hound
@@ -97,6 +106,7 @@ scripts/
   level.gd           tile queries, veil burning
   hud.gd, main.gd    HUD, title/pause screens, lesson prompts
   map_view.gd        the pause-screen map (what you've explored)
+  bench.gd           ?bench: the frame-time benchmark
   keys.gd            key names for the device in use ({attack} -> Left-click)
   figure.gd          paints an actor into a SubViewport, shown lit and rounded
   backdrop.gd        sky, moon, parallax skyline, fog
@@ -109,7 +119,8 @@ assets/              fonts (OFL), placeholder sounds, greybox tiles
                      (colour, normal and gloss atlases)
 tiles/               the TileSet
 tools/               Python generators: lit greybox tiles, sounds, the
-                     ASCII level (tools/levels/*.txt), the input map
+                     ASCII level (tools/levels/*.txt), the input map;
+                     bench_web.py runs ?bench in browsers (CI)
 tests/               headless playtest and screenshot scripts (CI)
 docs/DESIGN.md       the design document
 ```

@@ -24,8 +24,10 @@ const FOG := Color(0.35, 0.41, 0.48)
 const NIGHT := Color(0.016, 0.02, 0.04)
 const NIGHT_TOP := 0.38
 const NIGHT_BOTTOM := 0.62
-## Layer textures are painted at this many pixels per screen pixel.
-const PAINT_RES := 2.0
+## Layer textures are painted at this many pixels per screen pixel. One is
+## plenty for fogged silhouettes, and keeps the textures small (a 2x paint
+## cost Firefox several ms a frame to sample).
+const PAINT_RES := 1.0
 ## Room above a layer's base for the tallest spire.
 const LAYER_H := 340.0
 ## The street-level camera y (top of the view) the layers are placed for.

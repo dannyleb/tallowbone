@@ -11,8 +11,10 @@ The design lives in `docs/DESIGN.md`. Keep its status markers ([slice] /
   scripted mechanics checks), `tests/screenshots.gd` (Xvfb), web export,
   deploy.
 - Logs and screenshots for each push go to the `ci-reports` branch:
-  `git fetch origin ci-reports && git show origin/ci-reports:playtest.log`.
-  Failed steps are also annotations on the check run.
+  `git fetch origin +ci-reports:refs/remotes/origin/ci-reports && git show
+  origin/ci-reports:playtest.log` (it's force-pushed each time). The
+  browser benchmark lands there too, a few minutes later:
+  `bench/bench.md`. Failed steps are also annotations on the check run.
 - Locally, `gdparse` (pip `gdtoolkit`) catches GDScript syntax errors
   before pushing. It doesn't catch type errors; Godot does, in CI.
 - When adding a mechanic, add a check for it to `tests/playtest.gd`.
@@ -30,8 +32,13 @@ The design lives in `docs/DESIGN.md`. Keep its status markers ([slice] /
   player, then enemies, then Tallow, pickups, lamps. Game logic never reads
   the clock. Presses are buffered on the player (`buf`).
 - Positions are feet: an actor's origin is the middle of its feet.
-- Avoid `:=` when the value comes from a Dictionary (tuning data); it's
-  Variant and Godot refuses to infer it. Write the type.
+- Avoid `:=` when the value comes from a Dictionary (tuning data) or a
+  call on an untyped variable (`level.get_node_or_null(...)`); it's
+  Variant and Godot refuses to infer it. Write the type. gdparse won't
+  catch this; a script that fails to compile stops the playtest at once.
+- Mind draw calls: Firefox's WebGL pays far more per call than Chrome's.
+  Batch (one `draw_multiline_colors`, texture rects with one texture),
+  paint static things once, and prefer drawn glows to extra lights.
 - Greybox drawing (`_draw`) stands in for art. Keep it posed from the real
   timings so hitboxes match.
 - Levels are scenes (`scenes/levels/`). `tools/build_level.py` generated

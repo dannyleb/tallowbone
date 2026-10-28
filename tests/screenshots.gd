@@ -29,6 +29,10 @@ func _run() -> void:
 	player = world.player
 	await _shot("01-title")
 	main.start_game()
+	# Always drawn at 2x: CI's software renderer is slow enough that the
+	# adaptive scaling would otherwise soften the shots.
+	main.fixed_scale = 2.0
+	main.fit_view()
 	# The shots show the whole kit; the playtest covers finding it.
 	player.unlock_all()
 
