@@ -19,23 +19,29 @@ static func frames(who: String) -> Dictionary:
 		return _cache[who]
 	var out := {}
 	var dir := root.path_join(who)
-	if DirAccess.dir_exists_absolute(dir):
-		for anim in DirAccess.get_directories_at(dir):
-			var names := PackedStringArray()
-			for f in DirAccess.get_files_at(dir.path_join(anim)):
-				# Exported builds list "01.png.import" in place of the image.
-				var n := f.trim_suffix(".import").trim_suffix(".remap")
-				if n.get_extension().to_lower() == "png" and not names.has(n):
-					names.append(n)
-			names.sort()
-			var textures := []
-			for n in names:
-				var tex = load(dir.path_join(anim).path_join(n))
-				if tex is Texture2D:
-					textures.append(tex)
-			if not textures.is_empty():
-				out[anim] = textures
+	for anim in _list(dir, true):
+		var textures := []
+		for n in _list(dir.path_join(anim), false):
+			if n.get_extension().to_lower() != "png":
+				continue
+			var tex = load(dir.path_join(anim).path_join(n))
+			if tex is Texture2D:
+				textures.append(tex)
+		if not textures.is_empty():
+			out[anim] = textures
 	_cache[who] = out
+	return out
+
+
+## The folders (or files) in a res:// folder, sorted; none if it's missing.
+## ResourceLoader's listing also works in exported builds, where the images
+## themselves aren't files any more.
+static func _list(dir: String, folders: bool) -> PackedStringArray:
+	var out := PackedStringArray()
+	for entry in ResourceLoader.list_directory(dir):
+		if entry.ends_with("/") == folders:
+			out.append(entry.trim_suffix("/"))
+	out.sort()
 	return out
 
 

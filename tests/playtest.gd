@@ -20,6 +20,8 @@ func _initialize() -> void:
 	# A script that fails to compile would otherwise log errors every frame
 	# for the whole run: stop at once instead.
 	var broken := _broken_scripts("res://scripts")
+	if _scripts_seen < 10:
+		broken.append("(only %d scripts found to check)" % _scripts_seen)
 	if not broken.is_empty():
 		print("FAIL  scripts don't compile: ", ", ".join(broken))
 		quit(1)
@@ -70,15 +72,19 @@ func _run() -> void:
 
 # --- Helpers ---------------------------------------------------------------
 
+var _scripts_seen := 0
+
+
 func _broken_scripts(dir: String) -> PackedStringArray:
 	var broken := PackedStringArray()
-	for f in DirAccess.get_files_at(dir):
-		if f.ends_with(".gd"):
-			var script: GDScript = load(dir.path_join(f))
+	for entry in ResourceLoader.list_directory(dir):
+		if entry.ends_with("/"):
+			broken.append_array(_broken_scripts(dir.path_join(entry.trim_suffix("/"))))
+		elif entry.ends_with(".gd"):
+			_scripts_seen += 1
+			var script: GDScript = load(dir.path_join(entry))
 			if script == null or not script.can_instantiate():
-				broken.append(f)
-	for d in DirAccess.get_directories_at(dir):
-		broken.append_array(_broken_scripts(dir.path_join(d)))
+				broken.append(entry)
 	return broken
 
 
@@ -601,7 +607,8 @@ func _art() -> void:
 	Art.root = "res://tests/fixtures/art"
 	Art.reload()
 	var found := Art.frames("lamplighter")
-	_check("painted frames are found by animation, in order", found.has("hook_idle") and found.hook_idle.size() == 2, str(found.keys()))
+	_check("painted frames are found by animation, in order", found.has("hook_idle") and found.hook_idle.size() == 2,
+		"%s; listing sees %s and %s" % [found.keys(), ResourceLoader.list_directory("res://tests/fixtures/art/lamplighter"), ResourceLoader.list_directory("res://tests/fixtures/art/lamplighter/hook_idle")])
 	await _frames(5)
 	var pose: Array = player.art_frame()
 	_check("standing still shows the idle animation", pose[0] == "hook_idle", str(pose))
