@@ -57,8 +57,9 @@ jobs:
           mkdir -p "$dest" && cp ~/godot/templates/* "$dest/"
           echo "$HOME/godot" >> "$GITHUB_PATH"
           sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null
-          # .gdignore keeps Godot from importing CI's own output.
-          mkdir -p ci-out/shots && touch ci-out/.gdignore
+          # .gdignore keeps Godot from importing CI's own output (logs, and
+          # the web build when the Mac app is exported after it).
+          mkdir -p ci-out/shots build && touch ci-out/.gdignore build/.gdignore
 
       - name: Import
         timeout-minutes: 5
