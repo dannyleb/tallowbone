@@ -377,8 +377,12 @@ func _build_level() -> void:
 		for r in h:
 			for c in range(c0, mini(w, c0 + CHUNK)):
 				_build_cell(lv, c, r, h, solid, stone, back, wood, water)
-		_add_mesh(stone.mesh(), _stone_mat)
-		_add_mesh(back.mesh(), back_mat)
+		# The stone is open at the back and the back walls are single quads
+		# facing you, and the moon shines from behind: both cast shadows from
+		# either side, or moonlight leaks into the rooms underground.
+		for mi in [_add_mesh(stone.mesh(), _stone_mat), _add_mesh(back.mesh(), back_mat)]:
+			if mi:
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_DOUBLE_SIDED
 		_add_mesh(wood.mesh(), wood_mat)
 		_add_mesh(water.mesh(), water_mat)
 		counts.stone_faces += stone.faces()
