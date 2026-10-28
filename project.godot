@@ -146,6 +146,9 @@ toggle_hitboxes={
 [physics]
 
 common/physics_ticks_per_second=60
+; When frames run slow, catch up at most this many physics ticks per frame:
+; past that the game slows down instead of spiralling into a freeze.
+common/max_physics_steps_per_frame=3
 
 [rendering]
 

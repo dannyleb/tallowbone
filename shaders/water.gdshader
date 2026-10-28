@@ -4,7 +4,7 @@
 shader_type canvas_item;
 render_mode unshaded;
 
-uniform sampler2D screen : hint_screen_texture, filter_linear_mipmap;
+uniform sampler2D screen : hint_screen_texture, filter_linear;
 uniform vec4 deep : source_color = vec4(0.015, 0.05, 0.05, 1.0);
 uniform vec4 tint : source_color = vec4(0.45, 0.62, 0.6, 1.0);
 // How much of the scene shows in it, at the surface.

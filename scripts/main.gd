@@ -27,22 +27,57 @@ const GAMEPAD := [
 	["D-pad ↑", "lamps and gates"], ["Start", "pause and map"],
 ]
 
+## The game view is drawn into its own viewport at RENDER_MAX render pixels
+## per world pixel at most (1920x1080 for the 640x360 view), and shown
+## scaled to the window; text and menus are drawn at the window's full
+## resolution on top. If frames run slower than SLOW_MS on average over
+## SLOW_WINDOW seconds, the render scale drops a step (RENDER_STEPS).
+## This watches the real clock, which game logic never does: it only
+## decides how sharp to draw, never what happens.
+const RENDER_MAX := 3.0
+const RENDER_STEPS := [3.0, 2.0, 1.5, 1.0]
+const SLOW_MS := 24.0
+const SLOW_WINDOW := 2.0
+## Seconds after the night begins before frame times count (shaders compile
+## on first sight of things, and those hitches shouldn't drop the scale).
+const SETTLE := 3.0
+
 var title: Control
 var pause_screen: Control
+## Render pixels per world pixel right now, and the cap the adaptive scaling
+## has come down to. ?scale=N in the address fixes it at N.
+var render_scale := 1.0
+var render_cap := RENDER_MAX
+var fixed_scale := 0.0
 var _begin: Button
 var _resume: Button
 var _map: Control
 var _keys: Label
 var _debug_allowed := false
 var _bench = null
+var _perf: Label
+var _clock := 0
+var _slow_t := 0.0
+var _slow_frames := 0
+var _settle := SETTLE
 
-@onready var world = $World
+@onready var view: TextureRect = $View
+@onready var game: SubViewport = $View/Game
+@onready var world = $View/Game/World
 
 
 func _ready() -> void:
 	$HudLayer/Hud.world = world
-	$BackdropLayer/Backdrop.world = world
-	var web_debug := _web_debug()
+	$View/Game/BackdropLayer/Backdrop.world = world
+	view.texture = game.get_texture()
+	_add_vignette()
+	var query := _query()
+	var forced := query.get_slice("scale=", 1).to_float() if query.contains("scale=") else 0.0
+	if forced > 0.0:
+		fixed_scale = clampf(forced, 0.5, 8.0)
+	get_viewport().size_changed.connect(fit_view)
+	fit_view()
+	var web_debug := query.contains("debug")
 	_debug_allowed = OS.is_debug_build() or web_debug
 	world.show_hitboxes = web_debug
 	title = _build_title()
@@ -51,12 +86,81 @@ func _ready() -> void:
 	$UiLayer.add_child(pause_screen)
 	pause_screen.visible = false
 	_begin.grab_focus()
-	var bench := _bench_arg()
-	if bench != "":
+	if query.contains("perf"):
+		_perf = _label("", FELL, 8, BONE)
+		_perf.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		_perf.position += Vector2(-150, 4)
+		_perf.size.x = 146
+		_perf.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		$UiLayer.add_child(_perf)
+	if query.contains("bench"):
 		_bench = Bench.new()
 		_bench.main = self
-		_bench.quick = bench == "quick"
+		_bench.quick = query.contains("bench=quick") or query.contains("bench-quick")
 		add_child(_bench)
+
+
+## The darkening toward the corners, drawn in the game view (at its render
+## scale) rather than over the whole window.
+func _add_vignette() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 9
+	var shade := TextureRect.new()
+	shade.texture = Glow.vignette()
+	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shade.stretch_mode = TextureRect.STRETCH_SCALE
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shade.anchor_left = -0.1
+	shade.anchor_top = -0.1
+	shade.anchor_right = 1.1
+	shade.anchor_bottom = 1.1
+	layer.add_child(shade)
+	game.add_child(layer)
+
+
+## Sizes the game viewport: the same view in world px as the window shows,
+## drawn at the render scale (never more than the window's own pixels).
+func fit_view() -> void:
+	var logical := get_viewport().get_visible_rect().size
+	var native := maxf(1.0, float(get_window().size.x) / maxf(1.0, logical.x))
+	render_scale = fixed_scale if fixed_scale > 0.0 else minf(native, render_cap)
+	game.size_2d_override = Vector2i(logical.round())
+	game.size = Vector2i((logical * render_scale).round())
+
+
+func _process(_delta: float) -> void:
+	var now := Time.get_ticks_usec()
+	var frame := (now - _clock) / 1e6 if _clock > 0 else 0.0
+	_clock = now
+	if _perf and Engine.get_process_frames() % 20 == 0:
+		_perf.text = "%.0f fps   %.1f ms   %dx%d" % [Engine.get_frames_per_second(), frame * 1000.0, game.size.x, game.size.y]
+	_adapt(frame)
+
+
+## Drops the render scale a step when frames run slow (see RENDER_STEPS).
+func _adapt(frame: float) -> void:
+	if fixed_scale > 0.0 or _bench != null or not world.running or get_tree().paused or frame <= 0.0 or frame > 0.5:
+		_slow_t = 0.0
+		_slow_frames = 0
+		return
+	if _settle > 0.0:
+		_settle -= frame
+		return
+	_slow_t += frame
+	_slow_frames += 1
+	if _slow_t < SLOW_WINDOW:
+		return
+	var avg_ms := _slow_t * 1000.0 / _slow_frames
+	_slow_t = 0.0
+	_slow_frames = 0
+	if avg_ms <= SLOW_MS:
+		return
+	for step in RENDER_STEPS:
+		if step < render_scale - 0.01:
+			render_cap = step
+			fit_view()
+			print("Frames averaging %.1f ms: drawing the world at %.1fx (%dx%d)" % [avg_ms, render_scale, game.size.x, game.size.y])
+			return
 
 
 func start_game() -> void:
@@ -96,27 +200,13 @@ func _notification(what: int) -> void:
 		set_paused(true)
 
 
-## ?bench in the page address (or `-- --bench` on the command line) runs the
-## frame-time benchmark; ?bench=quick times only everything-on. Returns
-## "full", "quick" or "".
-func _bench_arg() -> String:
-	var arg := ""
+## The page's query string on the web (?debug, ?perf, ?scale=1.5, ?bench),
+## or the command-line arguments after `--` elsewhere (--bench, --perf).
+func _query() -> String:
 	if OS.has_feature("web"):
 		var q = JavaScriptBridge.eval("window.location.search", true)
-		arg = q if q is String else ""
-	else:
-		arg = " ".join(OS.get_cmdline_user_args())
-	if not arg.contains("bench"):
-		return ""
-	return "quick" if arg.contains("bench=quick") or arg.contains("--bench-quick") else "full"
-
-
-## ?debug in the page address shows hitboxes on the web build.
-func _web_debug() -> bool:
-	if not OS.has_feature("web"):
-		return false
-	var q = JavaScriptBridge.eval("window.location.search", true)
-	return q is String and q.contains("debug")
+		return q if q is String else ""
+	return " ".join(OS.get_cmdline_user_args())
 
 
 # --- Screens ------------------------------------------------------------

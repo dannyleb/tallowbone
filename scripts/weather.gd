@@ -35,6 +35,9 @@ func _draw() -> void:
 	var level = world.level
 	var view: Vector2 = world.view_size() + Vector2(80, 60)
 	var tl: Vector2 = world.cam_top_left() - Vector2(40, 30)
+	# Rain and splashes are all one batch of lines: one draw call.
+	var lines := PackedVector2Array()
+	var colors := PackedColorArray()
 
 	# Rain, fixed to the world (it doesn't slide when the camera moves).
 	for d in _drops:
@@ -45,7 +48,9 @@ func _draw() -> void:
 		var at := Vector2(x, y)
 		if level.roofed_at(at) or level.solid_at(at):
 			continue
-		draw_line(at, at + Vector2(-length * 0.12, length), Color(0.72, 0.78, 0.9, 0.08 + 0.12 * d.z), 1.0)
+		lines.append(at)
+		lines.append(at + Vector2(-length * 0.12, length))
+		colors.append(Color(0.72, 0.78, 0.9, 0.08 + 0.12 * d.z))
 
 	# Splashes where it lands.
 	for i in SPLASHES:
@@ -55,10 +60,12 @@ func _draw() -> void:
 		if gy < 0.0 or k > 0.35:
 			continue
 		var a := (0.35 - k) * 1.2
-		var s := 1.5 + k * 8.0
+		var sz := 1.5 + k * 8.0
 		var c := Color(0.75, 0.82, 0.92, a)
-		draw_line(Vector2(sx, gy), Vector2(sx - s, gy - s * 0.8), c, 1.0)
-		draw_line(Vector2(sx, gy), Vector2(sx + s, gy - s * 0.8), c, 1.0)
+		lines.append_array(PackedVector2Array([Vector2(sx, gy), Vector2(sx - sz, gy - sz * 0.8), Vector2(sx, gy), Vector2(sx + sz, gy - sz * 0.8)]))
+		colors.append_array(PackedColorArray([c, c]))
+	if not lines.is_empty():
+		draw_multiline_colors(lines, colors, 1.0)
 
 	# Low mist drifting along open ground.
 	for i in WISPS:

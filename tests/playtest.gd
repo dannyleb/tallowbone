@@ -51,6 +51,7 @@ func _run() -> void:
 	await _death_pile_and_gorge()
 	await _levelling()
 	await _controls()
+	await _render_scale()
 	await _lessons()
 
 	print("\n%d checks, %d failed" % [checks, failures])
@@ -493,6 +494,28 @@ func _controls() -> void:
 		return false
 	_check("left-click strikes, right-click shoots", mouse_button.call("attack", MOUSE_BUTTON_LEFT) and mouse_button.call("shoot", MOUSE_BUTTON_RIGHT))
 	_check("no separate blood-bullet button", not InputMap.has_action("blood"))
+
+
+## The world draws into its own viewport, sized to the view, and drops to a
+## lower render scale when frames run slow.
+func _render_scale() -> void:
+	var g: SubViewport = main.game
+	_check("the world draws into its own viewport, the size of the view", Vector2(g.size_2d_override) == world.view_size() and g.size.x >= g.size_2d_override.x,
+		"%s over %s, view %s" % [g.size, g.size_2d_override, world.view_size()])
+	var before: float = main.render_scale
+	main.render_cap = 3.0
+	main.fixed_scale = 2.0
+	main.fit_view()
+	var at_two: Vector2i = g.size
+	main.fixed_scale = 0.0
+	main.fit_view()
+	main._settle = 0.0
+	for i in 70:
+		main._adapt(0.04)
+	_check("a forced scale sizes the viewport, and slow frames lower it", at_two == Vector2i(world.view_size() * 2.0) and (main.render_scale < 2.0 or before < 2.0),
+		"at 2x %s, after slow frames %.1fx (was %.1fx)" % [at_two, main.render_scale, before])
+	main.render_cap = 3.0
+	main.fit_view()
 
 
 func _lessons() -> void:

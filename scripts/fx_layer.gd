@@ -79,6 +79,9 @@ func _glow() -> void:
 			var g: Vector2 = l.position + Vector2(0, -68)
 			Glow.draw(self, g, 22.0, Color(1.0, 0.72, 0.38, 0.35))
 			draw_colored_polygon(PackedVector2Array([g + Vector2(-7, 8), g + Vector2(7, 8), g + Vector2(5, -8), g + Vector2(-5, -8)]), Color(1.0, 0.78, 0.45, 0.55))
+	for it in world.pickups:
+		if not it.taken:
+			Glow.draw(self, it.position + Vector2(0, -14), 22.0, Color(1.0, 0.85, 0.8, 0.28))
 	var p = world.player
 	if p.visible and p.state != "dead":
 		var f: Vector2 = p.flame_at()

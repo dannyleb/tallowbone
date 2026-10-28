@@ -37,7 +37,6 @@ func _draw() -> void:
 	if world == null:
 		return
 	var view := size
-	draw_texture_rect(Glow.vignette(), Rect2(-view * 0.1, view * 1.2), false)
 	if not world.running:
 		return
 	var p = world.player

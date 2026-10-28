@@ -5,19 +5,12 @@
 ##   Pistol, Lamp Oil (the Lantern form), Climbing Irons (wall jump)
 extends Node2D
 
-const Glow = preload("res://scripts/glow.gd")
-
 @export_enum("vial", "bullets", "quickstep", "pistol", "lantern", "irons") var kind := "vial"
 
+## Shines with a halo drawn by the effects layer (FxGlow), not a light of
+## its own: lights are the costly part of a frame on the web.
 var taken := false
 var _time := 0.0
-var _light: PointLight2D
-
-
-func _ready() -> void:
-	_light = Glow.light(Color(1.0, 0.85, 0.8), 34.0, 0.7, 16.0)
-	_light.position = Vector2(0, -14)
-	add_child(_light)
 
 
 func take() -> void:

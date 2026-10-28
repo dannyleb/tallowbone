@@ -13,13 +13,29 @@ script = ExtResource("1_main")
 [node name="Sfx" type="Node" parent="."]
 script = ExtResource("2_sfx")
 
-[node name="BackdropLayer" type="CanvasLayer" parent="."]
+[node name="View" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Game" type="SubViewport" parent="View"]
+disable_3d = true
+size = Vector2i(1280, 720)
+size_2d_override = Vector2i(640, 360)
+size_2d_override_stretch = true
+render_target_update_mode = 4
+
+[node name="BackdropLayer" type="CanvasLayer" parent="View/Game"]
 layer = -10
 
-[node name="Backdrop" type="Node2D" parent="BackdropLayer"]
+[node name="Backdrop" type="Node2D" parent="View/Game/BackdropLayer"]
 script = ExtResource("3_backdrop")
 
-[node name="World" parent="." instance=ExtResource("4_world")]
+[node name="World" parent="View/Game" instance=ExtResource("4_world")]
 process_mode = 1
 
 [node name="HudLayer" type="CanvasLayer" parent="."]

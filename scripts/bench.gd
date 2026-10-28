@@ -4,7 +4,7 @@
 ## switched off in turn, so the cost of each shows. Results go on screen,
 ## to the console (lines starting BENCH), and, on the web, as JSON to
 ## POST /bench on the page's own server (tools/bench_web.py collects them
-## in CI). ?bench=quick times only everything-on.
+## in CI). ?bench=quick skips switching systems off.
 extends Node
 
 ## Where to stand: a lamp-lit street with figures, the canal (water), the
@@ -14,6 +14,9 @@ const SPOTS := [["street", Vector2(400, 640)], ["canal", Vector2(1000, 640)], ["
 ## what's left is the tiles and the engine.
 const CONFIGS := [[], ["figures"], ["lights"], ["normals"], ["water"], ["weather"], ["backdrop"], ["fx"], ["hud"], ["everything"]]
 const SYSTEMS := ["figures", "lights", "normals", "water", "weather", "backdrop", "fx", "hud"]
+## Then everything on again, with the game view drawn at these render
+## scales (render px per world px; those below the starting scale only).
+const SCALES := [2.0, 1.5, 1.0]
 ## Wall-clock seconds measured per spot, and the frame count bounds.
 const MEASURE := 1.5
 const MIN_FRAMES := 5
@@ -64,6 +67,7 @@ func _run() -> void:
 	var info := {
 		"adapter": "%s / %s" % [RenderingServer.get_video_adapter_vendor(), RenderingServer.get_video_adapter_name()],
 		"window": str(DisplayServer.window_get_size()),
+		"render": "%dx%d (%.1fx)" % [main.game.size.x, main.game.size.y, main.render_scale],
 		"view": str(world.view_size()),
 		"agent": _agent(),
 	}
@@ -97,6 +101,25 @@ func _run() -> void:
 			_status("Benchmark: %s at %s: %.1f ms (%.0f fps)" % [name, spot[0], m.avg_ms, m.fps])
 		_switch(off, false)
 		rows.append({"config": name, "spots": spots})
+
+	var start_scale: float = main.render_scale
+	for scale in SCALES:
+		if scale >= start_scale - 0.01:
+			continue
+		main.fixed_scale = scale
+		main.fit_view()
+		var name := "drawn at %.1fx" % scale
+		var spots := []
+		for spot in SPOTS:
+			_put(spot[1])
+			await _frames(10)
+			var m := await _measure(MEASURE)
+			m.spot = spot[0]
+			spots.append(m)
+			_status("Benchmark: %s at %s: %.1f ms (%.0f fps)" % [name, spot[0], m.avg_ms, m.fps])
+		rows.append({"config": "%s (%dx%d)" % [name, main.game.size.x, main.game.size.y], "spots": spots})
+	main.fixed_scale = 0.0
+	main.fit_view()
 
 	var result := {"info": info, "title": title, "first_visit": first, "rows": rows}
 	var text := _summary(result)
@@ -193,7 +216,7 @@ func _switch_system(system: String, off: bool) -> void:
 		"weather":
 			world.get_node("Weather").visible = not off
 		"backdrop":
-			main.get_node("BackdropLayer").visible = not off
+			main.get_node("View/Game/BackdropLayer").visible = not off
 		"fx":
 			for n in ["FxShaded", "FxOverlay", "FxGlow"]:
 				world.get_node(n).visible = not off
@@ -202,14 +225,14 @@ func _switch_system(system: String, off: bool) -> void:
 
 
 func _summary(r: Dictionary) -> String:
-	var lines := PackedStringArray(["BENCHMARK  %s" % r.info.agent, "%s   window %s   view %s" % [r.info.adapter, r.info.window, r.info.view]])
+	var lines := PackedStringArray(["BENCHMARK  %s" % r.info.agent, "%s   window %s   view %s   world drawn at %s" % [r.info.adapter, r.info.window, r.info.view, r.info.render]])
 	lines.append("title screen: %.1f ms" % r.title.avg_ms)
 	var first := PackedStringArray()
 	for m in r.first_visit:
 		first.append("%s worst %.0f ms (%d hitches)" % [m.spot, m.max_ms, m.hitches])
 	lines.append("first visits: " + ", ".join(first))
 	lines.append("")
-	lines.append("%-22s %8s %8s %8s %8s %8s" % ["config", "avg ms", "fps", "worst", "script", "physics"])
+	lines.append("%-32s %8s %8s %8s %8s %8s" % ["config", "avg ms", "fps", "worst", "script", "physics"])
 	var base := -1.0
 	for row in r.rows:
 		var avg := 0.0
@@ -224,5 +247,5 @@ func _summary(r: Dictionary) -> String:
 		if base < 0.0:
 			base = avg
 		var saved := "" if row.config == "everything on" else "   saves %.1f ms" % (base - avg)
-		lines.append("%-22s %8.1f %8.0f %8.0f %8.1f %8.1f%s" % [row.config, avg, 1000.0 / maxf(avg, 0.001), worst, script, physics, saved])
+		lines.append("%-32s %8.1f %8.0f %8.0f %8.1f %8.1f%s" % [row.config, avg, 1000.0 / maxf(avg, 0.001), worst, script, physics, saved])
 	return "\n".join(lines)

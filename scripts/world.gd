@@ -92,6 +92,26 @@ func _ready() -> void:
 	camera.limit_right = int(level.size_px().x)
 	camera.limit_bottom = int(level.size_px().y)
 	snap_camera()
+	_prewarm()
+
+
+## Browsers compile a shader the first time something using it is drawn,
+## which stalls that frame (the canal's water cost half a second on first
+## sight). Draw a speck of each such material by the camera for the first
+## few frames, behind the title screen, so that happens before you play.
+func _prewarm() -> void:
+	var water := level.get_node_or_null("Water")
+	if water == null or water.get_child_count() == 0:
+		return
+	var canal: CanvasItem = water.get_child(0)
+	var speck := ColorRect.new()
+	speck.material = canal.material
+	speck.size = Vector2(2, 2)
+	speck.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	speck.position = cam_center
+	speck.z_index = 7
+	add_child(speck)
+	get_tree().create_timer(0.5).timeout.connect(speck.queue_free)
 
 
 func level_cost() -> int:
