@@ -44,6 +44,10 @@ const CITY_CHUNK := 40.0
 ## 3D render layer for what moves with the camera or the actors (the plane,
 ## rain, drips): reflection probes leave it out of their one-time capture.
 const MOVING := 2
+## 3D render layer for surfaces inside rooms (facing a cell with a back
+## wall): the moon doesn't light it, so no moonlight leaks indoors through
+## shadow-map seams.
+const INDOOR := 4
 ## Visibility layers of the 2D world: OVERLAY is drawn flat over the 3D
 ## (glows, swooshes, bars), ON_PLANE goes on the lit quad.
 const OVERLAY := 1
@@ -325,6 +329,7 @@ func _environment() -> void:
 	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if _lite else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
 	moon.directional_shadow_max_distance = 40.0 if _lite else 90.0
 	moon.basis = Basis.looking_at(-MOON_DIR.normalized(), Vector3.UP)
+	moon.light_cull_mask = 0xFFFFF & ~INDOOR
 	add_child(moon)
 	_shadowed.append(moon)
 
@@ -371,25 +376,28 @@ func _build_level() -> void:
 	counts.back_faces = 0
 	for c0 in range(0, w, CHUNK):
 		var stone := Builder.new()
+		var inner := Builder.new()
 		var back := Builder.new()
 		var wood := Builder.new()
 		var water := Builder.new()
 		for r in h:
 			for c in range(c0, mini(w, c0 + CHUNK)):
-				_build_cell(lv, c, r, h, solid, stone, back, wood, water)
+				_build_cell(lv, c, r, h, solid, stone, inner, back, wood, water)
 		# The stone is open at the back and the back walls are single quads
 		# facing you, and the moon shines from behind: both cast shadows from
 		# either side, or moonlight leaks into the rooms underground.
-		for mi in [_add_mesh(stone.mesh(), _stone_mat), _add_mesh(back.mesh(), back_mat)]:
+		for part in [[stone, _stone_mat, 1], [inner, _stone_mat, INDOOR], [back, back_mat, INDOOR]]:
+			var mi := _add_mesh(part[0].mesh(), part[1])
 			if mi:
 				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_DOUBLE_SIDED
+				mi.layers = part[2]
 		_add_mesh(wood.mesh(), wood_mat)
 		_add_mesh(water.mesh(), water_mat)
-		counts.stone_faces += stone.faces()
+		counts.stone_faces += stone.faces() + inner.faces()
 		counts.back_faces += back.faces()
 
 
-func _build_cell(lv, c: int, r: int, h: int, solid: Callable, stone: Builder, back: Builder, wood: Builder, water: Builder) -> void:
+func _build_cell(lv, c: int, r: int, h: int, solid: Callable, stone: Builder, inner: Builder, back: Builder, wood: Builder, water: Builder) -> void:
 	var cell := Vector2i(c, r)
 	var k: String = lv.kind_at(cell)
 	var x0 := float(c)
@@ -399,17 +407,19 @@ func _build_cell(lv, c: int, r: int, h: int, solid: Callable, stone: Builder, ba
 	# Stone reaches a little behind the back walls, and back walls overlap
 	# their neighbours, so no moonlight slips through the joints.
 	var zb := -BACK - 0.08
+	# A face looking into a room goes in the indoor mesh.
+	var side := func(dc: int, dr: int) -> Builder: return inner if lv.back_wall.get_cell_source_id(Vector2i(c + dc, r + dr)) != -1 else stone
 	match k:
 		"stone":
 			stone.quad(Vector3(x0, yt, FRONT), Vector3(x1, yt, FRONT), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.BACK)
 			if not solid.call(c, r - 1):
-				stone.quad(Vector3(x0, yt, zb), Vector3(x1, yt, zb), Vector3(x1, yt, FRONT), Vector3(x0, yt, FRONT), Vector3.UP)
+				side.call(0, -1).quad(Vector3(x0, yt, zb), Vector3(x1, yt, zb), Vector3(x1, yt, FRONT), Vector3(x0, yt, FRONT), Vector3.UP)
 			if r + 1 < h and not solid.call(c, r + 1):
-				stone.quad(Vector3(x0, yb, zb), Vector3(x1, yb, zb), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.DOWN)
+				side.call(0, 1).quad(Vector3(x0, yb, zb), Vector3(x1, yb, zb), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.DOWN)
 			if not solid.call(c - 1, r):
-				stone.quad(Vector3(x0, yt, zb), Vector3(x0, yt, FRONT), Vector3(x0, yb, FRONT), Vector3(x0, yb, zb), Vector3.LEFT)
+				side.call(-1, 0).quad(Vector3(x0, yt, zb), Vector3(x0, yt, FRONT), Vector3(x0, yb, FRONT), Vector3(x0, yb, zb), Vector3.LEFT)
 			if not solid.call(c + 1, r):
-				stone.quad(Vector3(x1, yt, zb), Vector3(x1, yt, FRONT), Vector3(x1, yb, FRONT), Vector3(x1, yb, zb), Vector3.RIGHT)
+				side.call(1, 0).quad(Vector3(x1, yt, zb), Vector3(x1, yt, FRONT), Vector3(x1, yb, FRONT), Vector3(x1, yb, zb), Vector3.RIGHT)
 		"walkway":
 			wood.box(Vector3(x0, yt - 0.14, -1.1), Vector3(x1, yt, 0.75))
 		"water":
