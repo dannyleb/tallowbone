@@ -21,7 +21,9 @@ for the art). It covers the Canal District with the full core loop:
 1. Install **Godot 4.7** (the standard build, not .NET) from
    https://godotengine.org/download.
 2. Clone this repo, open Godot, choose **Import**, and pick `project.godot`.
-3. Press **F5** to play. The first import takes a minute.
+3. Press **F5** to play. The first import takes a minute, and Godot adds
+   `.import` files next to the fonts, sounds and tiles: commit those (the
+   `.godot/` folder it also makes is ignored).
 
 Where things are:
 - **The level:** `scenes/levels/canal_district.tscn`. Paint tiles on the
