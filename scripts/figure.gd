@@ -12,6 +12,10 @@ extends Sprite2D
 const RES := 2.0
 const VOLUME := preload("res://shaders/volume.gdshader")
 
+## Repaint whenever the drawing changes, seen or not (the 3D stage shows
+## figures through its own viewport, which the on-screen check can't see).
+static var always := false
+
 var _viewport: SubViewport
 var _painter: Node2D
 var _seen: VisibleOnScreenNotifier2D
@@ -49,7 +53,7 @@ func setup(size: Vector2, origin: Vector2, paint: Callable) -> void:
 
 ## Asks for a fresh drawing this frame, if anyone can see it.
 func redraw() -> void:
-	if _painter and _active and _seen.is_on_screen():
+	if _painter and _active and (always or _seen.is_on_screen()):
 		_render()
 
 

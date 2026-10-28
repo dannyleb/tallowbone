@@ -56,7 +56,9 @@ jobs:
           dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           mkdir -p "$dest" && cp ~/godot/templates/* "$dest/"
           echo "$HOME/godot" >> "$GITHUB_PATH"
-          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null
+          # Mesa's software GL and Vulkan (lavapipe): the screenshots draw the
+          # 3D stage with the full desktop renderer.
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libgl1-mesa-dri mesa-vulkan-drivers > /dev/null
           # .gdignore keeps Godot from importing CI's own output (logs, and
           # the web build when the Mac app is exported after it).
           mkdir -p ci-out/shots build && touch ci-out/.gdignore build/.gdignore
@@ -76,9 +78,9 @@ jobs:
 
       - name: Screenshots
         if: always()
-        timeout-minutes: 5
+        timeout-minutes: 12
         run: |
-          xvfb-run -a -s "-screen 0 1280x720x24" timeout -k 10 240 godot --audio-driver Dummy --path . --rendering-driver opengl3 --resolution 1280x720 \
+          xvfb-run -a -s "-screen 0 1280x720x24" timeout -k 10 660 godot --audio-driver Dummy --path . --rendering-driver vulkan --resolution 1280x720 \
             --fixed-fps 60 --script res://tests/screenshots.gd -- "$PWD/ci-out/shots" 2>&1 | head -c 20000000 | tee ci-out/screenshots.log
 
       - name: Export web build

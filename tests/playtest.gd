@@ -39,6 +39,7 @@ func _run() -> void:
 	await _frames(30)
 
 	await _scenario("_level_loaded", _level_loaded)
+	await _scenario("_stage", _stage)
 	await _scenario("_starts_with_little", _starts_with_little)
 	await _scenario("_movement", _movement)
 	await _scenario("_ledge_assist", _ledge_assist)
@@ -164,6 +165,21 @@ func _level_loaded() -> void:
 	_check("player lands at the start", player.is_on_floor() and absf(player.position.y - 640.0) < 1.0, str(player.position))
 	var lit_figures: bool = player._fig.texture != null and world.enemies.all(func(e): return e._fig.texture != null)
 	_check("actors are drawn as lit, rounded figures", lit_figures)
+
+
+## The 3D stage (on unless ?2d) is built from the level, and the flat 2D
+## look is off under it.
+func _stage() -> void:
+	var st = main.stage
+	_check("the 3D stage is on", st != null)
+	if st == null:
+		return
+	_check("it extrudes the level's stone and back walls", st.counts.stone_faces > 2000 and st.counts.back_faces > 100, str(st.counts))
+	_check("a light for every street lamp, and a city behind", st.counts.lamp_lights == world.lamps.size() and st.counts.buildings > 50, str(st.counts))
+	_check("veils are built, and water drips off the ledges", st.counts.veil == 3 and st.counts.drips > 20, str(st.counts))
+	_check("the flat 2D tiles and night are off", not world.level.ground.visible and not world.get_node("Night").visible)
+	_check("actors and props draw onto the 3D plane, effects over it",
+		st.plane_vp.world_2d == main.game.world_2d and world.player.visibility_layer == st.ON_PLANE and main.game.canvas_cull_mask == st.OVERLAY)
 
 
 ## You start with walk, jump and strike; the rest is found.
@@ -308,6 +324,8 @@ func _veil() -> void:
 	_check("holding strike turns the Pole to its Lantern", player.form == "lantern", player.form)
 	var lv = world.level
 	_check("the Lantern burns the whole veil", lv.kind_at(Vector2i(85, 17)) == "" and lv.kind_at(Vector2i(85, 18)) == "" and lv.kind_at(Vector2i(85, 19)) == "")
+	if main.stage:
+		_check("and it's gone from the 3D stage too", main.stage.counts.veil == 0, str(main.stage.counts))
 	await _tap("transform")
 	await _frames(20)
 	_check("the transform key still turns it back", player.form == "hook", player.form)

@@ -1,0 +1,95 @@
+// Wet stone for the 3D stage, mapped in world space (triplanar), so the
+// generated level geometry needs no UVs. Faces looking up get cobbles,
+// everything else cut-stone blocks. The rain does the rest: darker, glossy
+// stone; standing water in the dips of anything flat; thin sheets of water
+// running down walls, catching the lamps.
+shader_type spatial;
+render_mode cull_back, diffuse_burley, specular_schlick_ggx;
+
+uniform sampler2D wall_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D wall_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D wall_rough : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D top_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D top_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D top_rough : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+// Soft tileable noise (red): puddles, running water, grime.
+uniform sampler2D wet_noise : hint_default_black, filter_linear_mipmap, repeat_enable;
+
+// Metres of world per texture repeat.
+uniform float tile_m = 2.0;
+uniform vec3 tint : source_color = vec3(1.0);
+// 0 dry .. 1 soaked.
+uniform float wetness : hint_range(0.0, 1.0) = 0.85;
+// How much of the flat tops stands in puddles.
+uniform float puddles : hint_range(0.0, 1.0) = 0.45;
+uniform float bump = 1.0;
+
+varying vec3 wpos;
+varying vec3 wnrm;
+
+void vertex() {
+	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	wnrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+}
+
+void fragment() {
+	vec3 n = normalize(wnrm);
+	vec3 blend = pow(abs(n), vec3(6.0));
+	blend /= (blend.x + blend.y + blend.z);
+	float sx = n.x >= 0.0 ? 1.0 : -1.0;
+	float sz = n.z >= 0.0 ? 1.0 : -1.0;
+	// Image "up" is world up on the sides; on tops the image runs along x
+	// and toward you.
+	vec2 uv_x = vec2(-wpos.z * sx, -wpos.y) / tile_m;
+	vec2 uv_y = vec2(wpos.x, wpos.z) / tile_m;
+	vec2 uv_z = vec2(wpos.x * sz, -wpos.y) / tile_m;
+	bool up = n.y > 0.0;
+
+	vec3 alb_x = texture(wall_albedo, uv_x).rgb;
+	vec3 alb_z = texture(wall_albedo, uv_z).rgb;
+	vec3 alb_y = up ? texture(top_albedo, uv_y).rgb : texture(wall_albedo, uv_y).rgb;
+	vec3 albedo = alb_x * blend.x + alb_y * blend.y + alb_z * blend.z;
+
+	float r_x = texture(wall_rough, uv_x).r;
+	float r_z = texture(wall_rough, uv_z).r;
+	float r_y = up ? texture(top_rough, uv_y).r : texture(wall_rough, uv_y).r;
+	float rough = r_x * blend.x + r_y * blend.y + r_z * blend.z;
+
+	// Tangent-space normals per projection, blended in world space
+	// ("whiteout" blend), then into view space.
+	vec3 t_x = texture(wall_normal, uv_x).xyz * 2.0 - 1.0;
+	vec3 t_z = texture(wall_normal, uv_z).xyz * 2.0 - 1.0;
+	vec3 t_y = (up ? texture(top_normal, uv_y).xyz : texture(wall_normal, uv_y).xyz) * 2.0 - 1.0;
+	t_x.xy *= bump;
+	t_y.xy *= bump;
+	t_z.xy *= bump;
+	// Side faces: texture x runs along -z*sx, texture up is +y.
+	vec3 w_x = vec3(abs(t_x.z) * n.x, t_x.y + n.y, -t_x.x * sx + n.z);
+	// Tops: texture x along +x, texture up is -z.
+	vec3 w_y = vec3(t_y.x + n.x, abs(t_y.z) * n.y, -t_y.y + n.z);
+	// Fronts: texture x along +x*sz, texture up is +y.
+	vec3 w_z = vec3(t_z.x * sz + n.x, t_z.y + n.y, abs(t_z.z) * n.z);
+	vec3 wn = normalize(w_x * blend.x + w_y * blend.y + w_z * blend.z);
+
+	// Puddles: where the noise dips on anything facing up.
+	float noise_top = texture(wet_noise, wpos.xz * 0.23).r;
+	float puddle = smoothstep(1.0 - puddles, 1.0 - puddles + 0.08, 1.0 - noise_top) * smoothstep(0.75, 0.95, n.y);
+	// Running water down the walls: thin streaks that slide downward.
+	float across = texture(wet_noise, vec2(wpos.x * 1.7 + wpos.z * 1.7, 0.37)).r;
+	float flow = texture(wet_noise, vec2(wpos.x * 3.1 + wpos.z * 3.1, wpos.y * 0.35 + TIME * 0.18)).r;
+	float sheet = smoothstep(0.62, 0.8, across) * smoothstep(0.45, 0.7, flow) * (1.0 - abs(n.y));
+
+	float wet = wetness * (0.65 + 0.35 * texture(wet_noise, wpos.xy * 0.11 + wpos.zz * 0.11).r);
+	albedo *= tint;
+	albedo *= mix(1.0, 0.55, wet);              // wet stone darkens
+	albedo = mix(albedo, albedo * 0.45, puddle);
+	rough = mix(rough, rough * 0.35, wet);
+	rough = mix(rough, 0.03, max(puddle, sheet * 0.8));
+	// Standing water is flat; running water smooths the bumps a little.
+	wn = normalize(mix(wn, n, max(puddle, sheet * 0.5)));
+
+	ALBEDO = albedo;
+	ROUGHNESS = clamp(rough, 0.02, 1.0);
+	SPECULAR = 0.5;
+	NORMAL = normalize((VIEW_MATRIX * vec4(wn, 0.0)).xyz);
+}

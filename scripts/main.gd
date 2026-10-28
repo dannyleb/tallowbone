@@ -9,6 +9,7 @@ const Glow = preload("res://scripts/glow.gd")
 const Keys = preload("res://scripts/keys.gd")
 const MapView = preload("res://scripts/map_view.gd")
 const Bench = preload("res://scripts/bench.gd")
+const Stage = preload("res://scripts/stage.gd")
 
 const INK := Color("07080d")
 const BONE := Color("e8dfcf")
@@ -55,6 +56,9 @@ var _map: Control
 var _keys: Label
 var _debug_allowed := false
 var _bench = null
+## The 3D stage (scripts/stage.gd); null with ?2d, which shows the flat
+## lit-2D look instead.
+var stage = null
 var _perf: Label
 var _clock := 0
 var _slow_t := 0.0
@@ -75,6 +79,13 @@ func _ready() -> void:
 	var forced := query.get_slice("scale=", 1).to_float() if query.contains("scale=") else 0.0
 	if forced > 0.0:
 		fixed_scale = clampf(forced, 0.5, 8.0)
+	if not query.contains("2d"):
+		game.disable_3d = false
+		game.own_world_3d = true
+		stage = Stage.new()
+		stage.main = self
+		stage.world = world
+		game.add_child(stage)
 	get_viewport().size_changed.connect(fit_view)
 	fit_view()
 	var web_debug := query.contains("debug")
@@ -139,6 +150,8 @@ func fit_view() -> void:
 	render_scale = fixed_scale if fixed_scale > 0.0 else minf(native, render_cap)
 	game.size_2d_override = Vector2i(logical.round())
 	game.size = Vector2i((logical * render_scale).round())
+	if stage:
+		stage.fit()
 
 
 func _process(_delta: float) -> void:
@@ -216,7 +229,7 @@ func _notification(what: int) -> void:
 		set_paused(true)
 
 
-## The page's query string on the web (?debug, ?perf, ?scale=1.5, ?bench),
+## The page's query string on the web (?debug, ?perf, ?scale=1.5, ?bench, ?2d),
 ## or the command-line arguments after `--` elsewhere (--bench, --perf).
 func _query() -> String:
 	if OS.has_feature("web"):

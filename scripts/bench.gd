@@ -10,10 +10,11 @@ extends Node
 ## Where to stand: a lamp-lit street with figures, the canal (water), the
 ## undercroft (lamp, enemies, back wall).
 const SPOTS := [["street", Vector2(400, 640)], ["canal", Vector2(1000, 640)], ["undercroft", Vector2(3150, 896)]]
-## Systems switched off, one config at a time. "everything" is all of them:
-## what's left is the tiles and the engine.
-const CONFIGS := [[], ["figures"], ["lights"], ["normals"], ["water"], ["weather"], ["backdrop"], ["fx"], ["hud"], ["everything"]]
+## Systems switched off, one at a time, then all at once ("everything":
+## what's left is the level and the engine). The flat 2D look (?2d) has
+## SYSTEMS; the 3D stage has STAGE_SYSTEMS.
 const SYSTEMS := ["figures", "lights", "normals", "water", "weather", "backdrop", "fx", "hud"]
+const STAGE_SYSTEMS := ["shadows", "fog", "reflections", "glow", "rain", "city", "plane", "fx", "hud"]
 ## Then everything on again, with the game view drawn at these render
 ## scales (render px per world px; those below the starting scale only).
 const SCALES := [2.0, 1.5, 1.0]
@@ -65,7 +66,7 @@ func _run() -> void:
 	player = world.player
 	_status("Benchmark: starting")
 	var info := {
-		"adapter": "%s / %s" % [RenderingServer.get_video_adapter_vendor(), RenderingServer.get_video_adapter_name()],
+		"adapter": "%s / %s, %s" % [RenderingServer.get_video_adapter_vendor(), RenderingServer.get_video_adapter_name(), RenderingServer.get_current_rendering_method()],
 		"window": str(DisplayServer.window_get_size()),
 		"render": "%dx%d (%.1fx)" % [main.game.size.x, main.game.size.y, main.render_scale],
 		"view": str(world.view_size()),
@@ -87,7 +88,11 @@ func _run() -> void:
 		_status("Benchmark: first visit to %s, worst frame %.0f ms" % [spot[0], m.max_ms])
 
 	var rows := []
-	var configs: Array = [[]] if quick else CONFIGS
+	var configs: Array = [[]]
+	if not quick:
+		for s in _systems():
+			configs.append([s])
+		configs.append(["everything"])
 	for off in configs:
 		var name: String = "everything on" if off.is_empty() else "no " + ", ".join(PackedStringArray(off))
 		_switch(off, true)
@@ -187,13 +192,20 @@ func _measure(seconds: float) -> Dictionary:
 		"process_ms": _process_ms / n, "physics_ms": _physics_ms / n, "draw_calls": _draw_calls / n}
 
 
+func _systems() -> Array:
+	return STAGE_SYSTEMS if main.stage else SYSTEMS
+
+
 func _switch(off: Array, now_off: bool) -> void:
-	var systems: Array = SYSTEMS if off.has("everything") else off
+	var systems: Array = _systems() if off.has("everything") else off
 	for s in systems:
 		_switch_system(s, now_off)
 
 
 func _switch_system(system: String, off: bool) -> void:
+	if main.stage and system in ["shadows", "fog", "reflections", "glow", "rain", "city", "plane"]:
+		main.stage.set_feature(system, not off)
+		return
 	match system:
 		"figures":
 			for a in [player] + world.enemies:

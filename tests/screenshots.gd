@@ -27,12 +27,12 @@ func _run() -> void:
 	await _frames(10)
 	world = main.world
 	player = world.player
+	# CI draws with the CPU, so the game runs at a tiny render scale between
+	# shots, and each shot is drawn at 2x (see _shot).
+	main.fixed_scale = 0.5
+	main.fit_view()
 	await _shot("01-title")
 	main.start_game()
-	# Always drawn at 2x: CI's software renderer is slow enough that the
-	# adaptive scaling would otherwise soften the shots.
-	main.fixed_scale = 2.0
-	main.fit_view()
 	# The shots show the whole kit; the playtest covers finding it.
 	player.unlock_all()
 
@@ -47,7 +47,7 @@ func _run() -> void:
 	var e = world.level.get_node("Entities/Communicant2")
 	await _tp(e.position.x - 90.0, 640.0, 1.0)
 	for i in 400:
-		if e.state == "windup" and e.t >= e.def.windup - e.def.parry + 0.06:
+		if e.state == "windup" and e.t >= e.def.windup - e.def.parry + 0.04:
 			break
 		await physics_frame
 	await _shot("03-glint")
@@ -158,12 +158,22 @@ func _tp(x: float, y: float, facing := 1.0) -> void:
 	await _frames(2)
 
 
+## Draws the moment at 2x with the game held still, lets the 3D stage's
+## temporal effects (fog, reflections) settle for a few frames, and saves it.
 func _shot(name: String) -> void:
 	# Invulnerable between shots, but not blinking in them.
 	player.iframes = 0.0
-	await physics_frame
+	var was_paused := paused
+	paused = true
+	main.fixed_scale = 2.0
+	main.fit_view()
+	for i in 8:
+		await process_frame
 	await RenderingServer.frame_post_draw
 	var img := root.get_texture().get_image()
 	img.save_png("%s/%s.png" % [out_dir, name])
+	main.fixed_scale = 0.5
+	main.fit_view()
+	paused = was_paused
 	player.iframes = 999.0
 	print("saved ", name)

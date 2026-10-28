@@ -7,6 +7,9 @@ extends Node2D
 
 const T = preload("res://scripts/tuning.gd")
 
+## Veil tiles burnt away (the 3D stage rebuilds its veils).
+signal burnt(cells: Array[Vector2i])
+
 @export var level_name := "Unnamed"
 ## Width and height in tiles. Past the sides and the bottom counts as stone.
 @export var size_tiles := Vector2i(100, 30)
@@ -92,6 +95,8 @@ func burn(rect: Rect2) -> Array[Vector2i]:
 		todo.append(cell + Vector2i.LEFT)
 		todo.append(cell + Vector2i.DOWN)
 		todo.append(cell + Vector2i.UP)
+	if not out.is_empty():
+		burnt.emit(out)
 	return out
 
 
