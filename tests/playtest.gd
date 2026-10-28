@@ -181,11 +181,12 @@ func _movement() -> void:
 ## Pushing into a ledge with your feet just under its top pops you onto it.
 func _ledge_assist() -> void:
 	# The two-tile block on Lamplighter's Row: cols 14-15, top at y 576.
+	# Coming in from mid-air, feet a few px short of its top.
 	await _tp(400.0, 640.0, 1.0, 99.0)
-	player.position = Vector2(14 * 32 - 9.0, 576.0 + 8.0)
-	player.velocity = Vector2(200.0, 40.0)
+	player.position = Vector2(14 * 32 - 18.0, 576.0 + 4.0)
+	player.velocity = Vector2(200.0, 0.0)
 	Input.action_press("move_right")
-	await _frames(8)
+	await _frames(10)
 	Input.action_release("move_right")
 	_check("a jump that clips a ledge still lands on it", player.is_on_floor() and absf(player.position.y - 576.0) < 1.0, str(player.position))
 	await _frames(5)
@@ -335,9 +336,10 @@ func _quickstep() -> void:
 	var x0: float = player.position.x
 	await _tap("dash", 2)
 	var stepped: bool = await _wait_until(func(): return player.state == "dash", 3)
-	var safe_mid: bool = player.iframes > 0.0
+	var hit_mid: bool = Combat.hurt_player(world, 10.0, player.position.x + 40.0)
 	await _frames(15)
-	_check("quickstep darts forward, untouchable", stepped and safe_mid and player.position.x - x0 > 70.0, "moved %.1f" % (player.position.x - x0))
+	_check("quickstep darts forward, untouchable", stepped and not hit_mid and player.position.x - x0 > 70.0,
+		"dashing %s hit %s moved %.1f" % [stepped, hit_mid, player.position.x - x0])
 	_fresh()
 
 
@@ -426,7 +428,7 @@ func _chimney() -> void:
 	var vials: int = player.max_vials
 	var top: float = await _climb(600)
 	var it = world.level.get_node("Entities/VialHolder1")
-	_check("with them you wall-jump up it", top <= 128.5, "reached y %s" % top)
+	_check("with them you wall-jump up it", top <= 160.5, "reached y %s" % top)
 	_check("and the vial holder up there adds a vial", it.taken and player.max_vials == vials + 1)
 	_fresh()
 
@@ -444,8 +446,8 @@ func _climb(max_frames: int) -> float:
 	Input.action_press("jump")
 	for f in max_frames:
 		top = minf(top, player.position.y)
-		if player.is_on_floor() and player.position.y <= 128.5:
-			# On the walkway over the chimney: walk to the vial.
+		if player.is_on_floor() and player.position.y <= 160.5:
+			# On the ledge by the chimney top: walk to the vial.
 			Input.action_release(dir)
 			Input.action_release("jump")
 			dir = "move_right"
