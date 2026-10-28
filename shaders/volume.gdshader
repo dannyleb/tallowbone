@@ -14,14 +14,9 @@ uniform float detail = 0.6;
 // Wet sheen: specular strength.
 uniform float gloss : hint_range(0.0, 1.0) = 0.25;
 
-float alpha_at(vec2 uv) {
-	return texture(TEXTURE, uv).a;
-}
-
-float lum_at(vec2 uv) {
-	vec4 c = texture(TEXTURE, uv);
-	return dot(c.rgb, vec3(0.299, 0.587, 0.114)) * c.a;
-}
+// TEXTURE only exists inside fragment(), so these are macros, not functions.
+#define alpha_at(uv) texture(TEXTURE, uv).a
+#define lum_at(uv) (dot(texture(TEXTURE, uv).rgb, vec3(0.299, 0.587, 0.114)) * texture(TEXTURE, uv).a)
 
 void fragment() {
 	vec4 c = texture(TEXTURE, UV);

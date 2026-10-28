@@ -37,20 +37,22 @@ Where things are:
 
 ## Controls
 
-| Action | Keyboard | Gamepad |
-|---|---|---|
-| Walk | A D (or arrows) | Left stick / D-pad |
-| Jump (S + jump drops through walkways) | Space or Z | A |
-| Strike | J or X | X / RB |
-| Transform (mid-combo: trick attack) | K or C | LB |
-| Pistol (parry on the glint) | L or V | LT / RT |
-| Quickstep | Shift | B |
-| Vial | F | Y |
-| Blood bullets (hold) | R | Back |
-| Light / rest at a lamp | E | D-pad up |
-| Pause | Esc | Start |
+| Action | Mouse & keyboard | No mouse | Gamepad |
+|---|---|---|---|
+| Walk | A D | A D (or arrows) | Left stick / D-pad |
+| Jump (S + jump drops through walkways) | Space | Space | A |
+| Strike | Left-click | J | X / RB |
+| Pistol (shoot as an enemy glints to parry; hold when empty for blood bullets) | Right-click | K | LT / RT |
+| Quickstep | Shift | L | B |
+| Transform (mid-combo: trick attack) | Q or mouse wheel | I | LB |
+| Vial | F | F | Y |
+| Light / rest at a lamp | E or W | E or W | D-pad up |
+| Pause | Esc | Esc | Start |
 
-You can rebind everything in **Project → Project Settings → Input Map**.
+Signs and prompts show the keys for whatever you're holding. The first
+parry and the first Visceral are taught in the moment (time slows, a prompt
+says what to press). Rebind in **Project → Project Settings → Input Map**,
+or edit `tools/input_map.py` and run it.
 
 ## How it's built and tested
 
@@ -85,13 +87,20 @@ scripts/
   combat.gd          damage, Rally, parries, deaths
   tallow.gd          Tallow drop, pickup, Gorged enemies
   level.gd           tile queries, veil burning
-  hud.gd, main.gd    HUD, title/pause screens
+  hud.gd, main.gd    HUD, title/pause screens, lesson prompts
+  keys.gd            key names for the device in use ({attack} -> Left-click)
+  figure.gd          paints an actor into a SubViewport, shown lit and rounded
   backdrop.gd        sky, moon, parallax skyline, fog
+  weather.gd         rain, splashes, ground mist
   fx_layer.gd        particles, glints, glows, debug hitboxes
+shaders/
+  volume.gdshader    rounds flat drawings under 2D lights (characters, art)
+  water.gdshader     the canal: reflects the scene above it
 assets/              fonts (OFL), placeholder sounds, greybox tiles
+                     (colour, normal and gloss atlases)
 tiles/               the TileSet
-tools/               Python generators for the greybox tiles, sounds and
-                     the ASCII level (tools/levels/*.txt)
+tools/               Python generators: lit greybox tiles, sounds, the
+                     ASCII level (tools/levels/*.txt), the input map
 tests/               headless playtest and screenshot scripts (CI)
 docs/DESIGN.md       the design document
 ```

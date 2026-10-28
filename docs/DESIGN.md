@@ -35,6 +35,16 @@ The city's lamps burn tallow rendered from its own victims.
 5. **Beauty in decay.** Hand-illustrated, lamp-lit, foggy. The horror comes
    from what you aren't shown.
 
+### What every good Metroidvania needs, and how we meet it
+| Fundamental | In Tallowbone | Status |
+|---|---|---|
+| **Utility-gated exploration**: the way on is blocked by an ability you don't have yet, not a key | Trick Arm forms are the gates. The Lantern burns veils **[slice]**. Next: Boathook vault, Chain-Cane swing, Bell-Maul floors, Mill-Saw walls; movement upgrades **Climbing Irons** (wall cling and wall jump) and **Updraft** (the lantern's heat lifts a second jump) | one gate so far |
+| **Backtracking that changes things**: old dead ends become shortcuts and secrets | New forms reopen old places; Second Sight shows a hidden layer; the Long Night changes the city after each boss; souls-style **shortcuts** (gates and ladders opened from the far side, back to a lamp) | [planned] |
+| **One interconnected, memorable map** | One continuous city, districts joined in loops; landmarks you can see from far off in the backdrop (church spire, canal locks, mill wheel); a **self-updating map** marking lamps, veils, your Tallow and Gorged enemies | map [planned, M1] |
+| **Tight, responsive movement** | Coyote time, jump buffer, variable jump, quickstep, buffered presses, freeze-frames **[slice]**; next: wall jump, corner correction (nudging you past a ledge you barely clip) | ongoing |
+| **Rewards that matter**: never filler | Vial Holders, Bullet Pouches **[slice]**; Bone, new Trick Arms, Second Sight relics. Rule: every secret gives something you can feel in play | ongoing |
+| **Environmental storytelling** | The setting tells it: the church, the meeting hall, what's under it, what the lamps burn; item text and overheard Communicants. The tutorial signs become lore and in-world prompts later | [planned] |
+
 ## 3. Setting
 
 **Real-world roots, made fiction:**
@@ -102,13 +112,14 @@ from the Rally window and committed attacks instead.
 | Visceral | Strike a staggered enemy: heavy damage, invulnerable, refills Rally | [slice] |
 | Quickstep | Short dash. Can't be hit for most of it, passes through enemies, one per jump | [slice] |
 | Vials | Limited heals. Lamps refill them. Vial Holders raise the cap | [slice] |
-| Blood bullets | Hold to spend 20 HP for 4 rounds. The HP becomes Rally | [slice] |
+| Blood bullets | Out of bullets, hold the pistol: 20 HP for 4 rounds. The HP becomes Rally | [slice] |
 | Air attacks | Same moveset in the air, no lunge | [slice] |
 
 ### 6.3 The Blood Loop
 1. **Rally:** damage you take hangs on as a pale bar for ~0.6 s, then
    drains. Melee hits win back 60% of the damage you deal.
-2. **Blood bullets:** turn HP into ammo whenever you want. Rally can win it
+2. **Blood bullets:** out of ammo, keep holding the pistol to turn HP into
+   rounds. Rally can win it
    back, so aggressive players never run dry.
 3. **Parry:** shoot during the glint, and the enemy staggers.
 4. **Visceral:** big damage and **all** your Rally back at once.
@@ -134,6 +145,29 @@ from the Rally window and committed attacks instead.
 
 Off-hand guns: pistol **[slice]**, blunderbuss (spread, close stagger)
 **[planned]**, flare pistol (lights dark areas) **[planned]**.
+
+### 6.6 Controls: easy to pick up
+Mouse-first on PC, because that's what PC players already know, and every
+action stays one press:
+
+| Action | Mouse & keyboard | No mouse | Gamepad |
+|---|---|---|---|
+| Walk / jump | A D / Space | A D / Space | Left stick / A |
+| Strike | Left-click | J | X |
+| Pistol (parry) | Right-click | K | LT |
+| Quickstep | Shift | L | B |
+| Transform | Q (or mouse wheel) | I | LB |
+| Vial | F | F | Y |
+| Lamp | E (or W) | E | D-pad up |
+
+- No separate blood-bullet button: holding the pistol when empty does it.
+  **[slice]**
+- Signs and prompts name the keys for whatever you're holding (mouse and
+  keyboard or gamepad). **[slice]**
+- **Lessons in the moment:** the first time an enemy glints near you, time
+  slows and a prompt says to shoot; the first stagger says to strike. Each
+  stops once you've done it. **[slice]**
+- Rebinding in an options menu, and touch controls. **[planned]**
 
 ## 7. Economy: Tallow & Bone
 
@@ -192,6 +226,16 @@ The Metroidvania-native mechanic.
   Second Sight.
 - **Light is the art:** the scene is dark by default. Lamps, your lantern,
   Tallow and muzzle flashes cut it open. **[slice]**
+- **Lit like 3D, drawn in 2D.** Surfaces have normal maps (bumps) and
+  specular maps (wet gloss), so lamps, your lantern and the moon light them
+  like real stone, wood and water: raking light across brick, glints on wet
+  cobbles. Characters go through a volume shader that rounds them under the
+  same lights. Rain, splashes, ground mist and a canal that reflects the
+  scene. **[slice, greybox]**
+- **For the illustrations:** paint flat colour with no lighting baked in;
+  the volume shader rounds it automatically. For more relief, add a normal
+  map (painted, or generated from the drawing with a tool such as Laigter)
+  and a gloss map for wet or metal parts.
 - **Photo reference:** upstate architecture, fog and lamp light. Use it for
   textures and lighting studies.
 - Type: IM Fell English (period print), Cinzel for numbers. **[slice]**
@@ -212,8 +256,14 @@ The Metroidvania-native mechanic.
   lights. Native PC / Mac / Linux / Steam Deck builds later.
 - Fixed 60 Hz simulation: the World steps the player, enemies and systems
   itself, so hit-stop freezes it cleanly.
-- The night is a CanvasModulate; lamps, your lantern, Tallow and gorged
-  enemies are PointLight2Ds. Glints and embers draw unshaded on top.
+- The night is a CanvasModulate, a DirectionalLight2D moon, and
+  PointLight2Ds for lamps, your lantern, Tallow and Gorged enemies. Tiles
+  use a CanvasTexture (colour + normal + specular, 64px shown at half
+  size); indoor back walls are on light mask 2 so the moon skips them.
+  Glints and embers draw unshaded on top.
+- Actors paint their greybox drawing into a SubViewport (`scripts/figure.gd`)
+  shown through `shaders/volume.gdshader`. The canal is
+  `shaders/water.gdshader` (screen reflection).
 - Levels are scenes with TileMapLayers (`Ground`, `BackWall`) and placed
   entities. The first was generated from ASCII by `tools/build_level.py`.
 - CI (GitHub Actions) imports the project, runs a headless scripted
@@ -226,13 +276,15 @@ The Metroidvania-native mechanic.
 | # | Milestone | Status |
 |---|---|---|
 | M0 | **Greybox slice:** movement, Lamplighter's Pole (both forms), gun parry, Visceral, Rally, blood bullets, vials, lamps + levelling, Tallow drop / Gorged / reclaim, veil gating, one district | **done** |
-| M1 | First boss (a fallen Watchman, a hunter who uses your toolkit). The Parlor hub. Saving | next |
+| M1 | First boss (a fallen Watchman, a hunter who uses your toolkit). The Parlor hub. Saving. The map | next |
 | M2 | Second Weapon (Boathook) and its gated area. Bone upgrades | |
 | M3 | Second Sight + Dread, one revealed-layer area | |
 | M4 | Art pass on the Canal District: illustrated backgrounds and character animation | |
 | M5 | Music and sound pass | |
 | M6 | Touch controls, gamepad remapping | |
 | — | Engine move: JavaScript prototype → Godot 4.7, same slice | **done** |
+| — | Easy controls: mouse-first layout, keys named for your device, lessons for the parry and Visceral | **done** |
+| — | Lit greybox: normal and gloss maps, moonlight, rounded characters, rain, mist, reflective water | **done** |
 
 ## 14. Open questions
 - Lore: who is the Medium, and what is the church actually burning?
