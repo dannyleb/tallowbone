@@ -205,15 +205,22 @@ The Metroidvania-native mechanic.
 - The current sound effects are synthesized placeholders.
 
 ## 12. Tech
-- Plain JavaScript (ES modules) + Canvas 2D, bundled with esbuild. No
-  framework. Same setup as Hairy Popsicles.
-- Fixed 60 Hz simulation, render whenever the browser asks.
-- Deployed to GitHub Pages on every push to `main`. itch.io once
-  `ITCH_TARGET` is set.
-- Levels are ASCII maps (`src/levels/`). Move to a level editor (LDtk) once
-  the map grows past a few rooms.
-- `?debug` in the URL shows hitboxes (H toggles them) and exposes
-  `window.tallowbone`.
+- **Godot 4.7**, GDScript, Compatibility renderer (so it runs on the web).
+  Moved from the JavaScript prototype (kept on the `js-prototype` branch)
+  for the editor: painting levels, placing things, animation (Skeleton2D /
+  AnimationPlayer for cut-out characters), particles, shaders and real 2D
+  lights. Native PC / Mac / Linux / Steam Deck builds later.
+- Fixed 60 Hz simulation: the World steps the player, enemies and systems
+  itself, so hit-stop freezes it cleanly.
+- The night is a CanvasModulate; lamps, your lantern, Tallow and gorged
+  enemies are PointLight2Ds. Glints and embers draw unshaded on top.
+- Levels are scenes with TileMapLayers (`Ground`, `BackWall`) and placed
+  entities. The first was generated from ASCII by `tools/build_level.py`.
+- CI (GitHub Actions) imports the project, runs a headless scripted
+  playtest, renders screenshots, exports the web build and deploys it to
+  GitHub Pages on every push to `main`.
+- H shows hitboxes when playing from the editor; `?debug` does it on the
+  web build.
 
 ## 13. Milestones
 | # | Milestone | Status |
@@ -225,6 +232,7 @@ The Metroidvania-native mechanic.
 | M4 | Art pass on the Canal District: illustrated backgrounds and character animation | |
 | M5 | Music and sound pass | |
 | M6 | Touch controls, gamepad remapping | |
+| — | Engine move: JavaScript prototype → Godot 4.7, same slice | **done** |
 
 ## 14. Open questions
 - Lore: who is the Medium, and what is the church actually burning?

@@ -1,0 +1,73 @@
+[gd_resource type="TileSet" load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/tiles/greybox.png" id="1_atlas"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_greybox"]
+texture = ExtResource("1_atlas")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+0:0/0/custom_data_0 = "stone"
+1:0/0 = 0
+1:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+1:0/0/custom_data_0 = "stone"
+2:0/0 = 0
+2:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+2:0/0/custom_data_0 = "stone"
+3:0/0 = 0
+3:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+3:0/0/custom_data_0 = "stone"
+4:0/0 = 0
+4:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+4:0/0/custom_data_0 = "stone"
+5:0/0 = 0
+5:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+5:0/0/custom_data_0 = "stone"
+6:0/0 = 0
+6:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+6:0/0/custom_data_0 = "stone"
+7:0/0 = 0
+7:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+7:0/0/custom_data_0 = "stone"
+0:1/0 = 0
+0:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+0:1/0/custom_data_0 = "stone"
+1:1/0 = 0
+1:1/0/physics_layer_1/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, -10, -16, -10)
+1:1/0/physics_layer_1/polygon_0/one_way = true
+1:1/0/custom_data_0 = "walkway"
+2:1/0 = 0
+2:1/0/physics_layer_1/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, -10, -16, -10)
+2:1/0/physics_layer_1/polygon_0/one_way = true
+2:1/0/custom_data_0 = "walkway"
+3:1/0 = 0
+3:1/0/physics_layer_1/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, -10, -16, -10)
+3:1/0/physics_layer_1/polygon_0/one_way = true
+3:1/0/custom_data_0 = "walkway"
+4:1/0 = 0
+4:1/0/physics_layer_1/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, -10, -16, -10)
+4:1/0/physics_layer_1/polygon_0/one_way = true
+4:1/0/custom_data_0 = "walkway"
+5:1/0 = 0
+5:1/0/custom_data_0 = "water"
+6:1/0 = 0
+6:1/0/custom_data_0 = "water"
+7:1/0 = 0
+7:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+7:1/0/custom_data_0 = "veil"
+0:2/0 = 0
+0:2/0/custom_data_0 = "wall"
+1:2/0 = 0
+1:2/0/custom_data_0 = "wall"
+2:2/0 = 0
+2:2/0/custom_data_0 = "wall"
+
+[resource]
+tile_size = Vector2i(32, 32)
+physics_layer_0/collision_layer = 1
+physics_layer_0/collision_mask = 0
+physics_layer_1/collision_layer = 2
+physics_layer_1/collision_mask = 0
+custom_data_layer_0/name = "kind"
+custom_data_layer_0/type = 4
+sources/0 = SubResource("TileSetAtlasSource_greybox")

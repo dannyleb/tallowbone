@@ -1,5 +1,11 @@
-node_modules/
-dist/
-tallowbone-web.zip
-*.log
+# Godot
+.godot/
+build/
+export_credentials.cfg
+*.translation
+
+# CI and tool output
+ci-out/
+tools/__pycache__/
+
 .DS_Store

@@ -1,0 +1,39 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/sfx.gd" id="2_sfx"]
+[ext_resource type="Script" path="res://scripts/backdrop.gd" id="3_backdrop"]
+[ext_resource type="PackedScene" path="res://scenes/world.tscn" id="4_world"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="5_hud"]
+
+[node name="Main" type="Node"]
+process_mode = 3
+script = ExtResource("1_main")
+
+[node name="Sfx" type="Node" parent="."]
+script = ExtResource("2_sfx")
+
+[node name="BackdropLayer" type="CanvasLayer" parent="."]
+layer = -10
+
+[node name="Backdrop" type="Node2D" parent="BackdropLayer"]
+script = ExtResource("3_backdrop")
+
+[node name="World" parent="." instance=ExtResource("4_world")]
+process_mode = 1
+
+[node name="HudLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="Hud" type="Control" parent="HudLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("5_hud")
+
+[node name="UiLayer" type="CanvasLayer" parent="."]
+layer = 20

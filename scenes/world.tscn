@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/world.gd" id="1_world"]
+[ext_resource type="PackedScene" path="res://scenes/levels/canal_district.tscn" id="2_level"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="3_player"]
+[ext_resource type="Script" path="res://scripts/fx_layer.gd" id="4_fx"]
+
+[node name="World" type="Node2D"]
+script = ExtResource("1_world")
+
+[node name="Night" type="CanvasModulate" parent="."]
+color = Color(0.36, 0.37, 0.45, 1)
+
+[node name="Level" parent="." instance=ExtResource("2_level")]
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+z_index = 3
+
+[node name="FxShaded" type="Node2D" parent="."]
+z_index = 4
+script = ExtResource("4_fx")
+
+[node name="FxOverlay" type="Node2D" parent="."]
+z_index = 5
+script = ExtResource("4_fx")
+mode = "overlay"
+
+[node name="FxGlow" type="Node2D" parent="."]
+z_index = 6
+script = ExtResource("4_fx")
+mode = "glow"
+
+[node name="Camera2D" type="Camera2D" parent="."]

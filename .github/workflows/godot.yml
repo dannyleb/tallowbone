@@ -1,0 +1,126 @@
+name: Build, test and deploy
+
+# Every push and pull request: import the project, run the headless
+# playtest, render screenshots and export the web build. Pushes to main
+# also deploy the web build to GitHub Pages, and publish the logs and
+# screenshots to the ci-reports branch.
+#
+# GitHub Pages has to be set to deploy from Actions (one time):
+#   Settings -> Pages -> Build and deployment -> Source: GitHub Actions
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write # publishes the ci-reports branch
+  pages: write
+  id-token: write
+
+# One run at a time per branch; a deploy already under way is allowed to finish.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Godot
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ env.GODOT_VERSION }}-web
+
+      - name: Download Godot and the web export templates
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot/templates && cd ~/godot
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -sSfL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot && rm godot.zip
+          curl -sSfL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q -j templates.tpz 'templates/web*' 'templates/version.txt' -d templates && rm templates.tpz
+
+      - name: Install Godot
+        run: |
+          dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$dest" && cp ~/godot/templates/* "$dest/"
+          echo "$HOME/godot" >> "$GITHUB_PATH"
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null
+          mkdir -p ci-out/shots
+
+      - name: Import
+        timeout-minutes: 5
+        run: godot --headless --path . --import 2>&1 | tee ci-out/import.log
+
+      - name: Playtest
+        timeout-minutes: 5
+        run: |
+          set -o pipefail
+          godot --headless --path . --fixed-fps 60 --script res://tests/playtest.gd 2>&1 | tee ci-out/playtest.log
+
+      - name: Screenshots
+        if: always()
+        timeout-minutes: 5
+        run: |
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 --resolution 1280x720 \
+            --fixed-fps 60 --script res://tests/screenshots.gd -- "$PWD/ci-out/shots" 2>&1 | tee ci-out/screenshots.log
+
+      - name: Export web build
+        if: always()
+        timeout-minutes: 5
+        run: |
+          set -o pipefail
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html 2>&1 | tee ci-out/export.log
+          ls -la build/web | tee -a ci-out/export.log
+          test -f build/web/index.html
+
+      - name: Flag script errors
+        if: always()
+        run: |
+          # Godot logs script errors without always failing; fail on them here
+          # and surface each one as an annotation.
+          if grep -hE "SCRIPT ERROR|Parse Error|Failed to load|ERROR:" ci-out/*.log > ci-out/errors.log; then
+            head -40 ci-out/errors.log | while IFS= read -r line; do echo "::error::${line}"; done
+            exit 1
+          fi
+
+      - name: Publish logs and screenshots to ci-reports
+        if: always() && github.event_name == 'push'
+        run: |
+          cd ci-out
+          echo "${GITHUB_SHA}" > COMMIT
+          git init -q -b ci-reports
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" \
+            commit -qm "CI reports for ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ci-reports
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
