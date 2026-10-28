@@ -81,6 +81,7 @@ func _tp(x: float, y: float, facing := 1.0, iframes := 0.0) -> void:
 	player.facing = facing
 	player.to_move()
 	player.iframes = iframes
+	_clear_buffers()
 	world.snap_camera()
 	await _frames(2)
 
@@ -97,11 +98,18 @@ func _wait_until(cond: Callable, max_frames: int) -> bool:
 	return cond.call()
 
 
+## Presses left over from the last scenario shouldn't leak into the next.
+func _clear_buffers() -> void:
+	for k in player.buf:
+		player.buf[k] = 0.0
+
+
 func _fresh() -> void:
 	player.max_hp = 100.0
 	player.refill()
 	player.iframes = 0.0
 	player.to_move()
+	_clear_buffers()
 
 
 # --- Scenarios ---------------------------------------------------------------
@@ -170,7 +178,9 @@ func _parry_and_visceral() -> void:
 	player.position.x = e.position.x - 30.0
 	player.facing = 1.0
 	await _tap("attack", 2)
-	_check("striking a staggered enemy is a Visceral", player.state == "visceral", player.state)
+	# The parry's freeze-frame has to pass first.
+	var finishing: bool = await _wait_until(func(): return player.state == "visceral", 20)
+	_check("striking a staggered enemy is a Visceral", finishing, player.state)
 	await _frames(45)
 	_check("the Visceral kills it", not e.alive, "hp %s" % e.hp)
 	_fresh()
@@ -201,12 +211,7 @@ func _blood_and_vials() -> void:
 	player.bullets = 0
 	player.hp = 80.0
 	player.rally = 0.0
-	Input.action_press("blood")
-	for i in 40:
-		await physics_frame
-		if i % 8 == 0:
-			print("  blood frame %d: state %s floor %s held %s hp %s bullets %d/%d" % [i, player.state, player.is_on_floor(), Input.is_action_pressed("blood"), player.hp, player.bullets, player.max_bullets])
-	Input.action_release("blood")
+	await _hold("blood", 40)
 	await _frames(2)
 	_check("blood bullets: 20 HP for 4 rounds", player.bullets == 4 and absf(player.hp - 60.0) < 0.01, "bullets %d hp %s" % [player.bullets, player.hp])
 	_check("the blood spent becomes rally", player.rally > 15.0, str(player.rally))
