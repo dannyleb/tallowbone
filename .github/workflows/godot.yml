@@ -19,16 +19,15 @@ permissions:
   pages: write
   id-token: write
 
-# One run at a time per branch; a deploy already under way is allowed to finish.
-concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: false
-
 env:
   GODOT_VERSION: 4.7.2
 
 jobs:
   build:
+    # One build at a time per branch; one under way is allowed to finish.
+    concurrency:
+      group: build-${{ github.ref }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -141,6 +140,9 @@ jobs:
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: build
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -156,6 +158,11 @@ jobs:
     # the ci-reports branch. Runs beside the deploy, not before it.
     if: github.event_name == 'push'
     needs: build
+    # Slow; a newer push's benchmark replaces this one, and it never holds
+    # up the next build.
+    concurrency:
+      group: bench-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -186,4 +193,5 @@ jobs:
           git add -A
           git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" \
             commit -qm "Browser benchmark for ${GITHUB_SHA::7}"
-          git push -q origin HEAD:ci-reports
+          # A newer build may have replaced ci-reports meanwhile.
+          git push -q origin HEAD:ci-reports || echo "::warning::ci-reports moved on (a newer build); these results are in the job summary only"
