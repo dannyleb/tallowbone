@@ -8,7 +8,7 @@ extends RefCounted
 ## Art px per world px.
 const SCALE := 4.0
 
-## Where the frames live. The playtest points it at its own fixtures.
+## Where the frames live (see use_root).
 static var root := "res://art/characters"
 static var _cache := {}
 
@@ -45,8 +45,10 @@ static func _list(dir: String, folders: bool) -> PackedStringArray:
 	return out
 
 
-## Forgets what was found (after changing `root`).
-static func reload() -> void:
+## Looks for frames under `path` from now on (the playtest points it at its
+## fixtures, the templates at nothing).
+static func use_root(path: String) -> void:
+	root = path
 	_cache.clear()
 
 

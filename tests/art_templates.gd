@@ -27,8 +27,7 @@ func _initialize() -> void:
 	if args.size() > 0:
 		out_dir = args[0]
 	# Templates are always posed from the greybox, whatever art exists.
-	Art.root = "res://nothing-painted"
-	Art.reload()
+	Art.use_root("res://nothing-painted")
 	main = load("res://scenes/main.tscn").instantiate()
 	root.add_child(main)
 	_run.call_deferred()

@@ -604,11 +604,10 @@ func _art() -> void:
 	world.running = true
 	await _tp(600.0, 640.0, 1.0, 99.0)
 
-	Art.root = "res://tests/fixtures/art"
-	Art.reload()
+	Art.use_root("res://tests/fixtures/art")
 	var found := Art.frames("lamplighter")
 	_check("painted frames are found by animation, in order", found.has("hook_idle") and found.hook_idle.size() == 2,
-		"%s; listing sees %s and %s" % [found.keys(), ResourceLoader.list_directory("res://tests/fixtures/art/lamplighter"), ResourceLoader.list_directory("res://tests/fixtures/art/lamplighter/hook_idle")])
+		"%s under %s; a frame loads as %s" % [found.keys(), Art.root, load("res://tests/fixtures/art/lamplighter/hook_idle/01.png")])
 	await _frames(5)
 	var pose: Array = player.art_frame()
 	_check("standing still shows the idle animation", pose[0] == "hook_idle", str(pose))
@@ -619,8 +618,7 @@ func _art() -> void:
 	await _frames(3)
 	_check("a painted frame draws in place of the greybox", drew.ok)
 	probe.queue_free()
-	Art.root = "res://art/characters"
-	Art.reload()
+	Art.use_root("res://art/characters")
 	_fresh()
 
 
