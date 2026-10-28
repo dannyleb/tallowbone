@@ -13,12 +13,19 @@ const T = preload("res://scripts/tuning.gd")
 const Combat = preload("res://scripts/combat.gd")
 const Sfx = preload("res://scripts/sfx.gd")
 const Figure = preload("res://scripts/figure.gd")
+const Art = preload("res://scripts/art.gd")
 
 const ROBE := Color("4d4038")
 const ROBE_DARK := Color("2f2722")
 const FLESH := Color("c9bba1")
 const HOUND := Color("45372f")
 const GORGED_COLOR := Color("ff6a3d")
+
+## Each kind's drawing canvas in world px, and where the feet are on it.
+const FIGS := {"communicant": [Vector2(104, 92), Vector2(52, 80)], "hound": [Vector2(90, 48), Vector2(45, 38)]}
+## Painted animations (docs/ART.md) and their frame counts, the same for
+## every kind: art/characters/<kind>/<animation>/.
+const ART_ANIMS := {"idle": 2, "walk": 4, "windup": 3, "strike": 2, "recover": 2, "flinch": 1, "stagger": 2, "held": 1, "dead": 3}
 
 @export_enum("communicant", "hound") var kind := "communicant"
 
@@ -50,10 +57,7 @@ func _ready() -> void:
 	spawn_pos = position
 	_fig = Figure.new()
 	add_child(_fig)
-	if kind == "hound":
-		_fig.setup(Vector2(90, 48), Vector2(45, 38), _paint)
-	else:
-		_fig.setup(Vector2(104, 92), Vector2(52, 80), _paint)
+	_fig.setup(FIGS[kind][0], FIGS[kind][1], _paint)
 	reset()
 
 
@@ -230,6 +234,11 @@ func weapon_point() -> Vector2:
 func _paint(ci: CanvasItem) -> void:
 	if not alive and dead_t > 0.9:
 		return
+	var pose := art_frame()
+	if Art.frames(kind).has(pose[0]):
+		_paint_art(ci, pose)
+		return
+	_fig.set_flash(0.0)
 	var a := 1.0 - dead_t / 0.9 if not alive else 1.0
 	var sink := dead_t * 10.0 if not alive else 0.0
 	var rot := 0.0
@@ -246,6 +255,94 @@ func _paint(ci: CanvasItem) -> void:
 	else:
 		_paint_communicant(ci, fl, a)
 	ci.draw_set_transform(Vector2.ZERO)
+
+
+## A painted frame: facing your way, white on a hit, redder when Gorged,
+## fading out at the end of its death.
+func _paint_art(ci: CanvasItem, pose: Array) -> void:
+	var a := clampf((0.9 - dead_t) / 0.3, 0.0, 1.0) if not alive else 1.0
+	var tint := Color(1.0, 0.72, 0.66, a) if gorged > 0 else Color(1, 1, 1, a)
+	_fig.set_flash(1.0 if flash > 0.0 else 0.0)
+	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing, 1))
+	Art.draw(ci, kind, pose, FIGS[kind][0], FIGS[kind][1], tint)
+	ci.draw_set_transform(Vector2.ZERO)
+
+
+## The painted frame for what it's doing now: [animation, frame].
+func art_frame() -> Array:
+	var name := "idle"
+	var phase := 0.0
+	var stride := 16.0 if kind == "hound" else 9.0
+	if not alive:
+		name = "dead"
+		phase = dead_t / 0.9
+	else:
+		match state:
+			"idle", "chase":
+				if absf(velocity.x) > 5.0:
+					name = "walk"
+					phase = fposmod(run_t * stride / TAU, 1.0)
+				else:
+					phase = fposmod(_time / 1.4, 1.0)
+			"windup":
+				name = "windup"
+				phase = t / def.windup
+			"strike":
+				name = "strike"
+				phase = t / def.strike
+			"recover":
+				name = "recover"
+				phase = t / def.recover
+			"flinch":
+				name = "flinch"
+			"stagger":
+				name = "stagger"
+				phase = t / 1.6
+			"held":
+				name = "held"
+	var n: int = ART_ANIMS[name]
+	return [name, clampi(int(phase * n), 0, n - 1)]
+
+
+## Poses it as frame `frame` of painted animation `anim`, at the middle of
+## the moment it covers, facing right (tests/art_templates.gd).
+func art_pose(anim: String, frame: int) -> void:
+	var n: int = ART_ANIMS[anim]
+	var mid := (frame + 0.5) / n
+	alive = true
+	dead_t = 0.0
+	flash = 0.0
+	state = "idle"
+	t = 0.0
+	_time = 0.0
+	run_t = 0.0
+	velocity = Vector2.ZERO
+	facing = 1.0
+	match anim:
+		"idle":
+			_time = mid * 1.4
+		"walk":
+			state = "chase"
+			velocity.x = def.speed
+			run_t = mid * TAU / (16.0 if kind == "hound" else 9.0)
+		"windup":
+			state = "windup"
+			t = mid * def.windup
+		"strike":
+			state = "strike"
+			t = mid * def.strike
+		"recover":
+			state = "recover"
+			t = mid * def.recover
+		"flinch", "held":
+			state = anim
+		"stagger":
+			state = "stagger"
+			t = mid * 1.6
+		"dead":
+			alive = false
+			state = "dead"
+			dead_t = mid * 0.9
 
 
 func _c(color: Color, white: bool, a: float) -> Color:

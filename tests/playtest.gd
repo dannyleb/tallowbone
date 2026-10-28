@@ -6,6 +6,7 @@ extends SceneTree
 
 const Combat = preload("res://scripts/combat.gd")
 const T = preload("res://scripts/tuning.gd")
+const Art = preload("res://scripts/art.gd")
 
 var main
 var world
@@ -60,6 +61,7 @@ func _run() -> void:
 	await _scenario("_levelling", _levelling)
 	await _scenario("_controls", _controls)
 	await _scenario("_render_scale", _render_scale)
+	await _scenario("_art", _art)
 	await _scenario("_lessons", _lessons)
 
 	print("\n%d checks, %d failed" % [checks, failures])
@@ -566,6 +568,53 @@ func _render_scale() -> void:
 	var shown: bool = main._perf != null and main._perf.text.contains("fps")
 	main.toggle_perf()
 	_check("F3 shows the frame rate and render size, and hides it again", shown and main._perf == null)
+
+
+## Painted character frames (docs/ART.md): every template pose is the frame
+## the game would show at that moment, frames are found by animation, and a
+## painted frame draws in place of the greybox.
+func _art() -> void:
+	world.running = false
+	var mismatches := PackedStringArray()
+	var anims: Dictionary = player.art_anims()
+	for anim in anims:
+		for f in int(anims[anim]):
+			player.art_pose(anim, f)
+			var got: Array = player.art_frame()
+			if got[0] != anim or got[1] != f:
+				mismatches.append("%s %d -> %s %d" % [anim, f, got[0], got[1]])
+	for name in ["Communicant1", "Hound1"]:
+		var e = _enemy(name)
+		for anim in e.ART_ANIMS:
+			for f in int(e.ART_ANIMS[anim]):
+				e.art_pose(anim, f)
+				var got: Array = e.art_frame()
+				if got[0] != anim or got[1] != f:
+					mismatches.append("%s %s %d -> %s %d" % [e.kind, anim, f, got[0], got[1]])
+		e.reset()
+	_check("every template pose is the frame the game shows then", mismatches.is_empty(), ", ".join(mismatches))
+	player.air_override = null
+	player.form = "hook"
+	world.running = true
+	await _tp(600.0, 640.0, 1.0, 99.0)
+
+	Art.root = "res://tests/fixtures/art"
+	Art.reload()
+	var found := Art.frames("lamplighter")
+	_check("painted frames are found by animation, in order", found.has("hook_idle") and found.hook_idle.size() == 2, str(found.keys()))
+	await _frames(5)
+	var pose: Array = player.art_frame()
+	_check("standing still shows the idle animation", pose[0] == "hook_idle", str(pose))
+	var drew := {"ok": false}
+	var probe := Node2D.new()
+	probe.draw.connect(func(): drew.ok = Art.draw(probe, "lamplighter", ["hook_idle", 1], player.FIG_SIZE, player.FIG_ORIGIN))
+	world.add_child(probe)
+	await _frames(3)
+	_check("a painted frame draws in place of the greybox", drew.ok)
+	probe.queue_free()
+	Art.root = "res://art/characters"
+	Art.reload()
+	_fresh()
 
 
 func _lessons() -> void:

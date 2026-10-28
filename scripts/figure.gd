@@ -11,6 +11,10 @@ extends Sprite2D
 ## Render resolution: viewport pixels per world pixel.
 const RES := 2.0
 const VOLUME := preload("res://shaders/volume.gdshader")
+## Turns the drawing white for a hit flash (painted frames can't be
+## recoloured the way the greybox is).
+const FLASH_CODE := "shader_type canvas_item;\nuniform float flash = 0.0;\nvoid fragment() { COLOR.rgb = mix(COLOR.rgb, vec3(1.0), flash); }\n"
+static var _flash_shader: Shader
 
 ## Repaint whenever the drawing changes, seen or not (the 3D stage shows
 ## figures through its own viewport, which the on-screen check can't see).
@@ -36,6 +40,14 @@ func setup(size: Vector2, origin: Vector2, paint: Callable) -> void:
 	_painter.position = origin * RES
 	_painter.scale = Vector2(RES, RES)
 	_painter.draw.connect(func(): paint.call(_painter))
+	# Painted frames (scripts/art.gd) are drawn smaller than they're painted.
+	_painter.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	if _flash_shader == null:
+		_flash_shader = Shader.new()
+		_flash_shader.code = FLASH_CODE
+	var flash_mat := ShaderMaterial.new()
+	flash_mat.shader = _flash_shader
+	_painter.material = flash_mat
 	_viewport.add_child(_painter)
 	texture = _viewport.get_texture()
 	centered = false
@@ -60,6 +72,12 @@ func redraw() -> void:
 func _render() -> void:
 	_painter.queue_redraw()
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+
+
+## How white the drawing is, 0 to 1 (hit flashes on painted frames).
+func set_flash(amount: float) -> void:
+	if _painter:
+		(_painter.material as ShaderMaterial).set_shader_parameter("flash", amount)
 
 
 ## Shows or hides the figure and stops or starts its viewport (the

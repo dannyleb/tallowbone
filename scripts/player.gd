@@ -13,6 +13,7 @@ const Combat = preload("res://scripts/combat.gd")
 const Sfx = preload("res://scripts/sfx.gd")
 const Glow = preload("res://scripts/glow.gd")
 const Figure = preload("res://scripts/figure.gd")
+const Art = preload("res://scripts/art.gd")
 
 const W := 16.0
 const H := 42.0
@@ -27,6 +28,19 @@ const HAT := Color("2a2730")
 const POLE := Color("7a5a40")
 const IRON := Color("46464f")
 const LAMP := Color("ffcf7a")
+
+## The drawing's canvas in world px, and where the feet are on it.
+const FIG_SIZE := Vector2(160, 120)
+const FIG_ORIGIN := Vector2(80, 108)
+## Painted animations (docs/ART.md) and their frame counts. Each comes in
+## both forms, "hook_idle" and "lantern_idle"; the Lantern's combo has two
+## hits. <form>_transform is turning into that form; <form>_trick starts in
+## that form and lands in the other.
+const ART_ANIMS := {
+	"idle": 4, "run": 6, "jump": 1, "fall": 1, "wall": 1, "dash": 2,
+	"combo1": 4, "combo2": 4, "combo3": 4, "trick": 4, "transform": 3,
+	"shoot": 2, "heal": 2, "blood": 2, "hurt": 1, "visceral": 3, "dead": 3,
+}
 
 var world
 var hp := 100.0
@@ -65,6 +79,9 @@ var abilities := {}
 ## How long strike has been held (negative once it's turned the Pole, until
 ## you let go).
 var attack_hold := 0.0
+## The paint-over templates set this to pose the figure in the air or on the
+## ground; null asks the physics.
+var air_override = null
 var sliding := false
 var wall_dir := 0.0
 var wall_grace := 0.0
@@ -97,7 +114,7 @@ func _ready() -> void:
 	# behind, and lying down when dead.
 	_fig = Figure.new()
 	add_child(_fig)
-	_fig.setup(Vector2(160, 120), Vector2(80, 108), _paint)
+	_fig.setup(FIG_SIZE, FIG_ORIGIN, _paint)
 
 
 func has(ability: String) -> bool:
@@ -579,6 +596,8 @@ func _update_look() -> void:
 	else:
 		modulate.a = 1.0
 	var f := form_data()
+	var l := _lantern_point()
+	_lantern = Vector2(l.x * facing, l.y + 5.0)
 	_light.position = _lantern if f.burns else _wick()
 	Glow.set_radius(_light, f.light)
 	_light.energy = (1.5 if f.burns else 1.1) * (1.0 + sin(_time * 11.0) * sin(_time * 6.7) * 0.06)
@@ -671,6 +690,167 @@ func flame_at() -> Vector2:
 	return position + (_lantern if form_data().burns else _wick())
 
 
+## Where the Lantern hangs, in the node's unmirrored space: from the pole
+## tip, flung outward mid-swing. (The light follows it, painted or not.)
+func _lantern_point() -> Vector2:
+	var th := _pole_angle()
+	var dir := Vector2(cos(th), sin(th))
+	var tip := _hand() + dir * 30.0
+	var flung: bool = state == "attack" and t > attack.startup * 0.5
+	var swing := sin(_time * 3.0) * 0.25 - clampf(velocity.x * facing / 300.0, -1.0, 1.0) * 0.5
+	return tip + dir * 18.0 if flung else tip + Vector2(sin(swing), cos(swing)) * 14.0
+
+
+## In the air, as far as the drawing is concerned.
+func _airborne() -> bool:
+	if air_override != null:
+		return air_override
+	return not is_on_floor()
+
+
+## Every painted animation the Lamplighter can use: "hook_idle" -> 4, ...
+static func art_anims() -> Dictionary:
+	var out := {}
+	var forms: Dictionary = T.ARMS.pole.forms
+	for f in forms:
+		var hits: int = forms[f].combo.size()
+		for a in ART_ANIMS:
+			if a.begins_with("combo") and int(a.right(1)) > hits:
+				continue
+			out["%s_%s" % [f, a]] = ART_ANIMS[a]
+	return out
+
+
+## The painted frame for what you're doing now: [animation, frame].
+func art_frame() -> Array:
+	var name := "idle"
+	var phase := 0.0
+	match state:
+		"attack":
+			var a := attack
+			var f := 3
+			if t < a.startup:
+				f = 0
+			elif t < a.startup + a.active * 0.5:
+				f = 1
+			elif t < a.startup + a.active:
+				f = 2
+			if kind == "trick":
+				return ["%s_trick" % ("hook" if a.to == "lantern" else "lantern"), f]
+			return ["%s_combo%d" % [form, combo + 1], f]
+		"shoot":
+			return [form + "_shoot", 1 if done else 0]
+		"heal":
+			return [form + "_heal", 1 if done else 0]
+		"transform":
+			name = "transform"
+			phase = t / T.TRANSFORM_TIME
+		"dash":
+			name = "dash"
+			phase = t / T.DASH.time
+		"blood":
+			name = "blood"
+			phase = t / T.BLOOD.time
+		"hurt":
+			name = "hurt"
+		"visceral":
+			name = "visceral"
+			phase = t / T.VISCERAL.time
+		"dead":
+			name = "dead"
+			phase = t / 1.2
+		_:
+			if sliding:
+				name = "wall"
+			elif _airborne():
+				name = "jump" if velocity.y < 0.0 else "fall"
+			elif absf(velocity.x) > 20.0:
+				name = "run"
+				phase = fposmod(run_t * 13.0 / TAU, 1.0)
+			else:
+				phase = fposmod(_time / 1.6, 1.0)
+	var n: int = ART_ANIMS[name]
+	return ["%s_%s" % [form, name], clampi(int(phase * n), 0, n - 1)]
+
+
+## Poses the Lamplighter as frame `frame` of painted animation `anim`
+## ("hook_combo2"), at the middle of the moment it covers, facing right. For
+## the paint-over templates (tests/art_templates.gd).
+func art_pose(anim: String, frame: int) -> void:
+	var parts := anim.split("_", true, 1)
+	form = parts[0]
+	var name := parts[1]
+	var n: int = ART_ANIMS[name]
+	var mid := (frame + 0.5) / n
+	state = "move"
+	t = 0.0
+	_time = 0.0
+	run_t = 0.0
+	velocity = Vector2.ZERO
+	sliding = false
+	done = false
+	air_override = false
+	facing = 1.0
+	dash_dir = 1.0
+	match name:
+		"idle":
+			_time = mid * 1.6
+		"run":
+			velocity.x = T.PLAYER.run
+			run_t = mid * TAU / 13.0
+		"jump":
+			air_override = true
+			velocity.y = -300.0
+		"fall":
+			air_override = true
+			velocity.y = 300.0
+		"wall":
+			air_override = true
+			sliding = true
+		"dash":
+			state = "dash"
+			t = mid * T.DASH.time
+		"transform":
+			state = "transform"
+			t = mid * T.TRANSFORM_TIME
+		"shoot":
+			state = "shoot"
+			done = frame == 1
+			t = T.GUN.startup * (0.5 if frame == 0 else 1.5)
+		"heal":
+			state = "heal"
+			done = frame == 1
+			t = T.PLAYER.heal_at * (0.5 if frame == 0 else 1.2)
+		"blood":
+			state = "blood"
+			t = mid * T.BLOOD.time
+		"hurt":
+			state = "hurt"
+		"visceral":
+			state = "visceral"
+			t = mid * T.VISCERAL.time
+		"dead":
+			state = "dead"
+			t = mid * 1.2
+		_:
+			state = "attack"
+			var f: Dictionary = T.ARMS[arm].forms[form]
+			if name == "trick":
+				kind = "trick"
+				combo = 0
+				attack = f.trick
+			else:
+				kind = "combo"
+				combo = int(name.right(1)) - 1
+				attack = f.combo[combo]
+			var a := attack
+			var at := [a.startup * 0.5, a.startup + a.active * 0.25, a.startup + a.active * 0.75, a.startup + a.active + a.recovery * 0.5]
+			t = at[frame]
+			# A trick lands in the other form as it strikes.
+			if name == "trick" and frame > 0:
+				form = a.to
+
+
 ## The hook's wick, in the node's (unmirrored) space.
 func _wick() -> Vector2:
 	var th := _pole_angle()
@@ -681,19 +861,25 @@ func _wick() -> Vector2:
 ## Draws the Lamplighter (and quickstep afterimages) onto ci, the Figure's
 ## painter, with the feet at 0, 0.
 func _paint(ci: CanvasItem) -> void:
+	var pose := art_frame()
 	if state == "dash":
 		for i in range(3, 0, -1):
-			_paint_figure(ci, -dash_dir * i * 11.0, 0.12 * (4 - i), true)
-	_paint_figure(ci, 0.0, 1.0, false)
+			_paint_figure(ci, -dash_dir * i * 11.0, 0.12 * (4 - i), true, pose)
+	_paint_figure(ci, 0.0, 1.0, false, pose)
 	ci.draw_set_transform(Vector2.ZERO)
 
 
-func _paint_figure(ci: CanvasItem, offset: float, alpha: float, ghost: bool) -> void:
-	var rot := minf(1.0, t * 2.0) * 1.35 if state == "dead" else 0.0
+func _paint_figure(ci: CanvasItem, offset: float, alpha: float, ghost: bool, pose: Array) -> void:
+	var painted: bool = Art.frames("lamplighter").has(pose[0])
+	# A painted fall is in the frames; the greybox tips over instead.
+	var rot := minf(1.0, t * 2.0) * 1.35 if state == "dead" and not painted else 0.0
 	ci.draw_set_transform(Vector2(offset, 0), rot * facing, Vector2(facing, 1))
+	if painted:
+		Art.draw(ci, "lamplighter", pose, FIG_SIZE, FIG_ORIGIN, Color(1, 1, 1, alpha))
+		return
 	var c := func(col: Color) -> Color: return Color(col, col.a * alpha)
-	var air := not is_on_floor() and state != "dead"
-	var cyc := sin(run_t * 13.0) if is_on_floor() and absf(velocity.x) > 20.0 else 0.0
+	var air := _airborne() and state != "dead"
+	var cyc := sin(run_t * 13.0) if not _airborne() and absf(velocity.x) > 20.0 else 0.0
 	var sway := clampf(-velocity.x / 300.0, -1.0, 1.0) * 6.0
 	var lean := _lean()
 
@@ -745,14 +931,11 @@ func _paint_arms(ci: CanvasItem) -> void:
 		ci.draw_circle(hand + dir * (length + 1.0), 1.6 + sin(_time * 20.0) * 0.4, LAMP)
 	else:
 		# Lantern on its chain: hangs from the pole tip, flung outward mid-swing.
-		var flung: bool = state == "attack" and t > attack.startup * 0.5
-		var swing := sin(_time * 3.0) * 0.25 - clampf(velocity.x * facing / 300.0, -1.0, 1.0) * 0.5
-		var l := tip + dir * 18.0 if flung else tip + Vector2(sin(swing), cos(swing)) * 14.0
+		var l := _lantern_point()
 		ci.draw_line(tip, l, IRON, 1.0)
 		ci.draw_rect(Rect2(l.x - 5, l.y - 1, 10, 2), IRON)
 		ci.draw_rect(Rect2(l.x - 4, l.y + 1, 8, 9), LAMP)
 		ci.draw_rect(Rect2(l.x - 5, l.y + 10, 10, 2), IRON)
-		_lantern = Vector2((l.x) * facing, l.y + 5.0)
 
 	# The arm holding it.
 	ci.draw_line(s, hand, COAT, 4.0)

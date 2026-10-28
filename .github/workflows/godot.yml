@@ -82,6 +82,14 @@ jobs:
           xvfb-run -a -s "-screen 0 1280x720x24" timeout -k 10 660 godot --audio-driver Dummy --path . --rendering-driver vulkan --resolution 1280x720 \
             --fixed-fps 60 --script res://tests/screenshots.gd -- "$PWD/ci-out/shots" 2>&1 | head -c 20000000 | tee ci-out/screenshots.log
 
+      - name: Art templates
+        # Paint-over templates for the character art (docs/ART.md).
+        if: always()
+        timeout-minutes: 6
+        run: |
+          xvfb-run -a -s "-screen 0 1280x720x24" timeout -k 10 300 godot --audio-driver Dummy --path . --rendering-method gl_compatibility --rendering-driver opengl3 \
+            --script res://tests/art_templates.gd -- "$PWD/ci-out/art-templates" 2d 2>&1 | head -c 20000000 | tee ci-out/art-templates.log
+
       - name: Export web build
         if: always()
         timeout-minutes: 5
@@ -128,6 +136,15 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
+
+      - name: Keep the art templates
+        # On the run's page under Artifacts: art-templates.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: art-templates
+          path: ci-out/art-templates
+          retention-days: 30
 
       - name: Keep the Mac app
         # On the run's page under Artifacts (signed-in, kept two weeks).

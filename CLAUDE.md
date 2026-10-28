@@ -42,7 +42,11 @@ The design lives in `docs/DESIGN.md`. Keep its status markers ([slice] /
   Batch (one `draw_multiline_colors`, texture rects with one texture),
   paint static things once, and prefer drawn glows to extra lights.
 - Greybox drawing (`_draw`) stands in for art. Keep it posed from the real
-  timings so hitboxes match.
+  timings so hitboxes match. Painted frames (`art/characters/`, docs/ART.md)
+  replace it per animation: each actor has `ART_ANIMS`, `art_frame()` (what
+  to show now) and `art_pose()` (posing for the templates CI renders with
+  `tests/art_templates.gd`); the playtest checks the two agree for every
+  frame, so change them together.
 - 2.5D: gameplay is 2D; `scripts/stage.gd` builds the 3D world from the
   level and keeps it in step (1 tile = 1 m, y up, gameplay plane z = 0).
   Things on the plane (actors, props) need World visibility layer 2 so

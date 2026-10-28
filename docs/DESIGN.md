@@ -238,9 +238,13 @@ The Metroidvania-native mechanic.
 - **Hand-illustrated**, not pixel art. Blasphemous and The Last Faith are
   both pixel art, so this sets us apart and plays to the artist's
   strengths.
-- **Production plan:** painted backgrounds, plus cut-out / skeletal or
-  low-frame-count character animation with strong poses. Hand-drawn
-  frame-by-frame for everything is too expensive.
+- **Characters: painted 2D frames, lit in 3D.** Low frame counts with
+  strong poses (about 90 frames for the Lamplighter across both forms,
+  about 20 per enemy), painted over templates CI renders from the greybox
+  so the art matches the hitboxes; flat colour, the 3D lights do the rest.
+  The pipeline is in [ART.md](ART.md). **[slice: pipeline, art to come]**
+- **Environments:** 3D, generated from the level for now; painted textures
+  or modelled pieces later.
 - **Palette:** soot black, bone, oxblood, lantern amber. Spirit-cyan only for
   Second Sight.
 - **Light is the art:** the scene is dark by default. Lamps, your lantern,

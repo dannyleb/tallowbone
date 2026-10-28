@@ -43,6 +43,8 @@ Where things are:
   `scenes/actors`.
 - **Tuning:** every number (speeds, damage, attack timings, costs) is in
   `scripts/tuning.gd`.
+- **Character art:** painted frames go in `art/characters/`; how to paint
+  them, and the templates to paint over, are in [docs/ART.md](docs/ART.md).
 - **Hitboxes:** press **H** while playing from the editor. On the web build,
   add `?debug` to the address.
 - **Performance:** press **F3** (or add `?perf` to the address) for fps and the render size,
@@ -118,6 +120,7 @@ scripts/
   map_view.gd        the pause-screen map (what you've explored)
   bench.gd           ?bench: the frame-time benchmark
   stage.gd           the 3D stage built from the level, kept in step with it
+  art.gd             painted character frames (art/characters), greybox fallback
   keys.gd            key names for the device in use ({attack} -> Left-click)
   figure.gd          paints an actor into a SubViewport, shown lit and rounded
   backdrop.gd        sky, moon, parallax skyline, fog
@@ -138,6 +141,8 @@ tools/               Python generators: lit greybox tiles, 3D surface
                      bench_web.py runs ?bench in browsers (CI)
 tests/               headless playtest and screenshot scripts (CI)
 docs/DESIGN.md       the design document
+docs/ART.md          painting the characters: canvases, frames, templates
+art/characters/      painted character frames
 ```
 
 The first prototype (plain JavaScript in the browser) lives on the
