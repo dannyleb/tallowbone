@@ -159,7 +159,13 @@ func step(input: Dictionary, delta: float) -> void:
 			if not done and t >= T.GUN.startup:
 				done = true
 				_fire()
-			if done and buf.dash > 0.0 and _can_dash():
+			# Once the shot is off: quickstep out, or go straight into the
+			# Visceral on whatever it just staggered.
+			var finish = _visceral_target() if done and buf.attack > 0.0 else null
+			if finish:
+				buf.attack = 0.0
+				_start_visceral(finish)
+			elif done and buf.dash > 0.0 and _can_dash():
 				_start_dash(dir_x)
 			elif t >= T.GUN.startup + T.GUN.recovery:
 				to_move()
@@ -548,6 +554,37 @@ func _hand() -> Vector2:
 	return _shoulder() + Vector2(cos(th), sin(th)) * 9.0
 
 
+## The swing's trail, in world space, for the overlay to draw unshaded:
+## { center, radius, from, to, color, width }, or empty between swings.
+func swoosh() -> Dictionary:
+	if state != "attack" or t < attack.startup or t > attack.startup + attack.active + 0.05:
+		return {}
+	var sweep := _sweep()
+	var to := lerpf(sweep.x, sweep.y, _ease((t - attack.startup) / attack.active))
+	var fade: float = 1.0 - (t - attack.startup) / (attack.active + 0.05)
+	var burns: bool = form_data().burns
+	var a := minf(sweep.x, to)
+	var b := maxf(sweep.x, to)
+	if facing < 0:
+		# Mirror the arc: an angle θ facing right is π - θ facing left.
+		var mirrored := [PI - b, PI - a]
+		a = mirrored[0]
+		b = mirrored[1]
+	var s := _shoulder()
+	return {
+		"center": position + Vector2(s.x * facing, s.y),
+		"radius": attack.reach * 0.7 + 12.0,
+		"from": a, "to": b,
+		"color": Color(1.0, 0.75, 0.43, 0.5 * fade) if burns else Color(0.91, 0.87, 0.81, 0.4 * fade),
+		"width": 9.0 if burns else 6.0,
+	}
+
+
+## Where the lantern or the hook's wick is, in world space, for the glow.
+func flame_at() -> Vector2:
+	return position + (_lantern if form_data().burns else _wick())
+
+
 ## The hook's wick, in the node's (unmirrored) space.
 func _wick() -> Vector2:
 	var th := _pole_angle()
@@ -608,15 +645,6 @@ func _draw_arms() -> void:
 	var dir := Vector2(cos(th), sin(th))
 	var hand := _hand()
 	var f := form_data()
-
-	if state == "attack" and t >= attack.startup and t <= attack.startup + attack.active + 0.05:
-		var sweep := _sweep()
-		var k: float = (t - attack.startup) / attack.active
-		var to := lerpf(sweep.x, sweep.y, _ease(k))
-		var fade: float = 1.0 - (t - attack.startup) / (attack.active + 0.05)
-		var col := Color(1.0, 0.75, 0.43, 0.5 * fade) if f.burns else Color(0.91, 0.87, 0.81, 0.4 * fade)
-		var radius: float = attack.reach * 0.7 + 12.0
-		draw_arc(s, radius, minf(sweep.x, to), maxf(sweep.x, to), 20, col, 9.0 if f.burns else 6.0)
 
 	# The pole.
 	var length := 30.0 if f.burns else 46.0

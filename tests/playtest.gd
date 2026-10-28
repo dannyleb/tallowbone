@@ -201,7 +201,12 @@ func _blood_and_vials() -> void:
 	player.bullets = 0
 	player.hp = 80.0
 	player.rally = 0.0
-	await _hold("blood", 40)
+	Input.action_press("blood")
+	for i in 40:
+		await physics_frame
+		if i % 8 == 0:
+			print("  blood frame %d: state %s floor %s held %s hp %s bullets %d/%d" % [i, player.state, player.is_on_floor(), Input.is_action_pressed("blood"), player.hp, player.bullets, player.max_bullets])
+	Input.action_release("blood")
 	await _frames(2)
 	_check("blood bullets: 20 HP for 4 rounds", player.bullets == 4 and absf(player.hp - 60.0) < 0.01, "bullets %d hp %s" % [player.bullets, player.hp])
 	_check("the blood spent becomes rally", player.rally > 15.0, str(player.rally))

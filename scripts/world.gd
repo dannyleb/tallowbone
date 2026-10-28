@@ -53,6 +53,7 @@ var look := 0.0
 var cam_center := Vector2.ZERO
 
 var _prev := {}
+var _counted := {}
 
 @onready var camera: Camera2D = $Camera2D
 
@@ -90,15 +91,19 @@ func cam_top_left() -> Vector2:
 	return cam_center - view_size() / 2.0
 
 
-## Held and newly pressed actions this tick. A press counts if Godot saw it
-## as just pressed or it's held now and wasn't last tick (so presses from
-## tests and from between ticks are never lost).
+## Held and newly pressed actions this tick. A press counts once: when Godot
+## reports it as just pressed, or when it's held now and wasn't last tick,
+## whichever comes first (so a tap between two ticks is never lost and a
+## held button never counts twice).
 func read_input() -> Dictionary:
 	var held := {}
 	var pressed := {}
 	for a in ACTIONS:
-		held[a] = Input.is_action_pressed(a)
-		pressed[a] = Input.is_action_just_pressed(a) or (held[a] and not _prev.get(a, false))
+		var now := Input.is_action_pressed(a)
+		var edge: bool = Input.is_action_just_pressed(a) or (now and not _prev.get(a, false))
+		pressed[a] = edge and not _counted.get(a, false)
+		_counted[a] = now and (pressed[a] or _counted.get(a, false))
+		held[a] = now
 	_prev = held
 	return {"held": held, "pressed": pressed}
 

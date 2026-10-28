@@ -62,6 +62,9 @@ func _overlay() -> void:
 			draw_rect(Rect2(at - Vector2(1, 1), Vector2(w + 2, 4)), Color(0, 0, 0, 0.6))
 			var col := Color("ff6a3d") if e.gorged > 0 else Color("8e1b1e")
 			draw_rect(Rect2(at, Vector2(w * maxf(0.0, e.hp / e.max_hp), 2)), col)
+	var sw: Dictionary = world.player.swoosh()
+	if not sw.is_empty():
+		draw_arc(sw.center, sw.radius, sw.from, sw.to, 20, sw.color, sw.width)
 	if not world.shot.is_empty():
 		var s: Dictionary = world.shot
 		draw_line(s.from, s.to, Color(1.0, 0.93, 0.78, s.t / 0.07), 1.2)
@@ -70,6 +73,16 @@ func _overlay() -> void:
 
 
 func _glow() -> void:
+	# Lit lamp glass and your own flame burn through the dark.
+	for l in world.lamps:
+		if l.lit:
+			var g: Vector2 = l.position + Vector2(0, -68)
+			Glow.draw(self, g, 22.0, Color(1.0, 0.72, 0.38, 0.35))
+			draw_colored_polygon(PackedVector2Array([g + Vector2(-7, 8), g + Vector2(7, 8), g + Vector2(5, -8), g + Vector2(-5, -8)]), Color(1.0, 0.78, 0.45, 0.55))
+	var p = world.player
+	if p.visible and p.state != "dead":
+		var f: Vector2 = p.flame_at()
+		Glow.draw(self, f, 14.0 if p.form == "lantern" else 6.0, Color(1.0, 0.75, 0.42, 0.45))
 	_particles(true)
 	for m in world.fx.motes:
 		if m.t < 0.0:

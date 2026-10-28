@@ -57,23 +57,24 @@ jobs:
           mkdir -p "$dest" && cp ~/godot/templates/* "$dest/"
           echo "$HOME/godot" >> "$GITHUB_PATH"
           sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libgl1-mesa-dri > /dev/null
-          mkdir -p ci-out/shots
+          # .gdignore keeps Godot from importing CI's own output.
+          mkdir -p ci-out/shots && touch ci-out/.gdignore
 
       - name: Import
         timeout-minutes: 5
-        run: godot --headless --path . --import 2>&1 | tee ci-out/import.log
+        run: godot --headless --audio-driver Dummy --path . --import 2>&1 | tee ci-out/import.log
 
       - name: Playtest
         timeout-minutes: 5
         run: |
           set -o pipefail
-          godot --headless --path . --fixed-fps 60 --script res://tests/playtest.gd 2>&1 | tee ci-out/playtest.log
+          godot --headless --audio-driver Dummy --path . --fixed-fps 60 --script res://tests/playtest.gd 2>&1 | tee ci-out/playtest.log
 
       - name: Screenshots
         if: always()
         timeout-minutes: 5
         run: |
-          xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 --resolution 1280x720 \
+          xvfb-run -a -s "-screen 0 1280x720x24" godot --audio-driver Dummy --path . --rendering-driver opengl3 --resolution 1280x720 \
             --fixed-fps 60 --script res://tests/screenshots.gd -- "$PWD/ci-out/shots" 2>&1 | tee ci-out/screenshots.log
 
       - name: Export web build
@@ -82,7 +83,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build/web
-          godot --headless --path . --export-release "Web" build/web/index.html 2>&1 | tee ci-out/export.log
+          godot --headless --audio-driver Dummy --path . --export-release "Web" build/web/index.html 2>&1 | tee ci-out/export.log
           ls -la build/web | tee -a ci-out/export.log
           test -f build/web/index.html
 
@@ -91,7 +92,8 @@ jobs:
         run: |
           # Godot logs script errors without always failing; fail on them here
           # and surface each one as an annotation.
-          if grep -hE "SCRIPT ERROR|Parse Error|Failed to load|ERROR:" ci-out/*.log > ci-out/errors.log; then
+          # (Resources still referenced at exit is shutdown noise, not a bug.)
+          if grep -hE "SCRIPT ERROR|Parse Error|Failed to load|ERROR:" ci-out/*.log | grep -v "still in use at exit" > ci-out/errors.log; then
             head -40 ci-out/errors.log | while IFS= read -r line; do echo "::error::${line}"; done
             exit 1
           fi
