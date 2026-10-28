@@ -542,6 +542,11 @@ func _render_scale() -> void:
 		"at 2x %s, after slow frames %.1fx (was %.1fx)" % [at_two, main.render_scale, before])
 	main.render_cap = 3.0
 	main.fit_view()
+	main.toggle_perf()
+	await _frames(25)
+	var shown: bool = main._perf != null and main._perf.text.contains("fps")
+	main.toggle_perf()
+	_check("F3 shows the frame rate and render size, and hides it again", shown and main._perf == null)
 
 
 func _lessons() -> void:

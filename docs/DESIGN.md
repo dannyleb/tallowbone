@@ -272,7 +272,7 @@ The Metroidvania-native mechanic.
   Moved from the JavaScript prototype (kept on the `js-prototype` branch)
   for the editor: painting levels, placing things, animation (Skeleton2D /
   AnimationPlayer for cut-out characters), particles, shaders and real 2D
-  lights. Native PC / Mac / Linux / Steam Deck builds later.
+  lights. Mac builds now (CI); Windows / Linux / Steam Deck builds later.
 - Fixed 60 Hz simulation: the World steps the player, enemies and systems
   itself, so hit-stop freezes it cleanly.
 - The night is a CanvasModulate, a DirectionalLight2D moon, and
@@ -291,9 +291,13 @@ The Metroidvania-native mechanic.
   into textures and scrolled, rain is one batch of lines, and pickups glow
   with drawn halos instead of lights. Physics catches up at most 3 ticks a
   frame, so a slow frame slows the game instead of spiralling.
-- `?bench` runs a frame-time benchmark (each system switched off in turn,
-  then lower render scales) and shows the table; `?perf` shows fps and the
-  render size; `?scale=1.5` fixes the render scale. CI runs `?bench` in
+- **Mac app [slice]:** CI exports a universal macOS build on every push
+  (ad-hoc signed; Developer ID signing and notarization later, so it opens
+  without the Gatekeeper prompt). The browser is the weak platform for
+  heavy lighting; the desktop builds are where the look gets judged.
+- F3 shows fps and the render size. `?bench` runs a frame-time benchmark (each system switched off in turn,
+  then lower render scales) and shows the table; `?perf` is F3 from the start;
+  `?scale=1.5` fixes the render scale. CI runs `?bench` in
   Firefox and Chrome (`tools/bench_web.py`, CPU-drawn, so compare rows).
 - Levels are scenes with TileMapLayers (`Ground`, `BackWall`) and placed
   entities. The first was generated from ASCII by `tools/build_level.py`.
@@ -318,6 +322,7 @@ The Metroidvania-native mechanic.
 | — | Easy controls: mouse-first layout, keys named for your device, lessons for the parry and Visceral | **done** |
 | — | Lit greybox: normal and gloss maps, moonlight, rounded characters, rain, mist, reflective water | **done** |
 | — | Web performance: capped, adaptive render scale; far fewer draw calls; Firefox and Chrome benchmark in CI | **done** |
+| — | Mac app built by CI (universal, ad-hoc signed) | **done** |
 | — | Easier start: canal of short hops, ledge assist, five starting keys with the rest found along the way, hold strike to transform, pause-screen map, shortcut gates, Climbing Irons | **done** |
 
 ## 14. Open questions

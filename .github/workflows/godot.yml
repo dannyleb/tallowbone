@@ -39,9 +39,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/godot
-          key: godot-${{ env.GODOT_VERSION }}-web
+          key: godot-${{ env.GODOT_VERSION }}-web-macos
 
-      - name: Download Godot and the web export templates
+      - name: Download Godot and the web and Mac export templates
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/godot/templates && cd ~/godot
@@ -49,7 +49,7 @@ jobs:
           curl -sSfL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           unzip -q godot.zip && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot && rm godot.zip
           curl -sSfL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          unzip -q -j templates.tpz 'templates/web*' 'templates/version.txt' -d templates && rm templates.tpz
+          unzip -q -j templates.tpz 'templates/web*' 'templates/macos.zip' 'templates/version.txt' -d templates && rm templates.tpz
 
       - name: Install Godot
         run: |
@@ -90,6 +90,15 @@ jobs:
           ls -la build/web | tee -a ci-out/export.log
           test -f build/web/index.html
 
+      - name: Export the Mac app
+        timeout-minutes: 5
+        run: |
+          set -o pipefail
+          mkdir -p build/mac
+          timeout -k 10 240 godot --headless --audio-driver Dummy --path . --export-release "macOS" build/mac/Tallowbone-mac.zip 2>&1 | head -c 20000000 | tee ci-out/export-mac.log
+          ls -la build/mac | tee -a ci-out/export-mac.log
+          test -f build/mac/Tallowbone-mac.zip
+
       - name: Flag script errors
         if: always()
         run: |
@@ -117,6 +126,14 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
+
+      - name: Keep the Mac app
+        # On the run's page under Artifacts (signed-in, kept two weeks).
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tallowbone-mac
+          path: build/mac/Tallowbone-mac.zip
+          retention-days: 14
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

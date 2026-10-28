@@ -7,6 +7,12 @@ they burn.
 
 **Play in the browser:** https://dannyleb.github.io/tallowbone/ (deploys
 from `main`).
+**Mac app:** every push to `main` builds one (universal: Apple Silicon and
+Intel). Open the latest green run under
+[Actions](https://github.com/dannyleb/tallowbone/actions), download
+**Tallowbone-mac** under Artifacts, unzip it twice and drag Tallowbone into
+Applications. It isn't notarized by Apple yet, so macOS blocks the first
+open: System Settings > Privacy & Security, scroll down, **Open Anyway**.
 **Design:** [docs/DESIGN.md](docs/DESIGN.md).
 
 The current build is the **first playable slice** (greybox: shapes stand in
@@ -36,7 +42,7 @@ Where things are:
   `scripts/tuning.gd`.
 - **Hitboxes:** press **H** while playing from the editor. On the web build,
   add `?debug` to the address.
-- **Performance:** add `?perf` to the address for fps and the render size,
+- **Performance:** press **F3** (or add `?perf` to the address) for fps and the render size,
   `?scale=1.5` to fix how sharp the world is drawn (it otherwise starts at
   up to 3x and steps down when frames run slow), or `?bench` to run the
   frame-time benchmark and get a table of what each system costs.
@@ -76,7 +82,8 @@ Actions with Godot 4.7.2:
    gates, the chimney wall-jump climb, the map, death → Tallow pile →
    Gorged → reclaim, levelling).
 3. **Screenshots:** `tests/screenshots.gd` renders key moments.
-4. **Export** the web build.
+4. **Export** the web build and the Mac app (kept two weeks as a run
+   artifact).
 5. **Deploy** to GitHub Pages (pushes to `main` only).
 6. **Benchmark:** `tools/bench_web.py` runs the build's `?bench` in Firefox
    and Chrome on a virtual display (drawn by the CPU, so compare the rows,

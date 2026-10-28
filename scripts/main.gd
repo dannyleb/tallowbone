@@ -87,12 +87,7 @@ func _ready() -> void:
 	pause_screen.visible = false
 	_begin.grab_focus()
 	if query.contains("perf"):
-		_perf = _label("", FELL, 8, BONE)
-		_perf.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		_perf.position += Vector2(-150, 4)
-		_perf.size.x = 146
-		_perf.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		$UiLayer.add_child(_perf)
+		toggle_perf()
 	if query.contains("bench"):
 		_bench = Bench.new()
 		_bench.main = self
@@ -116,6 +111,21 @@ func _add_vignette() -> void:
 	shade.anchor_bottom = 1.1
 	layer.add_child(shade)
 	game.add_child(layer)
+
+
+## F3 (or ?perf): frame rate, frame time and the world's render size, top
+## right.
+func toggle_perf() -> void:
+	if _perf:
+		_perf.queue_free()
+		_perf = null
+		return
+	_perf = _label("", FELL, 8, BONE)
+	_perf.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_perf.position += Vector2(-150, 4)
+	_perf.size.x = 146
+	_perf.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	$UiLayer.add_child(_perf)
 
 
 ## Sizes the game viewport: the same view in world px as the window shows,
@@ -185,6 +195,9 @@ func set_paused(on: bool) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_hitboxes") and _debug_allowed:
 		world.show_hitboxes = not world.show_hitboxes
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
+		toggle_perf()
+		get_viewport().set_input_as_handled()
 	if not world.running:
 		if event.is_action_pressed("confirm"):
 			start_game()
