@@ -40,3 +40,10 @@ func setup(size: Vector2, origin: Vector2, paint: Callable) -> void:
 func redraw() -> void:
 	if _painter:
 		_painter.queue_redraw()
+
+
+## Shows or hides the figure and stops or starts its viewport (the
+## benchmark switches figures off this way).
+func set_active(on: bool) -> void:
+	visible = on
+	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED

@@ -8,6 +8,7 @@ const FELL_SC := preload("res://assets/fonts/IMFellEnglishSC-Regular.ttf")
 const Glow = preload("res://scripts/glow.gd")
 const Keys = preload("res://scripts/keys.gd")
 const MapView = preload("res://scripts/map_view.gd")
+const Bench = preload("res://scripts/bench.gd")
 
 const INK := Color("07080d")
 const BONE := Color("e8dfcf")
@@ -33,6 +34,7 @@ var _resume: Button
 var _map: Control
 var _keys: Label
 var _debug_allowed := false
+var _bench = null
 
 @onready var world = $World
 
@@ -49,6 +51,12 @@ func _ready() -> void:
 	$UiLayer.add_child(pause_screen)
 	pause_screen.visible = false
 	_begin.grab_focus()
+	var bench := _bench_arg()
+	if bench != "":
+		_bench = Bench.new()
+		_bench.main = self
+		_bench.quick = bench == "quick"
+		add_child(_bench)
 
 
 func start_game() -> void:
@@ -84,8 +92,23 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and world and world.running and not get_tree().paused:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and world and world.running and not get_tree().paused and _bench == null:
 		set_paused(true)
+
+
+## ?bench in the page address (or `-- --bench` on the command line) runs the
+## frame-time benchmark; ?bench=quick times only everything-on. Returns
+## "full", "quick" or "".
+func _bench_arg() -> String:
+	var arg := ""
+	if OS.has_feature("web"):
+		var q = JavaScriptBridge.eval("window.location.search", true)
+		arg = q if q is String else ""
+	else:
+		arg = " ".join(OS.get_cmdline_user_args())
+	if not arg.contains("bench"):
+		return ""
+	return "quick" if arg.contains("bench=quick") or arg.contains("--bench-quick") else "full"
 
 
 ## ?debug in the page address shows hitboxes on the web build.

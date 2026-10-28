@@ -126,3 +126,41 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  bench:
+    # Times the web build in real browsers (Firefox and Chrome, drawn by the
+    # CPU: there's no GPU here) with tools/bench_web.py and adds bench.md to
+    # the ci-reports branch. Runs beside the deploy, not before it.
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get the web build
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: bench-in
+
+      - name: Benchmark in Firefox and Chrome
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb imagemagick libgl1-mesa-dri > /dev/null
+          mkdir -p build/web && tar -xf bench-in/artifact.tar -C build/web
+          firefox --version || true
+          google-chrome --version || true
+          python3 tools/bench_web.py build/web bench-out
+
+      - name: Add the results to ci-reports
+        if: always()
+        run: |
+          git fetch -q --depth 1 origin ci-reports
+          git worktree add -q ../reports FETCH_HEAD
+          mkdir -p ../reports/bench && cp -r bench-out/. ../reports/bench/
+          cd ../reports
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" \
+            commit -qm "Browser benchmark for ${GITHUB_SHA::7}"
+          git push -q origin HEAD:ci-reports
