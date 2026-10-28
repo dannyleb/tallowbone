@@ -17,7 +17,7 @@ var _light: PointLight2D
 
 
 func _ready() -> void:
-	_light = Glow.light(Color(1.0, 0.76, 0.45), 165.0, 1.15)
+	_light = Glow.light(Color(1.0, 0.76, 0.45), 180.0, 1.3, 60.0)
 	_light.position = Vector2(0, -68)
 	add_child(_light)
 

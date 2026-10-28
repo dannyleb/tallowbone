@@ -14,12 +14,18 @@ const Sfx = preload("res://scripts/sfx.gd")
 
 const ACTIONS := [
 	"move_left", "move_right", "move_up", "move_down", "jump", "attack", "transform", "shoot",
-	"dash", "heal", "blood", "interact", "confirm", "back",
+	"dash", "heal", "interact", "confirm", "back",
 ]
 
 ## False until the title screen is dismissed: the world draws but doesn't run.
 var running := false
 var show_hitboxes := false
+## Lessons in the parry and the Visceral (see Tuning.LESSON). Tests turn
+## them off.
+var teaching := true
+var learned := {"parry": false, "visceral": false}
+## The lesson on now: { kind, enemy, text }, or empty.
+var lesson := {}
 
 var level
 var player
@@ -68,7 +74,7 @@ func _ready() -> void:
 	lamps = level.members("lamps")
 	signs = level.members("signs")
 	pickups = level.members("pickups")
-	for n in ["FxShaded", "FxOverlay", "FxGlow"]:
+	for n in ["FxShaded", "FxOverlay", "FxGlow", "Weather"]:
 		get_node(n).world = self
 	player.position = level.player_start.position
 	player.safe = player.position
@@ -138,6 +144,7 @@ func _physics_process(delta: float) -> void:
 	Tallow.update(self)
 	_update_pickups()
 	_update_lamps_and_signs()
+	_update_lesson()
 
 	if player.state == "dead":
 		if not dropped and player.t >= 0.5:
@@ -159,6 +166,49 @@ func refresh() -> void:
 	player.refill()
 	for e in enemies:
 		e.reset()
+
+
+## Slows time and prompts the first parry, then the first Visceral, until
+## you've done each once.
+func _update_lesson() -> void:
+	if not lesson.is_empty():
+		var e = lesson.enemy
+		var over: bool = not e.alive or player.state == "dead" or not teaching
+		if lesson.kind == "parry":
+			if e.state == "stagger" or e.state == "held":
+				learned.parry = true
+				over = true
+			elif not Combat.parryable(e):
+				over = true
+		elif player.state == "visceral":
+			learned.visceral = true
+			over = true
+		elif e.state != "stagger":
+			over = true
+		if over:
+			end_lesson()
+		return
+	if not teaching or player.state == "dead" or (learned.parry and learned.visceral):
+		return
+	for e in enemies:
+		if not e.alive or absf(e.position.x - player.position.x) > T.LESSON.range or absf(e.position.y - player.position.y) > 60.0:
+			continue
+		if not learned.parry and Combat.parryable(e):
+			_start_lesson("parry", e, "{shoot}   Shoot it now, as it glints")
+			return
+		if learned.parry and not learned.visceral and e.state == "stagger":
+			_start_lesson("visceral", e, "{attack}   Strike to finish it")
+			return
+
+
+func _start_lesson(kind: String, e, text: String) -> void:
+	lesson = {"kind": kind, "enemy": e, "text": text}
+	Engine.time_scale = T.LESSON.slow
+
+
+func end_lesson() -> void:
+	lesson = {}
+	Engine.time_scale = 1.0
 
 
 func respawn() -> void:

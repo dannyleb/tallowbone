@@ -5,6 +5,7 @@ extends Control
 
 const T = preload("res://scripts/tuning.gd")
 const Glow = preload("res://scripts/glow.gd")
+const Keys = preload("res://scripts/keys.gd")
 
 const FELL := preload("res://assets/fonts/IMFellEnglish-Regular.ttf")
 const FELL_ITALIC := preload("res://assets/fonts/IMFellEnglish-Italic.ttf")
@@ -21,22 +22,11 @@ const TALLOW := Color("f0bd62")
 const LAMP := Color("ffcf7a")
 const TONES := {"death": Color("b3262a"), "lamp": Color("ffcf7a"), "tallow": Color("f0bd62"), "pale": Color("e8dfcf")}
 
-const KEYS := {
-	"keyboard": {"interact": "E", "confirm": "Enter", "back": "Esc"},
-	"gamepad": {"interact": "D-pad ↑", "confirm": "A", "back": "B"},
-}
-
 var world
-var device := "keyboard"
 
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventJoypadButton:
-		device = "gamepad"
-	elif event is InputEventJoypadMotion and absf((event as InputEventJoypadMotion).axis_value) > 0.5:
-		device = "gamepad"
-	elif event is InputEventKey:
-		device = "keyboard"
+	Keys.notice(event)
 
 
 func _process(_delta: float) -> void:
@@ -89,11 +79,13 @@ func _draw() -> void:
 
 	var menu_open: bool = not world.menu.is_empty()
 	if not world.prompt.is_empty() and not menu_open:
-		_pill("%s  %s" % [KEYS[device].interact, world.prompt.text], world.prompt.pos - world.cam_top_left())
+		_pill("%s  %s" % [Keys.label("interact"), world.prompt.text], world.prompt.pos - world.cam_top_left())
 	if world.sign_node and not menu_open:
-		_sign_box(world.sign_node.text, view)
+		_sign_box(Keys.fill(world.sign_node.text), view)
 	if not world.fx.notice.is_empty():
 		_notice(world.fx.notice, view)
+	if not world.lesson.is_empty():
+		_lesson(Keys.fill(world.lesson.text), view)
 	if not world.fx.banner.is_empty():
 		_banner(world.fx.banner, view)
 	if menu_open:
@@ -157,6 +149,18 @@ func _sign_box(s: String, view: Vector2) -> void:
 		_text(lines[i], Vector2(r.position.x + 14, r.position.y + 17 + i * 16), 12, BONE)
 
 
+## A lesson prompt: big, warm, pulsing, under the action.
+func _lesson(s: String, view: Vector2) -> void:
+	var font_size := 15
+	var w := FELL_SC.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x + 36.0
+	var r := Rect2(view.x / 2.0 - w / 2.0, view.y * 0.66 - 15.0, w, 30.0)
+	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 120.0)
+	Glow.draw(self, r.get_center(), w * 0.7, Color(1.0, 0.75, 0.4, 0.12 + 0.1 * pulse))
+	draw_rect(r, Color(0.04, 0.035, 0.05, 0.9))
+	draw_rect(r, Color(1.0, 0.81, 0.48, 0.5 + 0.4 * pulse), false, 1.0)
+	_text(s, r.get_center(), font_size, LAMP, FELL_SC, HORIZONTAL_ALIGNMENT_CENTER)
+
+
 func _notice(n: Dictionary, view: Vector2) -> void:
 	var c := BONE
 	c.a = clampf(minf(n.t * 3.0, (n.dur - n.t) * 2.0), 0.0, 1.0)
@@ -216,5 +220,4 @@ func _menu(view: Vector2) -> void:
 			var lw := FELL.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 			_text(str(row.n), Vector2(x + 22 + lw, ry + 0.5), 10, col, NUM)
 		_text(row.note, Vector2(x + w - 16, ry), 10, BONE_DIM, FELL_ITALIC, HORIZONTAL_ALIGNMENT_RIGHT)
-	var keys: Dictionary = KEYS[device]
-	_text("%s choose   ·   %s leave" % [keys.confirm, keys.back], Vector2(x + 18, y + h - 12), 9, BONE_DIM)
+	_text("%s choose   ·   %s leave" % [Keys.label("confirm"), Keys.label("back")], Vector2(x + 18, y + h - 12), 9, BONE_DIM)

@@ -45,6 +45,10 @@ func _run() -> void:
 			break
 		await physics_frame
 	await _shot("03-glint")
+	# The glint starts the parry lesson (time slows, a prompt shows); the rest
+	# of the shots are without it.
+	world.teaching = false
+	world.end_lesson()
 
 	# The Lantern form mid-swing in the undercroft, by the second lamp.
 	var lamp2 = world.level.get_node("Entities/Lamp2")

@@ -12,6 +12,7 @@ const T = preload("res://scripts/tuning.gd")
 @export var size_tiles := Vector2i(100, 30)
 
 @onready var ground: TileMapLayer = $Ground
+@onready var back_wall: TileMapLayer = $BackWall
 @onready var entities: Node2D = $Entities
 @onready var player_start: Marker2D = $PlayerStart
 
@@ -44,6 +45,25 @@ func standable_at(p: Vector2) -> bool:
 
 func hazard_at(p: Vector2) -> bool:
 	return kind_at(cell_at(p)) == "water"
+
+
+## Indoors or underground: there's a back wall here instead of sky.
+func roofed_at(p: Vector2) -> bool:
+	return back_wall.get_cell_source_id(cell_at(p)) != -1
+
+
+## The y of the first open-air floor at x between y0 and y1 (stone or a
+## walkway with sky above it), or -1 if there isn't one.
+func ground_below(x: float, y0: float, y1: float) -> float:
+	var c := floori(x / T.TILE)
+	for r in range(maxi(0, floori(y0 / T.TILE)), floori(y1 / T.TILE) + 1):
+		var k := kind_at(Vector2i(c, r))
+		if k != "stone" and k != "walkway":
+			continue
+		var above := Vector2i(c, r - 1)
+		if kind_at(above) == "" and back_wall.get_cell_source_id(above) == -1:
+			return r * float(T.TILE)
+	return -1.0
 
 
 ## Things placed in the level, by group: "lamps", "signs", "pickups",

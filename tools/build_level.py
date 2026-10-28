@@ -66,6 +66,7 @@ def build(rows):
         return grid[r][c]
 
     solid = lambda c, r: at(c, r) in SOLID
+    vary = lambda c, r, n: (c * 7 + r * 13 + (c * r) % 5) % n
     ground, back = [], []
     for r in range(h):
         for c in range(w):
@@ -74,10 +75,11 @@ def build(rows):
             if t == "#":
                 op = lambda dc, dr: not solid(c + dc, r + dr)
                 if not (op(0, -1) or op(-1, 0) or op(1, 0) or op(0, 1) or op(0, -2)):
-                    name = "stone_deep"
+                    name = f"stone_deep_{vary(c, r, 2)}"
                 else:
+                    top = "top" if op(0, -1) else "face"
                     sides = ("l" if op(-1, 0) else "") + ("r" if op(1, 0) else "")
-                    name = "stone_" + ("top" if op(0, -1) else "face") + (f"_{sides}" if sides else "")
+                    name = f"stone_{top}_{sides}" if sides else f"stone_{top}_{vary(c, r, 2 if top == 'top' else 3)}"
             elif t == "=":
                 sides = ("l" if at(c - 1, r) != "=" else "") + ("r" if at(c + 1, r) != "=" else "")
                 name = "walkway" + (f"_{sides}" if sides else "")
@@ -94,14 +96,30 @@ def build(rows):
         covered = False
         for r in range(h):
             if covered and at(c, r) != "#":
-                variant = ["wall", "wall", "wall_b", "wall", "wall_c"][(c * 7 + r * 13) % 5]
+                variant = ["wall_0", "wall_0", "wall_1", "wall_0", "wall_2"][(c * 7 + r * 13) % 5]
                 back.append((c, r, BY_NAME[variant]))
             if solid(c, r):
                 covered = True
-    return w, h, ground, back, marks
+    # The canal: one reflective Water rect per stretch of surface.
+    water = []
+    for r in range(h):
+        c = 0
+        while c < w:
+            if at(c, r) == "~" and at(c, r - 1) != "~":
+                c0 = c
+                while at(c, r) == "~" and at(c, r - 1) != "~":
+                    c += 1
+                depth = 0
+                while at(c0, r + depth) == "~":
+                    depth += 1
+                water.append((c0, r, c - c0, depth))
+            else:
+                c += 1
+    return w, h, ground, back, marks, water
 
 
 def tile_data(cells):
+    # Each cell is drawn from a 64px texture tile, on a layer at half scale.
     # TileMapLayer.tile_map_data: a uint16 format version (0), then 12 bytes
     # per cell: x, y (int16), source id, atlas x, atlas y, alternative (uint16).
     b = bytearray(struct.pack("<H", 0))
@@ -114,20 +132,24 @@ def esc(s):
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def write(slug, name, signs, w, h, ground, back, marks):
-    ext = [("Script", "res://scripts/level.gd", "1_level"), ("TileSet", "res://tiles/greybox_tileset.tres", "2_tiles")]
+def write(slug, name, signs, w, h, ground, back, marks, water):
+    ext = [("Script", "res://scripts/level.gd", "1_level"), ("TileSet", "res://tiles/greybox_tileset.tres", "2_tiles"),
+           ("Shader", "res://shaders/water.gdshader", "10_water")]
     ids = {}
     for i, (key, path) in enumerate(SCENES.items()):
         ids[key] = f"{i + 3}_{key}"
         ext.append(("PackedScene", path, ids[key]))
-    out = [f"[gd_scene load_steps={len(ext) + 1} format=3]", ""]
+    out = [f"[gd_scene load_steps={len(ext) + 2} format=3]", ""]
     out += [f'[ext_resource type="{t}" path="{p}" id="{i}"]' for t, p, i in ext]
+    out += ["", '[sub_resource type="ShaderMaterial" id="ShaderMaterial_water"]', 'shader = ExtResource("10_water")']
     root = "".join(part.capitalize() for part in slug.split("_"))
     out += ["", f'[node name="{root}" type="Node2D"]', 'script = ExtResource("1_level")',
             f'level_name = "{esc(name)}"', f"size_tiles = Vector2i({w}, {h})", ""]
-    out += ['[node name="BackWall" type="TileMapLayer" parent="."]', "z_index = -1",
+    # Tiles are drawn at 64px and shown at half size: twice the detail, and
+    # each cell is still 32 world px.
+    out += ['[node name="BackWall" type="TileMapLayer" parent="."]', "z_index = -1", "scale = Vector2(0.5, 0.5)",
             f"tile_map_data = {tile_data(back)}", 'tile_set = ExtResource("2_tiles")', ""]
-    out += ['[node name="Ground" type="TileMapLayer" parent="."]',
+    out += ['[node name="Ground" type="TileMapLayer" parent="."]', "scale = Vector2(0.5, 0.5)",
             f"tile_map_data = {tile_data(ground)}", 'tile_set = ExtResource("2_tiles")', ""]
 
     counts = {}
@@ -138,6 +160,13 @@ def write(slug, name, signs, w, h, ground, back, marks):
         lines = [f'[node name="{label}{counts[label]}" parent="Entities" instance=ExtResource("{ids[kind]}")]',
                  f"position = Vector2({x:g}, {y:g})"]
         return lines + list(extra) + [""]
+
+    out += ['[node name="Water" type="Node2D" parent="."]', "z_index = 7", ""]
+    for i, (c, r, cw, depth) in enumerate(water):
+        out += [f'[node name="Canal{i + 1}" type="ColorRect" parent="Water"]',
+                f"offset_left = {c * T}.0", f"offset_top = {r * T}.0",
+                f"offset_right = {(c + cw) * T}.0", f"offset_bottom = {(r + depth) * T}.0",
+                "mouse_filter = 2", 'material = SubResource("ShaderMaterial_water")', ""]
 
     start = next((c, r) for ch, c, r in marks if ch == "P")
     out += ['[node name="PlayerStart" type="Marker2D" parent="."]',
@@ -165,6 +194,6 @@ def write(slug, name, signs, w, h, ground, back, marks):
 if __name__ == "__main__":
     slug = sys.argv[1] if len(sys.argv) > 1 else "canal_district"
     name, signs, rows = read(f"tools/levels/{slug}.txt")
-    w, h, ground, back, marks = build(rows)
-    path = write(slug, name, signs, w, h, ground, back, marks)
+    w, h, ground, back, marks, water = build(rows)
+    path = write(slug, name, signs, w, h, ground, back, marks, water)
     print(f"wrote {path}: {w}x{h} tiles, {len(ground)} ground, {len(back)} back wall, {len(marks)} markers")

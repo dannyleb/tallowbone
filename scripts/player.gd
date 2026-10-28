@@ -75,9 +75,9 @@ func _ready() -> void:
 	max_vials = T.PLAYER.vials
 	max_bullets = T.PLAYER.bullets
 	refill()
-	_light = Glow.light(Color(1.0, 0.8, 0.55), 70.0, 0.9)
+	_light = Glow.light(Color(1.0, 0.8, 0.55), 70.0, 0.9, 30.0)
 	add_child(_light)
-	_body_light = Glow.light(Color(0.8, 0.82, 1.0), 46.0, 0.35)
+	_body_light = Glow.light(Color(0.8, 0.82, 1.0), 46.0, 0.3, 40.0)
 	_body_light.position = Vector2(0, -H / 2.0)
 	add_child(_body_light)
 
@@ -181,8 +181,9 @@ func step(input: Dictionary, delta: float) -> void:
 			if t >= T.PLAYER.heal_time:
 				to_move()
 		"blood":
-			# Hold to cut yourself for bullets; let go early to back out.
-			if not held.blood:
+			# Out of bullets, holding the pistol cuts you for more; let go
+			# early to back out.
+			if not held.shoot:
 				to_move()
 			elif t >= T.BLOOD.time:
 				hp -= T.BLOOD.cost
@@ -255,7 +256,12 @@ func _free_actions(held: Dictionary, dir_x: float) -> void:
 	if buf.shoot > 0.0:
 		buf.shoot = 0.0
 		if bullets <= 0:
-			Sfx.play("click")
+			# Empty: keep holding to spend blood on bullets.
+			if held.shoot and hp > T.BLOOD.cost:
+				state = "blood"
+				t = 0.0
+			else:
+				Sfx.play("click")
 			return
 		state = "shoot"
 		t = 0.0
@@ -269,10 +275,6 @@ func _free_actions(held: Dictionary, dir_x: float) -> void:
 		state = "heal"
 		t = 0.0
 		done = false
-		return
-	if held.blood and is_on_floor() and hp > T.BLOOD.cost and bullets < max_bullets:
-		state = "blood"
-		t = 0.0
 		return
 	if buf.jump > 0.0 and (is_on_floor() or coyote > 0.0):
 		buf.jump = 0.0

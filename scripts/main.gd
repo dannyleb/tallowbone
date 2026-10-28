@@ -14,14 +14,13 @@ const TALLOW := Color("f0bd62")
 const LAMP := Color("ffcf7a")
 
 const KEYBOARD := [
-	["A  D", "walk"], ["Space", "jump  (S + Space drops through walkways)"], ["J", "strike"],
-	["K", "transform the Pole  (mid-combo: trick attack)"], ["L", "pistol  ·  parry when an enemy glints"],
-	["Shift", "quickstep"], ["F", "drink a vial"], ["R (hold)", "blood bullets"], ["E", "light / rest at a lamp"],
-	["Esc", "pause"],
+	["A  D", "walk"], ["Space", "jump"], ["Left-click", "strike"],
+	["Right-click", "pistol  ·  shoot an enemy as it glints"], ["Shift", "quickstep"],
+	["Q", "transform the Pole"], ["F", "drink a vial"], ["E", "light a lamp, rest"], ["Esc", "pause"],
 ]
 const GAMEPAD := [
-	["A", "jump"], ["X / RB", "strike"], ["LB", "transform"], ["LT", "pistol"], ["B", "quickstep"],
-	["Y", "vial"], ["Back (hold)", "blood bullets"], ["D-pad ↑", "lamp"],
+	["A", "jump"], ["X", "strike"], ["LT", "pistol"], ["B", "quickstep"],
+	["LB", "transform"], ["Y", "vial"], ["D-pad ↑", "lamp"], ["Start", "pause"],
 ]
 
 var title: Control
@@ -166,14 +165,14 @@ func _build_title() -> Control:
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 18)
 	columns.alignment = BoxContainer.ALIGNMENT_CENTER
-	columns.add_child(_controls("Keyboard", KEYBOARD, "Arrow keys with Z X C V work too."))
+	columns.add_child(_controls("Mouse & keyboard", KEYBOARD, "No mouse? J strike, K pistol, L quickstep, I transform."))
 	columns.add_child(_controls("Gamepad", GAMEPAD, ""))
 	box.add_child(columns)
 
 	_begin = _button("Begin the night")
 	_begin.pressed.connect(start_game)
 	box.add_child(_begin)
-	box.add_child(_label("Greybox: shapes stand in for the art", FELL, 7, Color(0.91, 0.87, 0.81, 0.4)))
+	box.add_child(_label("The rest you'll learn on the way.  Greybox: shapes stand in for the art.", FELL, 7, Color(0.91, 0.87, 0.81, 0.45)))
 	return parts[0]
 
 

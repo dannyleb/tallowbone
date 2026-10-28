@@ -24,6 +24,9 @@ func _run() -> void:
 	await _frames(2)
 	world = main.world
 	player = world.player
+	# Lessons slow time; the mechanics checks run at full speed, and the
+	# lessons get their own check at the end.
+	world.teaching = false
 	main.start_game()
 	await _frames(30)
 
@@ -40,6 +43,8 @@ func _run() -> void:
 	await _death_pile_and_gorge()
 	await _levelling()
 	await _pickup()
+	await _controls()
+	await _lessons()
 
 	print("\n%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
@@ -211,9 +216,9 @@ func _blood_and_vials() -> void:
 	player.bullets = 0
 	player.hp = 80.0
 	player.rally = 0.0
-	await _hold("blood", 40)
+	await _hold("shoot", 40)
 	await _frames(2)
-	_check("blood bullets: 20 HP for 4 rounds", player.bullets == 4 and absf(player.hp - 60.0) < 0.01, "bullets %d hp %s" % [player.bullets, player.hp])
+	_check("out of bullets, holding the pistol trades 20 HP for 4 rounds", player.bullets == 4 and absf(player.hp - 60.0) < 0.01, "bullets %d hp %s" % [player.bullets, player.hp])
 	_check("the blood spent becomes rally", player.rally > 15.0, str(player.rally))
 	var vials: int = player.vials
 	await _tap("heal")
@@ -316,3 +321,33 @@ func _pickup() -> void:
 	await _tp(it.position.x, it.position.y, 1.0, 99.0)
 	await _frames(5)
 	_check("a Vial Holder adds a vial", it.taken and player.max_vials == vials + 1)
+
+
+func _controls() -> void:
+	var mouse_button := func(action: String, index: int) -> bool:
+		for ev in InputMap.action_get_events(action):
+			if ev is InputEventMouseButton and ev.button_index == index:
+				return true
+		return false
+	_check("left-click strikes, right-click shoots", mouse_button.call("attack", MOUSE_BUTTON_LEFT) and mouse_button.call("shoot", MOUSE_BUTTON_RIGHT))
+	_check("no separate blood-bullet button", not InputMap.has_action("blood"))
+
+
+func _lessons() -> void:
+	world.refresh()
+	_fresh()
+	world.teaching = true
+	world.learned = {"parry": false, "visceral": false}
+	var e = _enemy("Communicant1")
+	await _tp(e.position.x - 90.0, 640.0, 1.0)
+	var started: bool = await _wait_until(func(): return world.lesson.get("kind", "") == "parry", 600)
+	_check("the first glint starts a lesson", started and Engine.time_scale < 1.0, "time scale %s" % Engine.time_scale)
+	await _tap("shoot", 3)
+	var next: bool = await _wait_until(func(): return world.lesson.get("kind", "") == "visceral", 200)
+	_check("a parry during it is learned, and the Visceral lesson follows", next and world.learned.parry)
+	player.position.x = e.position.x - 30.0
+	player.facing = 1.0
+	await _tap("attack", 3)
+	var done: bool = await _wait_until(func(): return world.learned.visceral, 200)
+	_check("finishing it ends the lessons and time runs normally", done and world.lesson.is_empty() and Engine.time_scale == 1.0,
+		"time scale %s" % Engine.time_scale)

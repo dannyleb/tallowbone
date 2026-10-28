@@ -32,8 +32,9 @@ const DASH := {"time": 0.17, "speed": 480.0, "iframes": 0.15, "cooldown": 0.32}
 ## damage dealt, up to whatever rally is left.
 const RALLY := {"hold": 0.6, "decay": 12.0, "regain": 0.6}
 
-## Blood bullets: hold for `time` to cut yourself for `cost` HP and load
-## `bullets` more. The HP spent becomes rally, so you can win it back.
+## Blood bullets: out of bullets, hold the pistol for `time` to cut yourself
+## for `cost` HP and load `bullets` more. The HP spent becomes rally, so you
+## can win it back.
 const BLOOD := {"time": 0.5, "cost": 20.0, "bullets": 4}
 
 ## The pistol is hitscan. Its damage is small; its job is the parry.
@@ -66,6 +67,11 @@ const STATS := [
 
 ## How far (px) from a lamp or sign you have to be to use or read it.
 const NEAR := 30.0
+
+## Lessons: the first times an enemy glints near you (within `range` px),
+## and the first time one is staggered, time slows to `slow` x normal and a
+## prompt says what to press. Each stops for good once you've done it.
+const LESSON := {"range": 200.0, "slow": 0.25}
 
 ## Trick Arms. Every weapon has two forms with their own movesets; turning
 ## it mid-combo is a trick attack that lands in the other form. Each Arm's

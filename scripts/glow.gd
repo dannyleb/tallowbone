@@ -36,12 +36,15 @@ static func _radial(offsets: PackedFloat32Array, colors: PackedColorArray) -> Gr
 	return tex
 
 
-## A soft point light of the given radius (px).
-static func light(color: Color, radius: float, energy: float) -> PointLight2D:
+## A soft point light of the given radius (px). height: how far (px) it
+## stands out from the wall, toward you; it decides how the bumps in the
+## normal maps catch it (low = raking light, high = flat on).
+static func light(color: Color, radius: float, energy: float, height := 40.0) -> PointLight2D:
 	var l := PointLight2D.new()
 	l.texture = texture()
 	l.color = color
 	l.energy = energy
+	l.height = height
 	set_radius(l, radius)
 	return l
 
