@@ -1,0 +1,5 @@
+node_modules/
+dist/
+tallowbone-web.zip
+*.log
+.DS_Store
