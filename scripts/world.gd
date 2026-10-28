@@ -11,6 +11,7 @@ const FxState = preload("res://scripts/fx_state.gd")
 const Combat = preload("res://scripts/combat.gd")
 const Tallow = preload("res://scripts/tallow.gd")
 const Sfx = preload("res://scripts/sfx.gd")
+const Keys = preload("res://scripts/keys.gd")
 
 const ACTIONS := [
 	"move_left", "move_right", "move_up", "move_down", "jump", "attack", "transform", "shoot",
@@ -33,6 +34,7 @@ var enemies: Array = []
 var lamps: Array = []
 var signs: Array = []
 var pickups: Array = []
+var gates: Array = []
 var fx := FxState.new()
 
 var tallow := 0
@@ -58,6 +60,11 @@ var deaths := 0
 var look := 0.0
 var cam_center := Vector2.ZERO
 
+## The map: one byte per tile, 1 once you've been near enough to see it.
+var explored := PackedByteArray()
+## Hints already given (so each shows once).
+var hinted := {}
+
 var _prev := {}
 var _counted := {}
 
@@ -74,6 +81,8 @@ func _ready() -> void:
 	lamps = level.members("lamps")
 	signs = level.members("signs")
 	pickups = level.members("pickups")
+	gates = level.members("gates")
+	explored.resize(level.size_tiles.x * level.size_tiles.y)
 	for n in ["FxShaded", "FxOverlay", "FxGlow", "Weather"]:
 		get_node(n).world = self
 	player.position = level.player_start.position
@@ -145,6 +154,9 @@ func _physics_process(delta: float) -> void:
 	_update_pickups()
 	_update_lamps_and_signs()
 	_update_lesson()
+	_update_hints()
+	if Engine.get_physics_frames() % 6 == 0:
+		reveal(player.position)
 
 	if player.state == "dead":
 		if not dropped and player.t >= 0.5:
@@ -188,7 +200,7 @@ func _update_lesson() -> void:
 		if over:
 			end_lesson()
 		return
-	if not teaching or player.state == "dead" or (learned.parry and learned.visceral):
+	if not teaching or player.state == "dead" or not player.has("pistol") or (learned.parry and learned.visceral):
 		return
 	for e in enemies:
 		if not e.alive or absf(e.position.x - player.position.x) > T.LESSON.range or absf(e.position.y - player.position.y) > 60.0:
@@ -276,22 +288,67 @@ func _update_menu(pressed: Dictionary) -> void:
 	Sfx.play("buy")
 
 
+## What each find is called, and the line under its name. {tokens} become
+## the keys for whatever you're holding.
+const FINDS := {
+	"vial": ["VIAL HOLDER", "Carry one more vial. Lamps refill them."],
+	"bullets": ["BULLET POUCH", "Carry three more quicksilver rounds."],
+	"quickstep": ["WATCHMAN'S BOOTS", "{dash} to quickstep. Nothing touches you mid-step."],
+	"pistol": ["WATCH PISTOL", "{shoot} to fire. Shoot an enemy the instant it glints."],
+	"lantern": ["LAMP OIL", "The Pole's lantern takes flame. Hold {attack} to turn it."],
+	"irons": ["CLIMBING IRONS", "Press into a wall to cling. {jump} to kick off it."],
+}
+
+
 func _update_pickups() -> void:
 	var r: Rect2 = player.body_rect()
 	for it in pickups:
 		if it.taken or absf(it.position.x - player.position.x) > 18.0 or it.position.y < r.position.y or it.position.y - 20.0 > r.end.y:
 			continue
 		it.take()
-		if it.kind == "vial":
-			player.max_vials += 1
-			player.vials += 1
-			fx.show_banner("VIAL HOLDER", "Carry one more vial. Lamps refill them.", 2.6)
-		else:
-			player.max_bullets += 3
-			player.bullets = player.max_bullets
-			fx.show_banner("BULLET POUCH", "Carry three more quicksilver rounds.", 2.6)
+		match it.kind:
+			"vial":
+				player.max_vials += 1
+				player.vials += 1
+			"bullets":
+				player.max_bullets += 3
+				player.bullets = player.max_bullets
+			_:
+				player.abilities[it.kind] = true
+		var find: Array = FINDS[it.kind]
+		fx.show_banner(find[0], Keys.fill(find[1]), 3.4)
 		fx.burst(it.position + Vector2(0, -12), {"count": 16, "color": Color("e8dfcf"), "spread": 80.0, "up": 80.0, "gravity": -50.0, "glow": true})
-		Sfx.play("buy")
+		Sfx.play("find" if it.kind in T.ABILITIES else "buy")
+
+
+## One-time nudges, the first time each is useful.
+func _update_hints() -> void:
+	if player.state == "dead":
+		return
+	if not hinted.get("vial", false) and player.hp < player.max_hp * 0.5 and player.vials > 0:
+		hinted.vial = true
+		fx.show_notice(Keys.fill("{heal} drinks a vial."), 4.0)
+	if not hinted.get("blood", false) and player.has("pistol") and player.bullets == 0:
+		hinted.blood = true
+		fx.show_notice(Keys.fill("Out of bullets: hold {shoot} to spend blood on more."), 4.5)
+
+
+## Marks the tiles around a point as seen, for the map.
+func reveal(at: Vector2) -> void:
+	var w: int = level.size_tiles.x
+	var h: int = level.size_tiles.y
+	var c0 := floori(at.x / T.TILE)
+	var r0 := floori(at.y / T.TILE)
+	for r in range(maxi(0, r0 - 7), mini(h, r0 + 5)):
+		for c in range(maxi(0, c0 - 11), mini(w, c0 + 12)):
+			explored[r * w + c] = 1
+
+
+func is_explored(cell: Vector2i) -> bool:
+	var w: int = level.size_tiles.x
+	if cell.x < 0 or cell.y < 0 or cell.x >= w or cell.y >= level.size_tiles.y:
+		return false
+	return explored[cell.y * w + cell.x] == 1
 
 
 func _update_lamps_and_signs() -> void:
@@ -308,6 +365,16 @@ func _update_lamps_and_signs() -> void:
 					rest_at(l)
 				else:
 					light_lamp(l)
+		for g in gates:
+			if g.open or absf(g.position.x - player.position.x) > T.NEAR + 6.0 or absf(g.position.y - player.position.y) > 40.0:
+				continue
+			if not g.reachable_from(player.position.x):
+				prompt = {"pos": g.position + Vector2(0, -108), "text": "Barred from the other side", "key": false}
+				continue
+			prompt = {"pos": g.position + Vector2(0, -108), "text": "Lift the bar"}
+			if player.buf.interact > 0.0 and player.state == "move" and player.is_on_floor():
+				player.buf.interact = 0.0
+				open_gate(g)
 		for s in signs:
 			if absf(s.position.x - player.position.x) < T.NEAR * 1.6 and absf(s.position.y - player.position.y) < 60.0:
 				near_sign = s
@@ -317,6 +384,13 @@ func _update_lamps_and_signs() -> void:
 		if near_sign:
 			near_sign.set_near(true)
 		sign_node = near_sign
+
+
+func open_gate(g) -> void:
+	g.open_gate()
+	fx.show_notice("A shortcut opens. The way back is shorter now.", 3.6)
+	fx.add_shake(3.0)
+	Sfx.play("gate")
 
 
 func _update_camera(delta: float) -> void:

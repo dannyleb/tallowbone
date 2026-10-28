@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/props/gate.gd" id="1_gate"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bars"]
+size = Vector2(14, 96)
+
+[node name="Gate" type="StaticBody2D" groups=["gates"]]
+z_index = 1
+collision_mask = 0
+script = ExtResource("1_gate")
+
+[node name="Bars" type="CollisionShape2D" parent="."]
+position = Vector2(0, -48)
+shape = SubResource("RectangleShape2D_bars")

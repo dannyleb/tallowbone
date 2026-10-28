@@ -99,6 +99,9 @@ SOUNDS = {
     "death": lambda: mixdown(tone(110, 55, 2.2, "saw", 0.15, attack=0.05), tone(116, 58, 2.2, "sine", 0.15, attack=0.05)),
     "buy": lambda: mixdown(tone(659, None, 0.25, "triangle", 0.15), tone(988, None, 0.35, "triangle", 0.12, delay=0.08)),
     "deny": lambda: tone(160, 140, 0.15, "square", 0.07),
+    "gate": lambda: mixdown(noise(0.6, 260, 110, q=0.6, gain=1.0), tone(70, 48, 0.7, "saw", 0.22),
+                            noise(0.08, 2600, gain=0.6, delay=0.55), tone(220, 180, 0.12, "square", 0.08, delay=0.55)),
+    "find": lambda: mixdown(*[tone(f, None, 0.9, "triangle", 0.1, attack=0.05, delay=d) for f, d in ((392, 0), (523, 0.1), (659, 0.2), (784, 0.3))]),
 }
 
 

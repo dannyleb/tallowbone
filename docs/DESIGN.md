@@ -38,10 +38,10 @@ The city's lamps burn tallow rendered from its own victims.
 ### What every good Metroidvania needs, and how we meet it
 | Fundamental | In Tallowbone | Status |
 |---|---|---|
-| **Utility-gated exploration**: the way on is blocked by an ability you don't have yet, not a key | Trick Arm forms are the gates. The Lantern burns veils **[slice]**. Next: Boathook vault, Chain-Cane swing, Bell-Maul floors, Mill-Saw walls; movement upgrades **Climbing Irons** (wall cling and wall jump) and **Updraft** (the lantern's heat lifts a second jump) | one gate so far |
-| **Backtracking that changes things**: old dead ends become shortcuts and secrets | New forms reopen old places; Second Sight shows a hidden layer; the Long Night changes the city after each boss; souls-style **shortcuts** (gates and ladders opened from the far side, back to a lamp) | [planned] |
-| **One interconnected, memorable map** | One continuous city, districts joined in loops; landmarks you can see from far off in the backdrop (church spire, canal locks, mill wheel); a **self-updating map** marking lamps, veils, your Tallow and Gorged enemies | map [planned, M1] |
-| **Tight, responsive movement** | Coyote time, jump buffer, variable jump, quickstep, buffered presses, freeze-frames **[slice]**; next: wall jump, corner correction (nudging you past a ledge you barely clip) | ongoing |
+| **Utility-gated exploration**: the way on is blocked by an ability you don't have yet, not a key | You start with walk, jump and strike; everything else is found (section 6.7). The Lantern burns veils, the **Climbing Irons** climb the chimney by the start **[slice]**. Next: Boathook vault, Chain-Cane swing, Bell-Maul floors, Mill-Saw walls; **Updraft** (the lantern's heat lifts a second jump) | two gates so far |
+| **Backtracking that changes things**: old dead ends become shortcuts and secrets | Souls-style **shortcut gates**, barred from one side, lifted from the other, open for good **[slice]**: the undercroft gate opens onto a shaft back up to the street before the hall, the hall door joins the plaza to the hall. The chimney at the start pays off once you have the Irons **[slice]**. New forms reopen old places; Second Sight shows a hidden layer; the Long Night changes the city after each boss | started |
+| **One interconnected, memorable map** | One continuous city, districts joined in loops; landmarks you can see from far off in the backdrop (church spire, canal locks, mill wheel); a **self-updating map** on the pause screen: only where you've been, with lamps, gates, finds you've seen, your Tallow and Gorged enemies **[slice]** | map done |
+| **Tight, responsive movement** | Coyote time, jump buffer, variable jump, quickstep, buffered presses, freeze-frames, **ledge assist** (a jump that barely clips a ledge pops you onto it), wall slide and wall jump with the Irons **[slice]** | ongoing |
 | **Rewards that matter**: never filler | Vial Holders, Bullet Pouches **[slice]**; Bone, new Trick Arms, Second Sight relics. Rule: every secret gives something you can feel in play | ongoing |
 | **Environmental storytelling** | The setting tells it: the church, the meeting hall, what's under it, what the lamps burn; item text and overheard Communicants. The tutorial signs become lore and in-world prompts later | [planned] |
 
@@ -106,7 +106,7 @@ from the Rally window and committed attacks instead.
 | Move | Notes | Status |
 |---|---|---|
 | Strike combo | Per-form combos with startup / active / recovery frames | [slice] |
-| Transform | Switch form. Mid-combo it's a **trick attack** that lands in the other form | [slice] |
+| Transform | **Hold strike**: the swing turns into a **trick attack** that lands in the other form. (A transform key exists too, for players who want it.) | [slice] |
 | Pistol | Hitscan, small damage. Its job is the parry | [slice] |
 | Parry | Shoot an enemy during its **glint** (the last part of its wind-up): it staggers | [slice] |
 | Visceral | Strike a staggered enemy: heavy damage, invulnerable, refills Rally | [slice] |
@@ -114,6 +114,7 @@ from the Rally window and committed attacks instead.
 | Vials | Limited heals. Lamps refill them. Vial Holders raise the cap | [slice] |
 | Blood bullets | Out of bullets, hold the pistol: 20 HP for 4 rounds. The HP becomes Rally | [slice] |
 | Air attacks | Same moveset in the air, no lunge | [slice] |
+| Wall slide / wall jump | With the Climbing Irons: press into a wall in the air to slide down it slowly, jump to kick off, up and away | [slice] |
 
 ### 6.3 The Blood Loop
 1. **Rally:** damage you take hangs on as a pale bar for ~0.6 s, then
@@ -148,17 +149,19 @@ Off-hand guns: pistol **[slice]**, blunderbuss (spread, close stagger)
 
 ### 6.6 Controls: easy to pick up
 Mouse-first on PC, because that's what PC players already know, and every
-action stays one press:
+action stays one press. You start with **five**: walk, jump, strike,
+lamps/gates, pause. Each find adds one, and its banner names the key.
 
-| Action | Mouse & keyboard | No mouse | Gamepad |
-|---|---|---|---|
-| Walk / jump | A D / Space | A D / Space | Left stick / A |
-| Strike | Left-click | J | X |
-| Pistol (parry) | Right-click | K | LT |
-| Quickstep | Shift | L | B |
-| Transform | Q (or mouse wheel) | I | LB |
-| Vial | F | F | Y |
-| Lamp | E (or W) | E | D-pad up |
+| Action | Mouse & keyboard | No mouse | Gamepad | From |
+|---|---|---|---|---|
+| Walk / jump | A D / Space | A D / Space | Left stick / A | start |
+| Strike (hold: turn the Pole) | Left-click | J | X | start (turning: Lamp Oil) |
+| Lamps, gates | E (or W) | E | D-pad up | start |
+| Pause and map | Esc | Esc | Start | start |
+| Vial | F | F | Y | start (first shown when you're hurt) |
+| Quickstep | Shift | L | B | Watchman's Boots |
+| Pistol (parry) | Right-click | K | LT | Watch Pistol |
+| Wall jump | Space against a wall | Space | A | Climbing Irons |
 
 - No separate blood-bullet button: holding the pistol when empty does it.
   **[slice]**
@@ -167,7 +170,19 @@ action stays one press:
 - **Lessons in the moment:** the first time an enemy glints near you, time
   slows and a prompt says to shoot; the first stagger says to strike. Each
   stops once you've done it. **[slice]**
+- The pause screen lists only the keys you have. **[slice]**
 - Rebinding in an options menu, and touch controls. **[planned]**
+
+### 6.7 Found along the way
+The Canal District hands out the kit in order, each find right where it's
+first needed, so nothing is taught before it's useful. **[slice]**
+
+| Find | Where | Unlocks |
+|---|---|---|
+| Watchman's Boots | Just past the canal | Quickstep |
+| Watch Pistol | Before the first glinting Communicant | The pistol, the parry, Visceral attacks, blood bullets |
+| Lamp Oil | The street before the meeting hall's veil | Hold strike to turn the Pole into its Lantern |
+| Climbing Irons | The far end of the undercroft | Wall slide and wall jump: the chimney by the start, and the vial at its top |
 
 ## 7. Economy: Tallow & Bone
 
@@ -214,6 +229,10 @@ The Metroidvania-native mechanic.
   midnight, then the witching hour, then something in the sky. Palette,
   enemies and paths change, so backtracking feels new. **[planned]**
 - **Gating:** Trick Arm forms (abilities) and Second Sight (perception).
+- **Shortcut gates:** barred from one side, lifted from the other, and open
+  for good (through rests and deaths). From the barred side they read
+  "Barred from the other side", so you know a way round exists. **[slice]**
+- **The map** (pause screen) draws only what you've seen. **[slice]**
 
 ## 10. Art direction
 - **Hand-illustrated**, not pixel art. Blasphemous and The Last Faith are
@@ -276,7 +295,7 @@ The Metroidvania-native mechanic.
 | # | Milestone | Status |
 |---|---|---|
 | M0 | **Greybox slice:** movement, Lamplighter's Pole (both forms), gun parry, Visceral, Rally, blood bullets, vials, lamps + levelling, Tallow drop / Gorged / reclaim, veil gating, one district | **done** |
-| M1 | First boss (a fallen Watchman, a hunter who uses your toolkit). The Parlor hub. Saving. The map | next |
+| M1 | First boss (a fallen Watchman, a hunter who uses your toolkit). The Parlor hub. Saving | next |
 | M2 | Second Weapon (Boathook) and its gated area. Bone upgrades | |
 | M3 | Second Sight + Dread, one revealed-layer area | |
 | M4 | Art pass on the Canal District: illustrated backgrounds and character animation | |
@@ -285,6 +304,7 @@ The Metroidvania-native mechanic.
 | — | Engine move: JavaScript prototype → Godot 4.7, same slice | **done** |
 | — | Easy controls: mouse-first layout, keys named for your device, lessons for the parry and Visceral | **done** |
 | — | Lit greybox: normal and gloss maps, moonlight, rounded characters, rain, mist, reflective water | **done** |
+| — | Easier start: canal of short hops, ledge assist, five starting keys with the rest found along the way, hold strike to transform, pause-screen map, shortcut gates, Climbing Irons | **done** |
 
 ## 14. Open questions
 - Lore: who is the Medium, and what is the church actually burning?

@@ -60,6 +60,15 @@ var jumping := false
 var safe := Vector2.ZERO
 var in_hazard := false
 var run_t := 0.0
+## What you've found (Tuning.ABILITIES); all start locked.
+var abilities := {}
+## How long strike has been held (negative once it's turned the Pole, until
+## you let go).
+var attack_hold := 0.0
+var sliding := false
+var wall_dir := 0.0
+var wall_grace := 0.0
+var wall_lock := 0.0
 var _time := 0.0
 var _lantern := Vector2.ZERO
 var _light: PointLight2D
@@ -73,6 +82,8 @@ func _ready() -> void:
 	floor_snap_length = 6.0
 	for k in BUFFER:
 		buf[k] = 0.0
+	for a in T.ABILITIES:
+		abilities[a] = false
 	max_hp = T.PLAYER.max_hp
 	max_vials = T.PLAYER.vials
 	max_bullets = T.PLAYER.bullets
@@ -87,6 +98,15 @@ func _ready() -> void:
 	_fig = Figure.new()
 	add_child(_fig)
 	_fig.setup(Vector2(160, 120), Vector2(80, 108), _paint)
+
+
+func has(ability: String) -> bool:
+	return abilities.get(ability, false)
+
+
+func unlock_all() -> void:
+	for a in T.ABILITIES:
+		abilities[a] = true
 
 
 func refill() -> void:
@@ -135,6 +155,12 @@ func step(input: Dictionary, delta: float) -> void:
 	iframes = maxf(0.0, iframes - delta)
 	dash_cd = maxf(0.0, dash_cd - delta)
 	drop_t = maxf(0.0, drop_t - delta)
+	wall_grace = maxf(0.0, wall_grace - delta)
+	wall_lock = maxf(0.0, wall_lock - delta)
+	if held.attack:
+		attack_hold += delta
+	else:
+		attack_hold = 0.0
 	if rally_hold > 0.0:
 		rally_hold -= delta
 	else:
@@ -146,11 +172,12 @@ func step(input: Dictionary, delta: float) -> void:
 
 	match state:
 		"move":
-			control = 1.0
+			# Just after a wall jump you're carried away from the wall.
+			control = 0.0 if wall_lock > 0.0 else 1.0
 			_free_actions(held, dir_x)
 		"attack":
 			control = 0.0 if is_on_floor() else 0.35
-			_tick_attack(dir_x)
+			_tick_attack(held, dir_x)
 		"transform":
 			control = 0.5
 			if t >= T.TRANSFORM_TIME:
@@ -223,10 +250,14 @@ func step(input: Dictionary, delta: float) -> void:
 		jumping = false
 	if gravity:
 		velocity.y = minf(velocity.y + T.GRAVITY * delta, T.MAX_FALL)
+	if sliding and velocity.y > T.WALL.slide:
+		velocity.y = T.WALL.slide
 
 	# Down + jump on a walkway drops through it for a moment.
 	collision_mask = 1 if drop_t > 0.0 else 3
 	move_and_slide()
+	_ledge_assist(dir_x)
+	_wall_slide(dir_x)
 	if is_on_floor():
 		coyote = T.PLAYER.coyote
 		air_dash = true
@@ -246,21 +277,21 @@ func _free_actions(held: Dictionary, dir_x: float) -> void:
 		return
 	if buf.attack > 0.0:
 		buf.attack = 0.0
-		var e = _visceral_target()
+		var e = _visceral_target() if has("pistol") else null
 		if e:
 			_start_visceral(e)
 			return
 		combo = 0
 		_start_attack(f.combo[0], "combo")
 		return
-	if buf.transform > 0.0:
+	if buf.transform > 0.0 and has("lantern"):
 		buf.transform = 0.0
 		form = f.trick.to
 		state = "transform"
 		t = 0.0
 		Sfx.play("swing")
 		return
-	if buf.shoot > 0.0:
+	if buf.shoot > 0.0 and has("pistol"):
 		buf.shoot = 0.0
 		if bullets <= 0:
 			# Empty: keep holding to spend blood on bullets.
@@ -292,6 +323,16 @@ func _free_actions(held: Dictionary, dir_x: float) -> void:
 		jumping = true
 		coyote = 0.0
 		Sfx.play("jump")
+	elif buf.jump > 0.0 and wall_grace > 0.0:
+		# Climbing Irons: kick off the wall, up and away.
+		buf.jump = 0.0
+		velocity = Vector2(-wall_dir * T.WALL.push, -T.WALL.jump)
+		facing = -wall_dir
+		jumping = true
+		sliding = false
+		wall_grace = 0.0
+		wall_lock = T.WALL.lock
+		Sfx.play("jump")
 
 
 func _start_attack(a: Dictionary, k: String) -> void:
@@ -303,7 +344,7 @@ func _start_attack(a: Dictionary, k: String) -> void:
 	lunged = false
 
 
-func _tick_attack(dir_x: float) -> void:
+func _tick_attack(held: Dictionary, dir_x: float) -> void:
 	var a := attack
 	var on: float = a.startup
 	var off: float = on + a.active
@@ -326,13 +367,16 @@ func _tick_attack(dir_x: float) -> void:
 	if buf.dash > 0.0 and _can_dash():
 		_start_dash(dir_x)
 		return
-	if buf.transform > 0.0 and kind == "combo":
+	# Holding strike (or the transform key) turns the Pole: a trick attack.
+	var turn: bool = buf.transform > 0.0 or (held.attack and attack_hold >= T.TRICK_HOLD)
+	if turn and kind == "combo" and has("lantern"):
 		buf.transform = 0.0
+		attack_hold = -1000.0
 		_start_attack(form_data().trick, "trick")
 		return
 	if buf.attack > 0.0 and t >= off + a.recovery * 0.35:
 		buf.attack = 0.0
-		var e = _visceral_target()
+		var e = _visceral_target() if has("pistol") else null
 		if e:
 			_start_visceral(e)
 			return
@@ -436,7 +480,40 @@ func _tick_visceral() -> void:
 
 
 func _can_dash() -> bool:
-	return dash_cd <= 0.0 and (is_on_floor() or air_dash)
+	return has("quickstep") and dash_cd <= 0.0 and (is_on_floor() or air_dash)
+
+
+## Pushing into a ledge with your feet just below its top pops you up onto
+## it, so a jump that barely clips the edge still lands.
+func _ledge_assist(dir_x: float) -> void:
+	if dir_x == 0.0 or is_on_floor() or velocity.y < -80.0 or not is_on_wall() or state != "move":
+		return
+	var level = world.level
+	var front := position.x + signf(dir_x) * (W / 2.0 + 2.0)
+	var top := floorf((position.y - 1.0) / T.TILE) * T.TILE
+	if position.y - top > T.LEDGE_ASSIST:
+		return
+	if not level.solid_at(Vector2(front, top + 1.0)) or level.solid_at(Vector2(front, top - 1.0)):
+		return
+	if level.solid_at(Vector2(front, top - H + 2.0)) or level.solid_at(Vector2(position.x, top - H + 2.0)):
+		return
+	position = Vector2(position.x + signf(dir_x) * 3.0, top - 0.5)
+	velocity.y = 0.0
+
+
+## Climbing Irons: pressing into a wall in the air slides you down it
+## slowly, and jump kicks off (see _free_actions).
+func _wall_slide(dir_x: float) -> void:
+	sliding = false
+	if not has("irons") or state != "move" or is_on_floor() or not is_on_wall() or dir_x == 0.0:
+		return
+	var n := get_wall_normal().x
+	if n == 0.0 or signf(dir_x) != -signf(n) or velocity.y < 0.0:
+		return
+	sliding = true
+	wall_dir = -signf(n)
+	wall_grace = T.WALL.grace
+	air_dash = true
 
 
 func _start_dash(dir_x: float) -> void:

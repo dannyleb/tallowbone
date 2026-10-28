@@ -29,6 +29,8 @@ func _run() -> void:
 	player = world.player
 	await _shot("01-title")
 	main.start_game()
+	# The shots show the whole kit; the playtest covers finding it.
+	player.unlock_all()
 
 	# Lamplighter's Row, the first lamp just lit.
 	var lamp = world.level.get_node("Entities/Lamp1")
@@ -72,7 +74,7 @@ func _run() -> void:
 	await _shot("06-canal")
 
 	# A Gorged Communicant beside your guttering tallow.
-	var g = world.level.get_node("Entities/Communicant3")
+	var g = world.level.get_node("Entities/Communicant4")
 	g.gorged = 240
 	g.reset()
 	world.pile = {"pos": Vector2(g.position.x - 40.0, 640.0), "amount": 180}
@@ -103,6 +105,35 @@ func _run() -> void:
 	await _tp(e.position.x - 70.0, 640.0, 1.0)
 	await _frames(30)
 	await _shot("10-hitboxes")
+
+	world.show_hitboxes = false
+
+	# A shortcut gate in the undercroft, seen from the side it won't open from.
+	var gate = world.level.get_node("Entities/Gate2")
+	await _tp(gate.position.x - 70.0, gate.position.y, 1.0)
+	await _frames(30)
+	await _shot("11-gate")
+
+	# Halfway up the chimney on the Climbing Irons.
+	await _tp(44.0, 400.0, -1.0)
+	player.velocity = Vector2(-60.0, 60.0)
+	Input.action_press("move_left")
+	await _frames(6)
+	await _shot("12-chimney")
+	Input.action_release("move_left")
+
+	# The pause screen's map after a walk through most of the district.
+	for x in range(0, 4800, 96):
+		world.reveal(Vector2(x, 640.0))
+	for x in range(2500, 4150, 96):
+		world.reveal(Vector2(x, 896.0))
+	for y in range(160, 640, 96):
+		world.reveal(Vector2(64.0, y))
+	await _tp(3100.0, 896.0, 1.0)
+	main.set_paused(true)
+	await _frames(4)
+	await _shot("13-map")
+	main.set_paused(false)
 
 	print("screenshots written to ", out_dir)
 	quit(0)

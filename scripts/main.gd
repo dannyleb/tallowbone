@@ -6,6 +6,8 @@ const FELL := preload("res://assets/fonts/IMFellEnglish-Regular.ttf")
 const FELL_ITALIC := preload("res://assets/fonts/IMFellEnglish-Italic.ttf")
 const FELL_SC := preload("res://assets/fonts/IMFellEnglishSC-Regular.ttf")
 const Glow = preload("res://scripts/glow.gd")
+const Keys = preload("res://scripts/keys.gd")
+const MapView = preload("res://scripts/map_view.gd")
 
 const INK := Color("07080d")
 const BONE := Color("e8dfcf")
@@ -13,20 +15,23 @@ const BONE_DIM := Color(0.91, 0.87, 0.81, 0.6)
 const TALLOW := Color("f0bd62")
 const LAMP := Color("ffcf7a")
 
+## The title screen shows only what you need to start; everything else is
+## found on the way, and each find shows its own key.
 const KEYBOARD := [
 	["A  D", "walk"], ["Space", "jump"], ["Left-click", "strike"],
-	["Right-click", "pistol  ·  shoot an enemy as it glints"], ["Shift", "quickstep"],
-	["Q", "transform the Pole"], ["F", "drink a vial"], ["E", "light a lamp, rest"], ["Esc", "pause"],
+	["E", "light lamps, open gates"], ["Esc", "pause and map"],
 ]
 const GAMEPAD := [
-	["A", "jump"], ["X", "strike"], ["LT", "pistol"], ["B", "quickstep"],
-	["LB", "transform"], ["Y", "vial"], ["D-pad ↑", "lamp"], ["Start", "pause"],
+	["Left stick", "walk"], ["A", "jump"], ["X", "strike"],
+	["D-pad ↑", "lamps and gates"], ["Start", "pause and map"],
 ]
 
 var title: Control
 var pause_screen: Control
 var _begin: Button
 var _resume: Button
+var _map: Control
+var _keys: Label
 var _debug_allowed := false
 
 @onready var world = $World
@@ -57,6 +62,8 @@ func set_paused(on: bool) -> void:
 	get_tree().paused = on
 	pause_screen.visible = on
 	if on:
+		_keys.text = _keys_text()
+		_map.queue_redraw()
 		_resume.grab_focus()
 
 
@@ -165,14 +172,15 @@ func _build_title() -> Control:
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 18)
 	columns.alignment = BoxContainer.ALIGNMENT_CENTER
-	columns.add_child(_controls("Mouse & keyboard", KEYBOARD, "No mouse? J strike, K pistol, L quickstep, I transform."))
+	columns.add_child(_controls("Mouse & keyboard", KEYBOARD, "No mouse? J strikes."))
 	columns.add_child(_controls("Gamepad", GAMEPAD, ""))
 	box.add_child(columns)
 
 	_begin = _button("Begin the night")
 	_begin.pressed.connect(start_game)
 	box.add_child(_begin)
-	box.add_child(_label("The rest you'll learn on the way.  Greybox: shapes stand in for the art.", FELL, 7, Color(0.91, 0.87, 0.81, 0.45)))
+	box.add_child(_label("Everything else you'll find along the way.", FELL_ITALIC, 9, BONE_DIM))
+	box.add_child(_label("Greybox: shapes stand in for the art.", FELL, 7, Color(0.91, 0.87, 0.81, 0.45)))
 	return parts[0]
 
 
@@ -194,11 +202,46 @@ func _controls(heading: String, rows: Array, footnote: String) -> VBoxContainer:
 
 
 func _build_pause() -> Control:
-	var parts := _card(180.0)
+	var parts := _card(600.0)
 	var box: VBoxContainer = parts[1]
-	box.add_child(_label("Paused", FELL_SC, 28, BONE))
-	box.add_child(_label("The night waits.", FELL_ITALIC, 10, BONE_DIM))
+	box.add_child(_label(world.level.level_name, FELL_SC, 18, BONE))
+	_map = MapView.new()
+	_map.world = world
+	_map.custom_minimum_size = Vector2(580, 130)
+	box.add_child(_map)
+	var legend := HBoxContainer.new()
+	legend.alignment = BoxContainer.ALIGNMENT_CENTER
+	legend.add_theme_constant_override("separation", 10)
+	for item in [[MapView.LAMP, "lamp"], [MapView.GATE, "barred gate"], [MapView.FIND, "something you've seen"],
+			[MapView.TALLOW, "your tallow"], [MapView.GORGED, "Gorged"], [MapView.YOU, "you"]]:
+		var swatch := ColorRect.new()
+		swatch.color = item[0]
+		swatch.custom_minimum_size = Vector2(5, 5)
+		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		legend.add_child(swatch)
+		legend.add_child(_label(item[1], FELL, 8, BONE_DIM, HORIZONTAL_ALIGNMENT_LEFT))
+	box.add_child(legend)
+	_keys = _label("", FELL, 8, BONE_DIM)
+	_keys.autowrap_mode = TextServer.AUTOWRAP_WORD
+	box.add_child(_keys)
 	_resume = _button("Resume")
 	_resume.pressed.connect(func(): set_paused(false))
 	box.add_child(_resume)
 	return parts[0]
+
+
+## The keys you have now, for the pause screen.
+func _keys_text() -> String:
+	var p = world.player
+	var parts := ["{move} walk", "{jump} jump", "{attack} strike"]
+	if p.has("lantern"):
+		parts.append("hold {attack} to turn the Pole")
+	if p.has("pistol"):
+		parts.append("{shoot} pistol (hold when empty for blood)")
+	if p.has("quickstep"):
+		parts.append("{dash} quickstep")
+	parts.append("{heal} vial")
+	if p.has("irons"):
+		parts.append("press into a wall to cling, {jump} to kick off")
+	parts.append("{interact} lamps and gates")
+	return Keys.fill("   ·   ".join(parts))

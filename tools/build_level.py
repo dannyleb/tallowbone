@@ -22,7 +22,10 @@ SCENES = {
     "pickup": "res://scenes/props/pickup.tscn",
     "communicant": "res://scenes/actors/communicant.tscn",
     "hound": "res://scenes/actors/hound.tscn",
+    "gate": "res://scenes/props/gate.tscn",
 }
+PICKUPS = {"v": ("vial", "VialHolder"), "b": ("bullets", "BulletPouch"), "d": ("quickstep", "WatchmansBoots"),
+           "g": ("pistol", "WatchPistol"), "o": ("lantern", "LampOil"), "i": ("irons", "ClimbingIrons")}
 
 
 def read(path):
@@ -54,7 +57,7 @@ def build(rows):
     for r in range(h):
         for c in range(w):
             ch = grid[r][c]
-            if ch in "PLchvb123456789":
+            if ch in "PLch123456789[]" or ch in PICKUPS:
                 marks.append((ch, c, r))
                 grid[r][c] = "."
 
@@ -155,10 +158,11 @@ def write(slug, name, signs, w, h, ground, back, marks, water):
 
     counts = {}
 
-    def node(kind, label, c, r, extra=()):
+    def node(kind, label, c, r, extra=(), number=None):
         counts[label] = counts.get(label, 0) + 1
         x, y = (c + 0.5) * T, (r + 1) * T
-        lines = [f'[node name="{label}{counts[label]}" parent="Entities" instance=ExtResource("{ids[kind]}")]',
+        name = f"{label}{number if number is not None else counts[label]}"
+        lines = [f'[node name="{name}" parent="Entities" instance=ExtResource("{ids[kind]}")]',
                  f"position = Vector2({x:g}, {y:g})"]
         return lines + list(extra) + [""]
 
@@ -180,12 +184,13 @@ def write(slug, name, signs, w, h, ground, back, marks, water):
             out += node("communicant", "Communicant", c, r)
         elif ch == "h":
             out += node("hound", "Hound", c, r)
-        elif ch == "v":
-            out += node("pickup", "VialHolder", c, r, ['kind = "vial"'])
-        elif ch == "b":
-            out += node("pickup", "BulletPouch", c, r, ['kind = "bullets"'])
+        elif ch in PICKUPS:
+            kind, label = PICKUPS[ch]
+            out += node("pickup", label, c, r, [f'kind = "{kind}"'])
+        elif ch in "[]":
+            out += node("gate", "Gate", c, r, [f'opens_from = "{"east" if ch == "]" else "west"}"'])
         elif ch.isdigit():
-            out += node("sign", "Sign", c, r, [f'text = "{esc(signs[ch])}"'])
+            out += node("sign", "Sign", c, r, [f'text = "{esc(signs[ch])}"'], number=ch)
     path = f"scenes/levels/{slug}.tscn"
     with open(path, "w") as f:
         f.write("\n".join(out))

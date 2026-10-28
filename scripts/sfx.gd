@@ -8,7 +8,7 @@ extends Node
 
 const NAMES := [
 	"swing", "heavy", "hit", "shot", "click", "glint", "parry", "visceral", "dash", "jump", "hurt",
-	"splash", "heal", "blood", "burn", "lamp", "tallow", "gorge", "death", "buy", "deny",
+	"splash", "heal", "blood", "burn", "lamp", "tallow", "gorge", "death", "buy", "deny", "gate", "find",
 ]
 const VOICES := 10
 

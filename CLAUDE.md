@@ -16,6 +16,8 @@ The design lives in `docs/DESIGN.md`. Keep its status markers ([slice] /
 - Locally, `gdparse` (pip `gdtoolkit`) catches GDScript syntax errors
   before pushing. It doesn't catch type errors; Godot does, in CI.
 - When adding a mechanic, add a check for it to `tests/playtest.gd`.
+  Abilities (`ABILITIES` in tuning) start locked and pickups unlock them
+  (`player.has("pistol")`); scenarios that need one run after `_finds`.
 
 ## Conventions
 - GDScript with tabs, doc comments (`##`) on scripts and non-obvious

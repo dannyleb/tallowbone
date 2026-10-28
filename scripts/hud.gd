@@ -60,13 +60,18 @@ func _draw() -> void:
 	draw_circle(Vector2(x + 4, y + 22), 4.0, BLOOD_BRIGHT)
 	draw_rect(Rect2(x + 3, y + 15, 2, 3), BONE)
 	_text(str(p.vials), Vector2(x + 11, y + 22), 11, BONE, NUM)
-	draw_rect(Rect2(x + 34, y + 18, 3, 8), Color("c9a34a"))
-	draw_circle(Vector2(x + 35.5, y + 18), 1.5, Color("c9a34a"))
-	_text(str(p.bullets), Vector2(x + 42, y + 22), 11, BONE if p.bullets > 0 else BLOOD_BRIGHT, NUM)
+	# Only what you've found: bullets once you have the pistol, the Pole's
+	# form once it can turn.
+	if p.has("pistol"):
+		draw_rect(Rect2(x + 34, y + 18, 3, 8), Color("c9a34a"))
+		draw_circle(Vector2(x + 35.5, y + 18), 1.5, Color("c9a34a"))
+		_text(str(p.bullets), Vector2(x + 42, y + 22), 11, BONE if p.bullets > 0 else BLOOD_BRIGHT, NUM)
 
-	# The weapon and its current form.
 	var arm: Dictionary = T.ARMS[p.arm]
-	_text("%s  ·  %s" % [arm.name, p.form_data().label], Vector2(x, y + 38), 10, BONE_DIM, FELL_SC)
+	var weapon: String = arm.name
+	if p.has("lantern"):
+		weapon = "%s  ·  %s" % [arm.name, p.form_data().label]
+	_text(weapon, Vector2(x, y + 38), 10, BONE_DIM, FELL_SC)
 
 	# Tallow, bottom right.
 	_text(str(world.tallow), Vector2(view.x - 16, view.y - 20), 16, TALLOW, NUM, HORIZONTAL_ALIGNMENT_RIGHT)
@@ -79,7 +84,10 @@ func _draw() -> void:
 
 	var menu_open: bool = not world.menu.is_empty()
 	if not world.prompt.is_empty() and not menu_open:
-		_pill("%s  %s" % [Keys.label("interact"), world.prompt.text], world.prompt.pos - world.cam_top_left())
+		var p_text: String = world.prompt.text
+		if world.prompt.get("key", true):
+			p_text = "%s  %s" % [Keys.label("interact"), p_text]
+		_pill(p_text, world.prompt.pos - world.cam_top_left())
 	if world.sign_node and not menu_open:
 		_sign_box(Keys.fill(world.sign_node.text), view)
 	if not world.fx.notice.is_empty():

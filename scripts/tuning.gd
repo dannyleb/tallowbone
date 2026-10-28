@@ -16,12 +16,30 @@ const MAX_FALL := 900.0
 const PLAYER := {
 	"w": 16.0, "h": 42.0,
 	"run": 230.0, "accel_ground": 2600.0, "accel_air": 1700.0, "friction": 3000.0,
-	"jump": 680.0, "jump_cut": 0.45, "coyote": 0.1, "jump_buffer": 0.12,
+	"jump": 680.0, "jump_cut": 0.45, "coyote": 0.12, "jump_buffer": 0.14,
 	"max_hp": 100.0,
 	"vials": 5, "vial_heal": 45.0, "heal_time": 0.6, "heal_at": 0.35,
 	"bullets": 12,
 	"iframes_hurt": 0.6, "hurt_time": 0.25, "knockback_x": 170.0, "knockback_y": 260.0,
 }
+
+## Abilities you find along the way (all start locked): Watchman's Boots
+## (quickstep), the Watch Pistol (shoot, parry, blood bullets), Lamp Oil
+## (the Lantern form, transform and trick attacks), Climbing Irons (wall
+## slide and wall jump).
+const ABILITIES := ["quickstep", "pistol", "lantern", "irons"]
+
+## Hold strike this long (s) and the Pole turns mid-combo: a trick attack.
+const TRICK_HOLD := 0.25
+
+## Ledge assist: pushing into a ledge with your feet this close (px) below
+## its top pops you up onto it, so near misses still land.
+const LEDGE_ASSIST := 12.0
+
+## Climbing Irons: slide down walls at `slide` px/s; jumping off one sends
+## you `jump` up and `push` away, and you can't steer back for `lock` s.
+## `grace`: how long after leaving a wall you can still jump off it.
+const WALL := {"slide": 110.0, "jump": 620.0, "push": 250.0, "lock": 0.14, "grace": 0.1}
 
 ## Quickstep: a short dash that can't be hit for most of its length and
 ## passes through enemies. One per airtime.

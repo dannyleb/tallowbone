@@ -5,6 +5,7 @@
 extends SceneTree
 
 const Combat = preload("res://scripts/combat.gd")
+const T = preload("res://scripts/tuning.gd")
 
 var main
 var world
@@ -31,18 +32,24 @@ func _run() -> void:
 	await _frames(30)
 
 	await _level_loaded()
+	await _starts_with_little()
 	await _movement()
+	await _ledge_assist()
+	await _canal()
+	await _canal_jumps()
+	await _finds()
 	await _lamps()
 	await _melee()
 	await _parry_and_visceral()
 	await _rally()
 	await _blood_and_vials()
+	await _quickstep()
 	await _veil()
-	await _canal()
-	await _gap()
+	await _gates()
+	await _chimney()
+	await _map()
 	await _death_pile_and_gorge()
 	await _levelling()
-	await _pickup()
 	await _controls()
 	await _lessons()
 
@@ -125,11 +132,33 @@ func _level_loaded() -> void:
 	_check("veil tiles loaded", lv.kind_at(Vector2i(85, 18)) == "veil")
 	_check("canal water loaded", lv.kind_at(Vector2i(33, 23)) == "water")
 	_check("walkways loaded", lv.kind_at(Vector2i(63, 17)) == "walkway")
-	_check("entities placed", world.enemies.size() == 9 and world.lamps.size() == 2 and world.signs.size() == 7 and world.pickups.size() == 2,
-		"%d enemies, %d lamps, %d signs, %d pickups" % [world.enemies.size(), world.lamps.size(), world.signs.size(), world.pickups.size()])
+	_check("entities placed", world.enemies.size() == 9 and world.lamps.size() == 2 and world.signs.size() == 8 and world.pickups.size() == 7 and world.gates.size() == 2,
+		"%d enemies, %d lamps, %d signs, %d pickups, %d gates" % [world.enemies.size(), world.lamps.size(), world.signs.size(), world.pickups.size(), world.gates.size()])
 	_check("player lands at the start", player.is_on_floor() and absf(player.position.y - 640.0) < 1.0, str(player.position))
 	var lit_figures: bool = player._fig.texture != null and world.enemies.all(func(e): return e._fig.texture != null)
 	_check("actors are drawn as lit, rounded figures", lit_figures)
+
+
+## You start with walk, jump and strike; the rest is found.
+func _starts_with_little() -> void:
+	_check("every ability starts locked", T.ABILITIES.all(func(a): return not player.has(a)), str(player.abilities))
+	var bullets: int = player.bullets
+	await _tap("shoot")
+	await _tap("dash")
+	await _tap("transform")
+	await _frames(10)
+	_check("pistol, quickstep and transform do nothing yet", player.state == "move" and player.bullets == bullets and player.form == "hook",
+		"%s bullets %d form %s" % [player.state, player.bullets, player.form])
+	_check("the title shows five essentials per device", main.KEYBOARD.size() == 5 and main.GAMEPAD.size() == 5)
+	main.set_paused(true)
+	await process_frame
+	await process_frame
+	var map_shown: bool = main._map.is_visible_in_tree()
+	var keys_text: String = main._keys.text
+	main.set_paused(false)
+	_check("pausing shows the map", map_shown)
+	_check("the pause screen lists only the keys you have", "strike" in keys_text and not ("pistol" in keys_text) and not ("quickstep" in keys_text), keys_text)
+	_check("the map starts with only the start seen", world.is_explored(Vector2i(4, 19)) and not world.is_explored(Vector2i(140, 19)))
 
 
 func _movement() -> void:
@@ -147,6 +176,20 @@ func _movement() -> void:
 	await _frames(30)
 	_check("jumps about three tiles", y0 - top > 85.0 and y0 - top < 120.0, "rose %.1f" % (y0 - top))
 	_check("lands again", player.is_on_floor())
+
+
+## Pushing into a ledge with your feet just under its top pops you onto it.
+func _ledge_assist() -> void:
+	# The two-tile block on Lamplighter's Row: cols 14-15, top at y 576.
+	await _tp(400.0, 640.0, 1.0, 99.0)
+	player.position = Vector2(14 * 32 - 9.0, 576.0 + 8.0)
+	player.velocity = Vector2(200.0, 40.0)
+	Input.action_press("move_right")
+	await _frames(8)
+	Input.action_release("move_right")
+	_check("a jump that clips a ledge still lands on it", player.is_on_floor() and absf(player.position.y - 576.0) < 1.0, str(player.position))
+	await _frames(5)
+	_fresh()
 
 
 func _lamps() -> void:
@@ -231,15 +274,15 @@ func _blood_and_vials() -> void:
 
 func _veil() -> void:
 	await _tp(2680.0, 640.0, 1.0, 99.0)
-	await _tap("transform")
-	await _frames(20)
-	_check("the Pole turns to its Lantern form", player.form == "lantern", player.form)
-	await _tap("attack")
+	# Hold strike: a swing, then the Pole turns into a Lantern trick attack.
+	await _hold("attack", 40)
 	await _frames(30)
+	_check("holding strike turns the Pole to its Lantern", player.form == "lantern", player.form)
 	var lv = world.level
 	_check("the Lantern burns the whole veil", lv.kind_at(Vector2i(85, 17)) == "" and lv.kind_at(Vector2i(85, 18)) == "" and lv.kind_at(Vector2i(85, 19)) == "")
 	await _tap("transform")
 	await _frames(20)
+	_check("the transform key still turns it back", player.form == "hook", player.form)
 	_fresh()
 
 
@@ -252,25 +295,54 @@ func _canal() -> void:
 	_fresh()
 
 
-func _gap() -> void:
-	await _tp(41 * 32 + 12.0, 640.0, 1.0, 99.0)
-	# Run to the end of the mooring post, jump, and quickstep at the top.
+## The canal: three plain jumps, bank to post to post to bank, with no
+## abilities at all.
+func _canal_jumps() -> void:
+	await _tp(30 * 32 + 16.0, 640.0, 1.0)
+	var hp: float = player.hp
+	var edges := [32 * 32.0, 37 * 32.0, 42 * 32.0]
+	var next := 0
 	Input.action_press("move_right")
-	await _wait_until(func(): return player.position.x >= 1362.0, 60)
-	Input.action_press("jump")
-	await _frames(14)
-	await _tap("dash", 2)
-	await _frames(40)
+	for f in 300:
+		if next < edges.size() and player.is_on_floor() and player.position.x >= edges[next] - 6.0:
+			next += 1
+			Input.action_press("jump")
+		elif Input.is_action_pressed("jump") and player.velocity.y > 0.0:
+			Input.action_release("jump")
+		if player.position.x > 46 * 32.0 and player.is_on_floor():
+			break
+		await physics_frame
 	Input.action_release("jump")
 	Input.action_release("move_right")
-	await _frames(20)
-	_check("jump + air quickstep clears the widest canal gap", player.position.x > 1540.0 and player.is_on_floor() and player.hp == player.max_hp,
+	await _frames(5)
+	_check("plain jumps cross the canal post to post", player.position.x > 45 * 32.0 and player.is_on_floor() and player.hp == hp,
 		"at %s hp %s" % [player.position, player.hp])
 	_fresh()
 
 
+## Each find on the way unlocks its ability.
+func _finds() -> void:
+	for pair in [["WatchmansBoots1", "quickstep"], ["WatchPistol1", "pistol"], ["LampOil1", "lantern"], ["ClimbingIrons1", "irons"]]:
+		var it = world.level.get_node("Entities/" + pair[0])
+		await _tp(it.position.x, it.position.y, 1.0, 99.0)
+		await _frames(3)
+		_check("%s gives %s" % [pair[0], pair[1]], it.taken and player.has(pair[1]))
+	_fresh()
+
+
+func _quickstep() -> void:
+	await _tp(1600.0, 640.0, 1.0)
+	var x0: float = player.position.x
+	await _tap("dash", 2)
+	var stepped: bool = await _wait_until(func(): return player.state == "dash", 3)
+	var safe_mid: bool = player.iframes > 0.0
+	await _frames(15)
+	_check("quickstep darts forward, untouchable", stepped and safe_mid and player.position.x - x0 > 70.0, "moved %.1f" % (player.position.x - x0))
+	_fresh()
+
+
 func _death_pile_and_gorge() -> void:
-	var e = _enemy("Communicant3")
+	var e = _enemy("Communicant4")
 	world.tallow = 200
 	await _tp(e.position.x - 80.0, 640.0, 1.0)
 	player.hp = 1.0
@@ -317,12 +389,98 @@ func _levelling() -> void:
 	_check("the menu closes", world.menu.is_empty())
 
 
-func _pickup() -> void:
+## Shortcut gates open only from one side, and stay open.
+func _gates() -> void:
+	var g = world.level.get_node("Entities/Gate2")
+	await _tp(g.position.x - 34.0, g.position.y, 1.0, 99.0)
+	_check("from the wrong side a gate is barred", world.prompt.get("text", "") == "Barred from the other side", str(world.prompt))
+	await _tap("interact")
+	await _hold("move_right", 30)
+	_check("and it won't open or let you through", not g.open and player.position.x < g.position.x - 12.0, "x %s" % player.position.x)
+	await _tp(g.position.x + 26.0, g.position.y, -1.0, 99.0)
+	_check("from its own side it offers to open", world.prompt.get("text", "") == "Lift the bar", str(world.prompt))
+	await _tap("interact")
+	_check("lifting the bar opens it", g.open)
+	await _hold("move_left", 30)
+	_check("and the way through is open", player.position.x < g.position.x - 30.0, "x %s" % player.position.x)
+	var hall = world.level.get_node("Entities/Gate1")
+	await _tp(hall.position.x + 26.0, hall.position.y, -1.0, 99.0)
+	await _tap("interact")
+	_check("the hall door opens from the plaza", hall.open)
+	# (No tallow on you, so no pile is left lying in the plaza.)
+	world.tallow = 0
+	Combat.kill_player(world)
+	await _wait_until(func(): return player.state == "move", 300)
+	_check("opened gates stay open after dying", g.open and hall.open)
+	world.pile = {}
+	_fresh()
+
+
+## Climb the chimney by the start: impossible barehanded, a wall-jump climb
+## with the Climbing Irons. A vial waits at the top.
+func _chimney() -> void:
+	player.abilities.irons = false
+	var top_without: float = await _climb(240)
+	_check("the chimney is too sheer without the Climbing Irons", top_without > 500.0, "reached y %s" % top_without)
+	player.abilities.irons = true
 	var vials: int = player.max_vials
+	var top: float = await _climb(600)
 	var it = world.level.get_node("Entities/VialHolder1")
-	await _tp(it.position.x, it.position.y, 1.0, 99.0)
-	await _frames(5)
-	_check("a Vial Holder adds a vial", it.taken and player.max_vials == vials + 1)
+	_check("with them you wall-jump up it", top <= 128.5, "reached y %s" % top)
+	_check("and the vial holder up there adds a vial", it.taken and player.max_vials == vials + 1)
+	_fresh()
+
+
+## Wall-jumps up the chimney (cols 1-2, between walls at cols 0 and 3) like a
+## player would: kick off whenever sliding, steer for the other wall, hold
+## jump for height. Then walks along the top. Returns the highest feet y.
+func _climb(max_frames: int) -> float:
+	await _tp(64.0, 640.0, -1.0, 99.0)
+	var dir := "move_left"
+	var other := {"move_left": "move_right", "move_right": "move_left"}
+	var top: float = player.position.y
+	var held_for := 0
+	Input.action_press(dir)
+	Input.action_press("jump")
+	for f in max_frames:
+		top = minf(top, player.position.y)
+		if player.is_on_floor() and player.position.y <= 128.5:
+			# On the walkway over the chimney: walk to the vial.
+			Input.action_release(dir)
+			Input.action_release("jump")
+			dir = "move_right"
+			Input.action_press(dir)
+			if player.position.x >= 200.0:
+				break
+		elif player.sliding and not Input.is_action_pressed("jump"):
+			Input.action_release(dir)
+			dir = other[dir]
+			Input.action_press(dir)
+			Input.action_press("jump")
+			held_for = 0
+		elif Input.is_action_pressed("jump"):
+			held_for += 1
+			if held_for > 16:
+				Input.action_release("jump")
+		await physics_frame
+	Input.action_release(dir)
+	Input.action_release("jump")
+	await _frames(3)
+	return top
+
+
+## The map fills in where you've been.
+func _map() -> void:
+	await _tp(4400.0, 640.0, 1.0, 99.0)
+	await _frames(8)
+	_check("the map fills in where you've been", world.is_explored(Vector2i(137, 19)) and world.is_explored(Vector2i(94, 27)))
+	main.set_paused(true)
+	await process_frame
+	await process_frame
+	var keys_text: String = main._keys.text
+	main.set_paused(false)
+	_check("the pause screen lists what you've found", "pistol" in keys_text and "quickstep" in keys_text and "turn the Pole" in keys_text, keys_text)
+	_fresh()
 
 
 func _controls() -> void:
