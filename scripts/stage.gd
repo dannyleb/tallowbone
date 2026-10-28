@@ -396,17 +396,20 @@ func _build_cell(lv, c: int, r: int, h: int, solid: Callable, stone: Builder, ba
 	var x1 := float(c + 1)
 	var yt := -float(r)
 	var yb := -float(r + 1)
+	# Stone reaches a little behind the back walls, and back walls overlap
+	# their neighbours, so no moonlight slips through the joints.
+	var zb := -BACK - 0.08
 	match k:
 		"stone":
 			stone.quad(Vector3(x0, yt, FRONT), Vector3(x1, yt, FRONT), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.BACK)
 			if not solid.call(c, r - 1):
-				stone.quad(Vector3(x0, yt, -BACK), Vector3(x1, yt, -BACK), Vector3(x1, yt, FRONT), Vector3(x0, yt, FRONT), Vector3.UP)
+				stone.quad(Vector3(x0, yt, zb), Vector3(x1, yt, zb), Vector3(x1, yt, FRONT), Vector3(x0, yt, FRONT), Vector3.UP)
 			if r + 1 < h and not solid.call(c, r + 1):
-				stone.quad(Vector3(x0, yb, -BACK), Vector3(x1, yb, -BACK), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.DOWN)
+				stone.quad(Vector3(x0, yb, zb), Vector3(x1, yb, zb), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.DOWN)
 			if not solid.call(c - 1, r):
-				stone.quad(Vector3(x0, yt, -BACK), Vector3(x0, yt, FRONT), Vector3(x0, yb, FRONT), Vector3(x0, yb, -BACK), Vector3.LEFT)
+				stone.quad(Vector3(x0, yt, zb), Vector3(x0, yt, FRONT), Vector3(x0, yb, FRONT), Vector3(x0, yb, zb), Vector3.LEFT)
 			if not solid.call(c + 1, r):
-				stone.quad(Vector3(x1, yt, -BACK), Vector3(x1, yt, FRONT), Vector3(x1, yb, FRONT), Vector3(x1, yb, -BACK), Vector3.RIGHT)
+				stone.quad(Vector3(x1, yt, zb), Vector3(x1, yt, FRONT), Vector3(x1, yb, FRONT), Vector3(x1, yb, zb), Vector3.RIGHT)
 		"walkway":
 			wood.box(Vector3(x0, yt - 0.14, -1.1), Vector3(x1, yt, 0.75))
 		"water":
@@ -416,7 +419,7 @@ func _build_cell(lv, c: int, r: int, h: int, solid: Callable, stone: Builder, ba
 				water.quad(Vector3(x0, top, -BACK), Vector3(x1, top, -BACK), Vector3(x1, top, FRONT), Vector3(x0, top, FRONT), Vector3.UP)
 			water.quad(Vector3(x0, top, FRONT), Vector3(x1, top, FRONT), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.BACK)
 	if lv.back_wall.get_cell_source_id(cell) != -1:
-		back.quad(Vector3(x0, yt, -BACK), Vector3(x1, yt, -BACK), Vector3(x1, yb, -BACK), Vector3(x0, yb, -BACK), Vector3.BACK)
+		back.quad(Vector3(x0 - 0.03, yt + 0.06, -BACK), Vector3(x1 + 0.03, yt + 0.06, -BACK), Vector3(x1 + 0.03, yb - 0.06, -BACK), Vector3(x0 - 0.03, yb - 0.06, -BACK), Vector3.BACK)
 
 
 ## The veils, rebuilt whenever one burns: two thin sheets across the
@@ -461,7 +464,7 @@ func _build_city() -> void:
 	win_mat.shader = WINDOWS
 	# The ground the city stands on: it only receives shadows.
 	var ground := Builder.new()
-	ground.box(Vector3(-90, -46, -260), Vector3(w + 90, STREET, -BACK - 0.05))
+	ground.box(Vector3(-90, -46, -260), Vector3(w + 90, STREET, -BACK - 0.12))
 	var g := _add_mesh(ground.mesh(), wall_mat, _city)
 	g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var buildings := 0
