@@ -41,6 +41,12 @@ The design lives in `docs/DESIGN.md`. Keep its status markers ([slice] /
   paint static things once, and prefer drawn glows to extra lights.
 - Greybox drawing (`_draw`) stands in for art. Keep it posed from the real
   timings so hitboxes match.
+- 2.5D: gameplay is 2D; `scripts/stage.gd` builds the 3D world from the
+  level and keeps it in step (1 tile = 1 m, y up, gameplay plane z = 0).
+  Things on the plane (actors, props) need World visibility layer 2 so
+  they draw into the plane viewport; overlay effects stay on layer 1. New
+  props and level kinds need a 3D counterpart in the stage. `?2d` is the
+  old flat look and must keep working.
 - Levels are scenes (`scenes/levels/`). `tools/build_level.py` generated
   the first one from ASCII; after editing a level in Godot the scene is the
   source of truth.

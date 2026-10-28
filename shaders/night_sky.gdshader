@@ -4,7 +4,7 @@
 shader_type sky;
 
 uniform vec3 zenith : source_color = vec3(0.006, 0.008, 0.016);
-uniform vec3 horizon : source_color = vec3(0.05, 0.065, 0.09);
+uniform vec3 horizon : source_color = vec3(0.09, 0.11, 0.15);
 uniform vec3 moon_color : source_color = vec3(0.92, 0.93, 1.0);
 // Angular radius of the moon, radians.
 uniform float moon_size = 0.045;
@@ -20,7 +20,7 @@ void sky() {
 		// A few darker maria on the disc.
 		vec2 m = (EYEDIR - LIGHT0_DIRECTION * d).xy / moon_size;
 		float maria = smoothstep(0.35, 0.1, length(m - vec2(-0.25, 0.2))) * 0.25 + smoothstep(0.3, 0.05, length(m - vec2(0.3, -0.15))) * 0.2;
-		col += moon_color * (disc * (4.0 - maria * 6.0) + halo);
+		col += moon_color * (disc * (2.5 - maria * 4.0) + halo);
 	}
 	// Ragged cloud. (No TIME here: a sky that changes every frame makes the
 	// renderer rebuild its reflections every frame.)

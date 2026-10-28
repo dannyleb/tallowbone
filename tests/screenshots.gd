@@ -161,8 +161,13 @@ func _tp(x: float, y: float, facing := 1.0) -> void:
 ## Draws the moment at 2x with the game held still, lets the 3D stage's
 ## temporal effects (fog, reflections) settle for a few frames, and saves it.
 func _shot(name: String) -> void:
-	# Invulnerable between shots, but not blinking in them.
+	# Invulnerable between shots, but not blinking in them (a step to clear
+	# the blink before the game is held still).
 	player.iframes = 0.0
+	if not paused:
+		await physics_frame
+		await physics_frame
+	player.modulate.a = 1.0 if player.state != "dead" else player.modulate.a
 	var was_paused := paused
 	paused = true
 	main.fixed_scale = 2.0

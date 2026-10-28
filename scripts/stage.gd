@@ -253,9 +253,11 @@ func _environment() -> void:
 	sky.sky_material = sky_mat
 	sky.radiance_size = Sky.RADIANCE_SIZE_128
 	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_sky_contribution = 1.0
-	env.ambient_light_energy = 1.2
+	# A cold ambient, so what the moon and lamps don't reach is deep blue
+	# rather than black.
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.16, 0.19, 0.27)
+	env.ambient_light_energy = 0.55
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.tonemap_exposure = 1.15
@@ -278,11 +280,13 @@ func _environment() -> void:
 	# and everything behind it sinks into the night.
 	env.fog_enabled = true
 	env.fog_mode = Environment.FOG_MODE_DEPTH
-	env.fog_light_color = Color(0.06, 0.075, 0.11)
-	env.fog_depth_begin = 14.0
-	env.fog_depth_end = 70.0
-	env.fog_depth_curve = 1.2
-	env.fog_sky_affect = 0.2
+	# Lighter than the buildings, so the rows behind stand out as layered
+	# silhouettes, each paler than the last.
+	env.fog_light_color = Color(0.1, 0.12, 0.17)
+	env.fog_depth_begin = 16.0
+	env.fog_depth_end = 80.0
+	env.fog_depth_curve = 1.0
+	env.fog_sky_affect = 0.5
 	# Thin enough not to haze the play space, thick enough that lamps and
 	# the moon throw shafts through it.
 	env.volumetric_fog_enabled = true
@@ -308,6 +312,15 @@ func _environment() -> void:
 	moon.basis = Basis.looking_at(-MOON_DIR.normalized(), Vector3.UP)
 	add_child(moon)
 	_shadowed.append(moon)
+
+	# The glow of the city on the near side: a faint cool fill from over
+	# your shoulder, so the fronts of things read instead of going black.
+	var fill := DirectionalLight3D.new()
+	fill.light_color = Color(0.45, 0.52, 0.75)
+	fill.light_energy = 0.22
+	fill.light_volumetric_fog_energy = 0.0
+	fill.basis = Basis.looking_at(Vector3(0.35, -0.45, -1.0).normalized(), Vector3.UP)
+	add_child(fill)
 
 
 func _camera() -> void:
@@ -376,7 +389,8 @@ func _build_level() -> void:
 	counts.back_faces = back.faces()
 
 
-## The veils, rebuilt whenever one burns.
+## The veils, rebuilt whenever one burns: three thin sheets through the
+## doorway, so it reads as a membrane, not a wall.
 func _build_veil() -> void:
 	if _veil:
 		_veil.queue_free()
@@ -393,7 +407,8 @@ func _build_veil() -> void:
 	for r in h:
 		for c in w:
 			if lv.kind_at(Vector2i(c, r)) == "veil":
-				b.box(Vector3(c, -(r + 1), -BACK), Vector3(c + 1, -r, FRONT))
+				for z in [-0.5, 0.0, 0.5]:
+					b.box(Vector3(c, -(r + 1), z - 0.02), Vector3(c + 1, -r, z + 0.02))
 				cells += 1
 	counts.veil = cells
 	if cells > 0:
@@ -443,9 +458,9 @@ func _build_city() -> void:
 			while floor_y < top - 1.4:
 				var wx := x + 0.8
 				while wx < x + bw - 1.2:
-					if rng.randf() < 0.18:
-						var col := Color(rng.randf_range(0.5, 1.0), rng.randf() if rng.randf() < 0.17 else 0.0, 0.0)
-						windows.quad(Vector3(wx, floor_y + 1.1, front + 0.03), Vector3(wx + 0.7, floor_y + 1.1, front + 0.03), Vector3(wx + 0.7, floor_y, front + 0.03), Vector3(wx, floor_y, front + 0.03), Vector3.BACK, col)
+					if rng.randf() < 0.16:
+						var col := Color(rng.randf_range(0.35, 0.9), rng.randf() if rng.randf() < 0.17 else 0.0, 0.0)
+						windows.quad(Vector3(wx, floor_y + 0.85, front + 0.03), Vector3(wx + 0.45, floor_y + 0.85, front + 0.03), Vector3(wx + 0.45, floor_y, front + 0.03), Vector3(wx, floor_y, front + 0.03), Vector3.BACK, col)
 					wx += 1.6
 				floor_y += 3.0
 			buildings += 1
@@ -464,7 +479,7 @@ func _build_city() -> void:
 		if n.dot((a + b) * 0.5 - middle) < 0.0:
 			n = -n
 		roofs.tri(a, b, apex, n)
-	windows.quad(Vector3(cx - 0.8, STREET + 24.0, cz + 0.03), Vector3(cx + 0.8, STREET + 24.0, cz + 0.03), Vector3(cx + 0.8, STREET + 20.0, cz + 0.03), Vector3(cx - 0.8, STREET + 20.0, cz + 0.03), Vector3.BACK, Color(0.9, 0.0, 0.0))
+	windows.quad(Vector3(cx - 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 21.0, cz + 0.03), Vector3(cx - 0.6, STREET + 21.0, cz + 0.03), Vector3.BACK, Color(0.8, 0.0, 0.0))
 	_add_mesh(walls.mesh(), _stone(Color(0.55, 0.55, 0.6), 0.3), _city)
 	_add_mesh(roofs.mesh(), _stone(Color(0.38, 0.38, 0.42), 0.0), _city)
 	var win_mat := ShaderMaterial.new()
@@ -573,7 +588,9 @@ func _build_rain() -> void:
 	_rain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var pm := ParticleProcessMaterial.new()
 	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(18.0, 0.5, 10.0)
+	# Only on the open side of the cutaway: from the city back to the front
+	# of the street, never in front of the rooms cut open.
+	pm.emission_box_extents = Vector3(18.0, 0.5, 6.5)
 	pm.direction = Vector3(-0.12, -1.0, 0.0)
 	pm.spread = 2.0
 	pm.initial_velocity_min = 14.0
@@ -607,7 +624,7 @@ func _build_drips() -> void:
 		for c in w:
 			if lv.kind_at(Vector2i(c, r)) != "stone" or lv.kind_at(Vector2i(c, r + 1)) != "":
 				continue
-			if rng.randf() < 0.45:
+			if rng.randf() < 0.8:
 				points.append(Vector3(c + rng.randf(), -(r + 1) - 0.03, rng.randf_range(-BACK + 0.3, FRONT - 0.15)))
 	counts.drips = points.size()
 	if points.is_empty():
@@ -668,7 +685,7 @@ func _process(delta: float) -> void:
 	camera.position = Vector3((center.x + shake.x) / PX, -(center.y + shake.y) / PX, _cam_z)
 	plane.position = Vector3(center.x / PX, -center.y / PX, 0.0)
 	plane_vp.canvas_transform = Transform2D(0.0, -(center - view / 2.0))
-	_rain.position = Vector3(camera.position.x, camera.position.y + view.y / PX * 0.5 + 4.0, -2.0)
+	_rain.position = Vector3(camera.position.x, camera.position.y + view.y / PX * 0.5 + 4.0, FRONT - 6.6)
 	_update_lights()
 
 

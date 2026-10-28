@@ -17,6 +17,8 @@ void fragment() {
 	float a = texture(crawl, uv * vec2(1.0, 0.4) + vec2(0.0, TIME * 0.03)).r;
 	float b = texture(crawl, uv * 2.3 - vec2(TIME * 0.02, TIME * 0.05)).r;
 	float veins = smoothstep(0.55, 0.75, a * 0.6 + b * 0.6);
-	ALBEDO = color * (0.55 + 0.35 * b + 0.6 * veins);
-	ALPHA = 0.55 + 0.3 * veins;
+	// Brighter where you see it edge-on, like a soap film.
+	float edge = 1.0 - abs(dot(NORMAL, VIEW));
+	ALBEDO = color * (0.6 + 0.4 * b + 0.8 * veins + 0.6 * edge);
+	ALPHA = 0.18 + 0.32 * veins + 0.25 * edge;
 }

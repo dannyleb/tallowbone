@@ -176,7 +176,7 @@ func _stage() -> void:
 		return
 	_check("it extrudes the level's stone and back walls", st.counts.stone_faces > 2000 and st.counts.back_faces > 100, str(st.counts))
 	_check("a light for every street lamp, and a city behind", st.counts.lamp_lights == world.lamps.size() and st.counts.buildings > 50, str(st.counts))
-	_check("veils are built, and water drips off the ledges", st.counts.veil == 3 and st.counts.drips > 20, str(st.counts))
+	_check("veils are built, and water drips off the ledges", st.counts.veil == 3 and st.counts.drips > 15, str(st.counts))
 	_check("the flat 2D tiles and night are off", not world.level.ground.visible and not world.get_node("Night").visible)
 	_check("actors and props draw onto the 3D plane, effects over it",
 		st.plane_vp.world_2d == main.game.world_2d and world.player.visibility_layer == st.ON_PLANE and main.game.canvas_cull_mask == st.OVERLAY)

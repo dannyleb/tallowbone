@@ -245,14 +245,27 @@ The Metroidvania-native mechanic.
   Second Sight.
 - **Light is the art:** the scene is dark by default. Lamps, your lantern,
   Tallow and muzzle flashes cut it open. **[slice]**
-- **Lit like 3D, drawn in 2D.** Surfaces have normal maps (bumps) and
+- **2.5D: a real 3D night around 2D play [slice, greybox].** The world is a
+  3D scene built from the level: stone with depth, a city of houses behind
+  with lit windows and the church spire, all in volumetric fog. The moon
+  sits behind the scene, so everything is backlit: dark fronts, rimmed
+  tops, long shadows reaching toward you, the moon and lamps shining in wet
+  stone. Lamps and your lantern are real lights that throw the characters'
+  shadows on the walls. It rains (stopping at roofs) and water drips off
+  every ledge and runs down the walls; puddles stand on anything flat.
+  Play stays 2D on the plane z = 0; characters and props are drawn there
+  and lit by the 3D lights. Full quality is the desktop app; the browser
+  gets a reduced version (no volumetric fog or screen-space reflections).
+- **The flat look (`?2d`).** Lit like 3D, drawn in 2D: surfaces have normal maps (bumps) and
   specular maps (wet gloss), so lamps, your lantern and the moon light them
   like real stone, wood and water: raking light across brick, glints on wet
   cobbles. Characters go through a volume shader that rounds them under the
   same lights. Rain, splashes, ground mist and a canal that reflects the
   scene. **[slice, greybox]**
 - **For the illustrations:** paint flat colour with no lighting baked in;
-  the volume shader rounds it automatically. For more relief, add a normal
+  the volume shader rounds it automatically (in 3D, `shaders/plane3d.gdshader`
+  does the same under the 3D lights). Environments can be painted textures
+  on the 3D geometry, or modelled. For more relief, add a normal
   map (painted, or generated from the drawing with a tool such as Laigter)
   and a gloss map for wet or metal parts.
 - **Photo reference:** upstate architecture, fog and lamp light. Use it for
@@ -268,14 +281,33 @@ The Metroidvania-native mechanic.
 - The current sound effects are synthesized placeholders.
 
 ## 12. Tech
-- **Godot 4.7**, GDScript, Compatibility renderer (so it runs on the web).
+- **Godot 4.7**, GDScript. Forward+ renderer on desktop (Metal on the Mac),
+  Compatibility on the web.
   Moved from the JavaScript prototype (kept on the `js-prototype` branch)
   for the editor: painting levels, placing things, animation (Skeleton2D /
   AnimationPlayer for cut-out characters), particles, shaders and real 2D
   lights. Mac builds now (CI); Windows / Linux / Steam Deck builds later.
 - Fixed 60 Hz simulation: the World steps the player, enemies and systems
   itself, so hit-stop freezes it cleanly.
-- The night is a CanvasModulate, a DirectionalLight2D moon, and
+- **The 3D stage** (`scripts/stage.gd`, in the game viewport): built at
+  load from the level's tiles (a tile is a metre; stone runs from 1.2 m in
+  front of the gameplay plane to 3 m behind it). Wet stone is
+  `shaders/stone3d.gdshader` (world-space triplanar, generated textures
+  from `tools/textures3d.py`: blocks on the sides, cobbles on top; puddles
+  and running water from noise). Moon: DirectionalLight3D behind the scene
+  with 4-split shadows; lamps and the lantern: OmniLight3Ds with shadows;
+  WorldEnvironment with volumetric and depth fog, glow, SSR, SSAO, ACES;
+  a sky shader with the moon where the light comes from. Rain is
+  GPUParticles3D stopped by a heightfield that follows the camera; drips
+  fall from points under every ledge. The camera's field of view and
+  distance make the plane z = 0 match the 2D view exactly, so the 2D
+  overlay (glows, swooshes, bars, HUD prompts) lines up.
+- **The plane:** actors and props (World layer 2) draw into a transparent
+  SubViewport that shares the World's canvas (canvas cull masks split
+  them from the overlay, layer 1). A quad at z = 0 shows it through
+  `shaders/plane3d.gdshader`: normals from the silhouettes, alpha-scissor
+  so it casts shadows.
+- **The flat look (`?2d`):** the night is a CanvasModulate, a DirectionalLight2D moon, and
   PointLight2Ds for lamps, your lantern, Tallow and Gorged enemies. Tiles
   use a CanvasTexture (colour + normal + specular, 64px shown at half
   size); indoor back walls are on light mask 2 so the moon skips them.
@@ -323,6 +355,7 @@ The Metroidvania-native mechanic.
 | — | Lit greybox: normal and gloss maps, moonlight, rounded characters, rain, mist, reflective water | **done** |
 | — | Web performance: capped, adaptive render scale; far fewer draw calls; Firefox and Chrome benchmark in CI | **done** |
 | — | Mac app built by CI (universal, ad-hoc signed) | **done** |
+| — | 2.5D: 3D stage around the 2D game (geometry from tiles, moon and lamp shadows, volumetric fog, wet stone, rain and drips, city) | **done (greybox)** |
 | — | Easier start: canal of short hops, ledge assist, five starting keys with the rest found along the way, hold strike to transform, pause-screen map, shortcut gates, Climbing Irons | **done** |
 
 ## 14. Open questions

@@ -16,7 +16,10 @@ open: System Settings > Privacy & Security, scroll down, **Open Anyway**.
 **Design:** [docs/DESIGN.md](docs/DESIGN.md).
 
 The current build is the **first playable slice** (greybox: shapes stand in
-for the art). It covers the Canal District with the full core loop:
+for the art), drawn **2.5D**: play is 2D, the world around it is a real 3D
+night (moon and lamp shadows, volumetric fog, wet stone, rain). Best in the
+Mac app; the browser gets a lighter version, and `?2d` shows the old flat
+look. It covers the Canal District with the full core loop:
 - combat: Lamplighter's Pole (Hook and Lantern forms), trick attacks, the
   gun parry and Visceral attacks, Rally, blood bullets
 - lamps and levelling
@@ -114,18 +117,23 @@ scripts/
   hud.gd, main.gd    HUD, title/pause screens, lesson prompts
   map_view.gd        the pause-screen map (what you've explored)
   bench.gd           ?bench: the frame-time benchmark
+  stage.gd           the 3D stage built from the level, kept in step with it
   keys.gd            key names for the device in use ({attack} -> Left-click)
   figure.gd          paints an actor into a SubViewport, shown lit and rounded
   backdrop.gd        sky, moon, parallax skyline, fog
   weather.gd         rain, splashes, ground mist
   fx_layer.gd        particles, glints, glows, debug hitboxes
 shaders/
-  volume.gdshader    rounds flat drawings under 2D lights (characters, art)
-  water.gdshader     the canal: reflects the scene above it
+  stone3d.gdshader   wet stone for the 3D stage (triplanar, puddles, runs)
+  plane3d.gdshader   the gameplay plane in 3D: rounded, lit, casts shadows
+  water3d, veil3d, night_sky, windows3d: the rest of the 3D stage
+  volume.gdshader    rounds flat drawings under 2D lights (the ?2d look)
+  water.gdshader     the canal in the ?2d look
 assets/              fonts (OFL), placeholder sounds, greybox tiles
                      (colour, normal and gloss atlases)
 tiles/               the TileSet
-tools/               Python generators: lit greybox tiles, sounds, the
+tools/               Python generators: lit greybox tiles, 3D surface
+                     textures (textures3d.py), sounds, the
                      ASCII level (tools/levels/*.txt), the input map;
                      bench_web.py runs ?bench in browsers (CI)
 tests/               headless playtest and screenshot scripts (CI)
