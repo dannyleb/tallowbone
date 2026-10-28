@@ -10,13 +10,13 @@
 script = ExtResource("1_world")
 
 [node name="Night" type="CanvasModulate" parent="."]
-color = Color(0.17, 0.18, 0.24, 1)
+color = Color(0.24, 0.25, 0.32, 1)
 
 [node name="Moon" type="DirectionalLight2D" parent="."]
 rotation = 0.52
 color = Color(0.58, 0.65, 0.88, 1)
-energy = 0.5
-height = 0.45
+energy = 0.8
+height = 0.5
 
 [node name="Level" parent="." instance=ExtResource("2_level")]
 

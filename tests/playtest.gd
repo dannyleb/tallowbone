@@ -128,6 +128,8 @@ func _level_loaded() -> void:
 	_check("entities placed", world.enemies.size() == 9 and world.lamps.size() == 2 and world.signs.size() == 7 and world.pickups.size() == 2,
 		"%d enemies, %d lamps, %d signs, %d pickups" % [world.enemies.size(), world.lamps.size(), world.signs.size(), world.pickups.size()])
 	_check("player lands at the start", player.is_on_floor() and absf(player.position.y - 640.0) < 1.0, str(player.position))
+	var lit_figures: bool = player._fig.texture != null and world.enemies.all(func(e): return e._fig.texture != null)
+	_check("actors are drawn as lit, rounded figures", lit_figures)
 
 
 func _movement() -> void:

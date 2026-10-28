@@ -18,7 +18,7 @@ void fragment() {
 	vec2 mirrored = vec2(SCREEN_UV.x, SCREEN_UV.y - 2.0 * below * SCREEN_PIXEL_SIZE.y) + ripple;
 	vec3 reflection = texture(screen, mirrored).rgb * tint.rgb;
 	float fade = clamp(1.0 - UV.y * 1.4, 0.0, 1.0);
-	vec3 col = mix(deep.rgb, reflection * 1.6, reflectivity * fade);
+	vec3 col = mix(deep.rgb, reflection * 2.2, reflectivity * fade);
 	// The surface line catches the light.
 	float edge = smoothstep(0.08, 0.0, UV.y) * (0.55 + 0.45 * sin(UV.x * 140.0 + TIME * 3.0));
 	col += vec3(0.3, 0.45, 0.42) * edge * 0.6;

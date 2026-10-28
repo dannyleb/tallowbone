@@ -17,7 +17,7 @@ var _light: PointLight2D
 
 
 func _ready() -> void:
-	_light = Glow.light(Color(1.0, 0.76, 0.45), 180.0, 1.3, 60.0)
+	_light = Glow.light(Color(1.0, 0.76, 0.45), 190.0, 1.9, 50.0)
 	_light.position = Vector2(0, -68)
 	add_child(_light)
 
@@ -32,7 +32,7 @@ func _process(delta: float) -> void:
 	_lit_t += delta
 	var flicker := 1.0 + sin(_time * 11.0 + position.x) * sin(_time * 6.7 + position.x * 2.0) * 0.05
 	_light.enabled = lit
-	_light.energy = 1.15 * flicker * minf(1.0, _lit_t * 2.0 + 0.3)
+	_light.energy = 1.9 * flicker * minf(1.0, _lit_t * 2.0 + 0.3)
 	queue_redraw()
 
 

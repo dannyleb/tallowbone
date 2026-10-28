@@ -45,6 +45,9 @@ static func light(color: Color, radius: float, energy: float, height := 40.0) ->
 	l.color = color
 	l.energy = energy
 	l.height = height
+	# Mask 2 is indoor back walls: lamps and lanterns light them, the moon
+	# doesn't.
+	l.range_item_cull_mask = 3
 	set_radius(l, radius)
 	return l
 

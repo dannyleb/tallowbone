@@ -147,7 +147,8 @@ def write(slug, name, signs, w, h, ground, back, marks, water):
             f'level_name = "{esc(name)}"', f"size_tiles = Vector2i({w}, {h})", ""]
     # Tiles are drawn at 64px and shown at half size: twice the detail, and
     # each cell is still 32 world px.
-    out += ['[node name="BackWall" type="TileMapLayer" parent="."]', "z_index = -1", "scale = Vector2(0.5, 0.5)",
+    # light_mask 2: indoor walls take lamplight and your lantern, not the moon.
+    out += ['[node name="BackWall" type="TileMapLayer" parent="."]', "z_index = -1", "light_mask = 2", "scale = Vector2(0.5, 0.5)",
             f"tile_map_data = {tile_data(back)}", 'tile_set = ExtResource("2_tiles")', ""]
     out += ['[node name="Ground" type="TileMapLayer" parent="."]', "scale = Vector2(0.5, 0.5)",
             f"tile_map_data = {tile_data(ground)}", 'tile_set = ExtResource("2_tiles")', ""]

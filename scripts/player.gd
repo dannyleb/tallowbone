@@ -12,6 +12,7 @@ const T = preload("res://scripts/tuning.gd")
 const Combat = preload("res://scripts/combat.gd")
 const Sfx = preload("res://scripts/sfx.gd")
 const Glow = preload("res://scripts/glow.gd")
+const Figure = preload("res://scripts/figure.gd")
 
 const W := 16.0
 const H := 42.0
@@ -63,6 +64,7 @@ var _time := 0.0
 var _lantern := Vector2.ZERO
 var _light: PointLight2D
 var _body_light: PointLight2D
+var _fig: Sprite2D
 
 
 func _ready() -> void:
@@ -75,11 +77,16 @@ func _ready() -> void:
 	max_vials = T.PLAYER.vials
 	max_bullets = T.PLAYER.bullets
 	refill()
-	_light = Glow.light(Color(1.0, 0.8, 0.55), 70.0, 0.9, 30.0)
+	_light = Glow.light(Color(1.0, 0.8, 0.55), 70.0, 1.2, 30.0)
 	add_child(_light)
-	_body_light = Glow.light(Color(0.8, 0.82, 1.0), 46.0, 0.3, 40.0)
+	_body_light = Glow.light(Color(0.8, 0.82, 1.0), 56.0, 0.45, 40.0)
 	_body_light.position = Vector2(0, -H / 2.0)
 	add_child(_body_light)
+	# Room for the pole overhead, the lantern flung out, quickstep ghosts
+	# behind, and lying down when dead.
+	_fig = Figure.new()
+	add_child(_fig)
+	_fig.setup(Vector2(160, 120), Vector2(80, 108), _paint, 0.3)
 
 
 func refill() -> void:
@@ -497,10 +504,10 @@ func _update_look() -> void:
 	var f := form_data()
 	_light.position = _lantern if f.burns else _wick()
 	Glow.set_radius(_light, f.light)
-	_light.energy = (1.1 if f.burns else 0.8) * (1.0 + sin(_time * 11.0) * sin(_time * 6.7) * 0.06)
+	_light.energy = (1.5 if f.burns else 1.1) * (1.0 + sin(_time * 11.0) * sin(_time * 6.7) * 0.06)
 	_light.enabled = state != "dead" or t < 1.4
 	_body_light.enabled = _light.enabled
-	queue_redraw()
+	_fig.redraw()
 
 
 static func _lerp(a: float, b: float, x: float) -> float:
@@ -594,17 +601,19 @@ func _wick() -> Vector2:
 	return Vector2(tip.x * facing, tip.y)
 
 
-func _draw() -> void:
+## Draws the Lamplighter (and quickstep afterimages) onto ci, the Figure's
+## painter, with the feet at 0, 0.
+func _paint(ci: CanvasItem) -> void:
 	if state == "dash":
 		for i in range(3, 0, -1):
-			_figure(-dash_dir * i * 11.0, 0.12 * (4 - i), true)
-	_figure(0.0, 1.0, false)
-	draw_set_transform(Vector2.ZERO)
+			_paint_figure(ci, -dash_dir * i * 11.0, 0.12 * (4 - i), true)
+	_paint_figure(ci, 0.0, 1.0, false)
+	ci.draw_set_transform(Vector2.ZERO)
 
 
-func _figure(offset: float, alpha: float, ghost: bool) -> void:
+func _paint_figure(ci: CanvasItem, offset: float, alpha: float, ghost: bool) -> void:
 	var rot := minf(1.0, t * 2.0) * 1.35 if state == "dead" else 0.0
-	draw_set_transform(Vector2(offset, 0), rot * facing, Vector2(facing, 1))
+	ci.draw_set_transform(Vector2(offset, 0), rot * facing, Vector2(facing, 1))
 	var c := func(col: Color) -> Color: return Color(col, col.a * alpha)
 	var air := not is_on_floor() and state != "dead"
 	var cyc := sin(run_t * 13.0) if is_on_floor() and absf(velocity.x) > 20.0 else 0.0
@@ -613,35 +622,35 @@ func _figure(offset: float, alpha: float, ghost: bool) -> void:
 
 	# Legs.
 	if air:
-		draw_rect(Rect2(-5, -15, 4, 11), c.call(COAT_DARK))
-		draw_rect(Rect2(1, -14, 4, 9), c.call(COAT_DARK))
+		ci.draw_rect(Rect2(-5, -15, 4, 11), c.call(COAT_DARK))
+		ci.draw_rect(Rect2(1, -14, 4, 9), c.call(COAT_DARK))
 	else:
-		draw_rect(Rect2(-5 + cyc * 4.0, -14, 4, 14), c.call(COAT_DARK))
-		draw_rect(Rect2(1 - cyc * 4.0, -14, 4, 14), c.call(COAT_DARK))
+		ci.draw_rect(Rect2(-5 + cyc * 4.0, -14, 4, 14), c.call(COAT_DARK))
+		ci.draw_rect(Rect2(1 - cyc * 4.0, -14, 4, 14), c.call(COAT_DARK))
 
 	# Long coat, tails trailing.
-	draw_colored_polygon(PackedVector2Array([
+	ci.draw_colored_polygon(PackedVector2Array([
 		Vector2(-6 + lean, -38), Vector2(6 + lean, -38), Vector2(8, -12), Vector2(-9 + sway, -8 + absf(sway) * 0.4),
 	]), c.call(COAT))
-	draw_rect(Rect2(-1 + lean * 0.5, -36, 2, 22), c.call(COAT_DARK))
+	ci.draw_rect(Rect2(-1 + lean * 0.5, -36, 2, 22), c.call(COAT_DARK))
 
 	# Oxblood scarf, its tail streaming behind.
-	draw_rect(Rect2(-6 + lean, -40, 12, 4), c.call(SCARF))
-	draw_colored_polygon(PackedVector2Array([
+	ci.draw_rect(Rect2(-6 + lean, -40, 12, 4), c.call(SCARF))
+	ci.draw_colored_polygon(PackedVector2Array([
 		Vector2(-5 + lean, -39), Vector2(-13 + sway * 1.4, -35 + sin(_time * 8.0) * 1.5), Vector2(-5 + lean, -36),
 	]), c.call(SCARF))
 
 	# Face, under a tall hat.
-	draw_rect(Rect2(-2 + lean, -46, 7, 6), c.call(SKIN))
-	draw_rect(Rect2(-8 + lean, -47, 17, 2), c.call(HAT))
-	draw_rect(Rect2(-5 + lean, -58, 11, 11), c.call(HAT))
-	draw_rect(Rect2(-5 + lean, -50, 11, 1.5), c.call(SCARF))
+	ci.draw_rect(Rect2(-2 + lean, -46, 7, 6), c.call(SKIN))
+	ci.draw_rect(Rect2(-8 + lean, -47, 17, 2), c.call(HAT))
+	ci.draw_rect(Rect2(-5 + lean, -58, 11, 11), c.call(HAT))
+	ci.draw_rect(Rect2(-5 + lean, -50, 11, 1.5), c.call(SCARF))
 
 	if not ghost:
-		_draw_arms()
+		_paint_arms(ci)
 
 
-func _draw_arms() -> void:
+func _paint_arms(ci: CanvasItem) -> void:
 	var s := _shoulder()
 	var th := _pole_angle()
 	var dir := Vector2(cos(th), sin(th))
@@ -651,38 +660,38 @@ func _draw_arms() -> void:
 	# The pole.
 	var length := 30.0 if f.burns else 46.0
 	var tip := hand + dir * length
-	draw_line(hand - dir * 12.0, tip, POLE, 2.5)
+	ci.draw_line(hand - dir * 12.0, tip, POLE, 2.5)
 	if not f.burns:
 		# Hook and wick.
 		var hook := hand + dir * (length - 4.0) + Vector2(-dir.y, dir.x) * -5.0
-		draw_arc(hook, 5.0, th - 0.1 * PI, th + 0.5 * PI, 10, IRON, 2.0)
-		draw_circle(hand + dir * (length + 1.0), 1.6 + sin(_time * 20.0) * 0.4, LAMP)
+		ci.draw_arc(hook, 5.0, th - 0.1 * PI, th + 0.5 * PI, 10, IRON, 2.0)
+		ci.draw_circle(hand + dir * (length + 1.0), 1.6 + sin(_time * 20.0) * 0.4, LAMP)
 	else:
 		# Lantern on its chain: hangs from the pole tip, flung outward mid-swing.
 		var flung: bool = state == "attack" and t > attack.startup * 0.5
 		var swing := sin(_time * 3.0) * 0.25 - clampf(velocity.x * facing / 300.0, -1.0, 1.0) * 0.5
 		var l := tip + dir * 18.0 if flung else tip + Vector2(sin(swing), cos(swing)) * 14.0
-		draw_line(tip, l, IRON, 1.0)
-		draw_rect(Rect2(l.x - 5, l.y - 1, 10, 2), IRON)
-		draw_rect(Rect2(l.x - 4, l.y + 1, 8, 9), LAMP)
-		draw_rect(Rect2(l.x - 5, l.y + 10, 10, 2), IRON)
+		ci.draw_line(tip, l, IRON, 1.0)
+		ci.draw_rect(Rect2(l.x - 5, l.y - 1, 10, 2), IRON)
+		ci.draw_rect(Rect2(l.x - 4, l.y + 1, 8, 9), LAMP)
+		ci.draw_rect(Rect2(l.x - 5, l.y + 10, 10, 2), IRON)
 		_lantern = Vector2((l.x) * facing, l.y + 5.0)
 
 	# The arm holding it.
-	draw_line(s, hand, COAT, 4.0)
+	ci.draw_line(s, hand, COAT, 4.0)
 
 	# Off hand: the pistol, a vial, or the blade for blood bullets.
 	match state:
 		"shoot":
 			var gy: float = -T.GUN.y
-			draw_line(s + Vector2(-2, 2), Vector2(13, gy), COAT, 4.0)
-			draw_rect(Rect2(11, gy - 3, 9, 3), Color("3a3633"))
-			draw_rect(Rect2(12, gy - 1, 3, 4), Color("3a3633"))
+			ci.draw_line(s + Vector2(-2, 2), Vector2(13, gy), COAT, 4.0)
+			ci.draw_rect(Rect2(11, gy - 3, 9, 3), Color("3a3633"))
+			ci.draw_rect(Rect2(12, gy - 1, 3, 4), Color("3a3633"))
 			if not world.shot.is_empty():
-				draw_colored_polygon(PackedVector2Array([Vector2(20, gy - 6), Vector2(30, gy - 1.5), Vector2(20, gy + 3)]), Color(1.0, 0.9, 0.67, 0.9))
+				ci.draw_colored_polygon(PackedVector2Array([Vector2(20, gy - 6), Vector2(30, gy - 1.5), Vector2(20, gy + 3)]), Color(1.0, 0.9, 0.67, 0.9))
 		"heal":
-			draw_line(s + Vector2(-2, 2), Vector2(4, -44), COAT, 4.0)
-			draw_rect(Rect2(3, -48, 4, 6), Color("c42b2f"))
+			ci.draw_line(s + Vector2(-2, 2), Vector2(4, -44), COAT, 4.0)
+			ci.draw_rect(Rect2(3, -48, 4, 6), Color("c42b2f"))
 		"blood":
-			draw_line(s + Vector2(-2, 2), Vector2(6, -24), COAT, 4.0)
-			draw_arc(Vector2(0, -70), 6.0, -PI / 2.0, -PI / 2.0 + (t / T.BLOOD.time) * TAU, 16, Color("c42b2f"), 2.0)
+			ci.draw_line(s + Vector2(-2, 2), Vector2(6, -24), COAT, 4.0)
+			ci.draw_arc(Vector2(0, -70), 6.0, -PI / 2.0, -PI / 2.0 + (t / T.BLOOD.time) * TAU, 16, Color("c42b2f"), 2.0)

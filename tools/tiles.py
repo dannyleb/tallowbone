@@ -19,7 +19,7 @@ from PIL import Image
 
 S = 64          # texture px per tile
 COLS = 8
-BUMP = 3.2      # normal-map strength
+BUMP = 1.8      # normal-map strength
 
 # name -> (col, row, kind). Filled in by build().
 TILES = {}
@@ -83,8 +83,16 @@ def blocks(course_h, block_w, offset, seed, bevel=5.0):
     return h, shade
 
 
+def soften(h, passes=2):
+    for _ in range(passes):
+        h = (h + np.roll(h, 1, 0) + np.roll(h, -1, 0) + np.roll(h, 1, 1) + np.roll(h, -1, 1)) / 5.0
+    return h
+
+
 def normal_map(h):
     # OpenGL convention (green = up on screen), which Godot's 2D lights use.
+    # Softened first, so bevels catch light as broad edges, not pinpoints.
+    h = soften(h)
     dx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * 0.5
     dy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * 0.5
     n = np.dstack([-dx * BUMP, dy * BUMP, np.ones_like(h)])
@@ -105,22 +113,23 @@ WOOD_DARK = rgb("#2a1d14")
 IRON = rgb("#2c2c33")
 WATER = rgb("#0c2622")
 VEIL = rgb("#e4dcc6")
-WALL = rgb("#22222b")
+WALL = rgb("#2c2c37")
 
 
 def stone_tile(variant, top, left, right):
     seed = 100 + variant * 7
-    h, shade = blocks(32, 64, 32, seed)
+    h, shade = blocks(32, 64, 32, seed, bevel=8.0)
     grain = fbm(seed + 3)
     pits = fbm(seed + 5, (4, 2))
-    h = h * (0.75 + 0.25 * grain) - (pits > 0.72) * 0.25
+    h = h * (0.8 + 0.2 * grain) - soften((pits > 0.72) * 0.1, 1)
     col = np.where(h[..., None] > 0.2, STONE * (0.85 + 0.15 * shade[..., None] * 0.6 + 0.25 * (grain[..., None] - 0.5)), MORTAR)
     # Faint rain-dark streaks running down the face, fading as they go.
     across = value_noise(2, seed + 9)[0:1, :].repeat(S, 0)
     down = 1.0 - yy / S * (0.4 + 0.6 * value_noise(8, seed + 10))
     streak = np.clip((across - 0.55) * 3.0, 0, 1) * down
     col *= 1.0 - 0.1 * streak[..., None]
-    gloss = np.where(h > 0.2, 0.35 + 0.25 * streak + 0.2 * grain, 0.08)
+    # Wet on the flat of each block, duller on the worn edges.
+    gloss = np.where(h > 0.85, 0.3 + 0.2 * streak + 0.1 * grain, np.where(h > 0.2, 0.15, 0.05))
     if top:
         # Rounded cobbles along the top edge, wet and catching the light.
         band = 18
@@ -136,7 +145,7 @@ def stone_tile(variant, top, left, right):
         h[:band] = th * 1.1
         cob = STONE_TOP * (0.8 + 0.3 * grain[:band, :, None])
         col[:band] = np.where(th[..., None] > 0.05, cob, MORTAR)
-        gloss[:band] = np.where(th > 0.05, 0.75 + 0.2 * grain[:band], 0.3)
+        gloss[:band] = np.where(th > 0.5, 0.55 + 0.15 * grain[:band], 0.15)
     if left:
         col[:, :4] *= 0.6
         h[:, :4] *= np.linspace(0.3, 1, 4)[None, :]
@@ -222,7 +231,7 @@ def wall_tile(variant):
         # Moss in the joints.
         moss = (h < 0.3) & (fbm(seed + 4) > 0.55)
         col[moss] = rgb("#26331f")
-    gloss = np.where(h > 0.2, 0.15 + 0.5 * (damp > 0.55), 0.05)
+    gloss = np.where(h > 0.8, 0.1 + 0.25 * (damp > 0.55), 0.04)
     return col, h * 0.7, gloss, np.ones((S, S), np.float32)
 
 
@@ -291,8 +300,8 @@ def write_tileset():
 diffuse_texture = ExtResource("1_albedo")
 normal_texture = ExtResource("2_normal")
 specular_texture = ExtResource("3_specular")
-specular_color = Color(0.82, 0.88, 1, 1)
-specular_shininess = 0.7
+specular_color = Color(0.45, 0.5, 0.6, 1)
+specular_shininess = 0.6
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_greybox"]
 texture = SubResource("CanvasTexture_greybox")
