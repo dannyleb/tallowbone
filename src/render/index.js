@@ -10,7 +10,8 @@ import { drawLamp, drawPickup, drawPile, drawShot, drawSign, drawTiles } from ".
 // Fits the fixed-height view into the window (letterboxed if the screen is
 // unusually wide or tall) and draws a frame: backdrop, world, actors,
 // effects, the night's darkness, then the HUD.
-export function createRenderer(canvas, { debug = false } = {}) {
+// view.hitboxes is read every frame, so it can be toggled while playing.
+export function createRenderer(canvas, view = { hitboxes: false }) {
   const ctx = canvas.getContext("2d");
   const light = createLight();
   let dpr = 1, scale = 1, viewW = VIEW.minWidth, ox = 0, oy = 0;
@@ -36,7 +37,7 @@ export function createRenderer(canvas, { debug = false } = {}) {
     const sh = fx.shake, sx = (Math.random() - 0.5) * sh, sy = (Math.random() - 0.5) * sh;
     // Snap the camera to whole device pixels so tiles don't shimmer.
     const camX = Math.round((cam.x + sx) * scale) / scale, camY = Math.round((cam.y + sy) * scale) / scale;
-    const view = { x: camX, y: camY };
+    const at = { x: camX, y: camY };
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = "#000";
@@ -48,11 +49,11 @@ export function createRenderer(canvas, { debug = false } = {}) {
 
     // View space.
     ctx.setTransform(scale, 0, 0, scale, ox, oy);
-    drawBackdrop(ctx, view, viewW, H, game.time);
+    drawBackdrop(ctx, at, viewW, H, game.time);
 
     // World space.
     ctx.setTransform(scale, 0, 0, scale, ox - camX * scale, oy - camY * scale);
-    drawTiles(ctx, game.level, view, viewW, H, game.time);
+    drawTiles(ctx, game.level, at, viewW, H, game.time);
     for (const l of game.level.spawns.lamps) drawLamp(ctx, l, game.time);
     for (const s of game.level.spawns.signs) drawSign(ctx, s, game.sign === s);
     for (const it of game.level.spawns.pickups) drawPickup(ctx, it, game.time);
@@ -61,7 +62,7 @@ export function createRenderer(canvas, { debug = false } = {}) {
     drawPlayer(ctx, game.player, game);
     if (game.shot) drawShot(ctx, game.shot);
     drawParticles(ctx, fx, false);
-    if (debug) drawHitboxes(ctx, game);
+    if (view.hitboxes) drawHitboxes(ctx, game);
 
     // The dark, in canvas pixels.
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -109,7 +110,7 @@ function vignette(ctx, w, h) {
   ctx.fillRect(0, 0, w, h);
 }
 
-// ?debug: attack and strike hitboxes.
+// ?debug (H toggles): bodies, attack and strike hitboxes.
 function drawHitboxes(ctx, game) {
   const p = game.player;
   ctx.lineWidth = 1;

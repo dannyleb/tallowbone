@@ -13,7 +13,8 @@ const pause = document.getElementById("pause");
 const begin = document.getElementById("begin");
 const resume = document.getElementById("resume");
 
-const renderer = createRenderer(canvas, { debug });
+const view = { hitboxes: debug };
+const renderer = createRenderer(canvas, view);
 const game = createGame();
 let mode = "title"; // "title" | "play" | "pause"
 
@@ -74,4 +75,7 @@ Promise.all([
   requestAnimationFrame(frame);
 });
 
-if (debug) window.tallowbone = { game, start };
+if (debug) {
+  window.tallowbone = { game, start, view };
+  window.addEventListener("keydown", (e) => { if (e.key === "h") view.hitboxes = !view.hitboxes; });
+}

@@ -212,7 +212,8 @@ The Metroidvania-native mechanic.
   `ITCH_TARGET` is set.
 - Levels are ASCII maps (`src/levels/`). Move to a level editor (LDtk) once
   the map grows past a few rooms.
-- `?debug` in the URL shows hitboxes and exposes `window.tallowbone`.
+- `?debug` in the URL shows hitboxes (H toggles them) and exposes
+  `window.tallowbone`.
 
 ## 13. Milestones
 | # | Milestone | Status |

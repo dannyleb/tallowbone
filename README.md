@@ -37,8 +37,8 @@ npm run dev     # http://localhost:8080, rebuilds on reload
 npm run check   # lint + production build into dist/
 ```
 
-Add `?debug` to the URL to see hitboxes and get `window.tallowbone` in the
-console.
+Add `?debug` to the URL to see hitboxes (H toggles them) and get
+`window.tallowbone` in the console.
 
 ## Layout
 

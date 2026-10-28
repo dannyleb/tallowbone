@@ -8,8 +8,8 @@ milestone table up to date when features land.
 ## Commands
 - `npm run check`: lint + production build. Run before every commit.
 - `npm run dev`: dev server on :8080.
-- `?debug` in the URL: hitboxes + `window.tallowbone.game` for scripted
-  playtests (Playwright).
+- `?debug` in the URL: hitboxes (H toggles) + `window.tallowbone.game` for
+  scripted playtests (Playwright).
 
 ## Conventions
 - ES modules, factory functions (`createX`), no classes, no framework.
