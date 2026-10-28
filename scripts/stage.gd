@@ -41,6 +41,9 @@ const STREET := -20.0
 const CHUNK := 16
 ## The city is built in chunks this many metres wide.
 const CITY_CHUNK := 40.0
+## 3D render layer for what moves with the camera or the actors (the plane,
+## rain, drips): reflection probes leave it out of their one-time capture.
+const MOVING := 2
 ## Visibility layers of the 2D world: OVERLAY is drawn flat over the 3D
 ## (glows, swooshes, bars), ON_PLANE goes on the lit quad.
 const OVERLAY := 1
@@ -162,6 +165,7 @@ func _ready() -> void:
 	_build_plane()
 	_build_rain()
 	_build_drips()
+	_build_probes()
 	world.level.burnt.connect(func(_cells): _build_veil())
 	fit()
 
@@ -610,6 +614,7 @@ func _build_plane() -> void:
 	m.set_shader_parameter("plane", plane_vp.get_texture())
 	plane.material_override = m
 	plane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	plane.layers = MOVING
 	add_child(plane)
 
 
@@ -652,6 +657,7 @@ func _build_rain() -> void:
 	drop.size = Vector2(0.016, 0.5)
 	drop.material = _rain_material()
 	_rain.draw_pass_1 = drop
+	_rain.layers = MOVING
 	add_child(_rain)
 	# Rain stops where it lands: on roofs, streets, ledges.
 	var ground := GPUParticlesCollisionHeightField3D.new()
@@ -706,7 +712,64 @@ func _build_drips() -> void:
 	drop.size = Vector2(0.025, 0.09)
 	drop.material = _rain_material()
 	_drips.draw_pass_1 = drop
+	_drips.layers = MOVING
 	add_child(_drips)
+
+
+## Indoors (wherever the level has a back wall) wet floors should reflect
+## the room, not the open sky. Indoor cells are grouped into boxes (runs of
+## rows with about the same span), each with an interior reflection probe,
+## captured once without the moving things.
+func _build_probes() -> void:
+	var lv = world.level
+	var w: int = lv.size_tiles.x
+	var h: int = lv.size_tiles.y
+	var boxes := []
+	var growing := []
+	for r in h:
+		var next := []
+		var c := 0
+		while c < w:
+			if lv.back_wall.get_cell_source_id(Vector2i(c, r)) == -1:
+				c += 1
+				continue
+			var start := c
+			while c < w and lv.back_wall.get_cell_source_id(Vector2i(c, r)) != -1:
+				c += 1
+			var joined = null
+			for b in growing:
+				if absi(b[2] - start) <= 2 and absi(b[3] - c) <= 2:
+					joined = b
+					break
+			if joined:
+				growing.erase(joined)
+				joined[1] = r
+				joined[2] = mini(joined[2], start)
+				joined[3] = maxi(joined[3], c)
+			else:
+				# [first row, last row, first column, column past the end]
+				joined = [r, r, start, c]
+				boxes.append(joined)
+			next.append(joined)
+		growing = next
+	for b in boxes:
+		var r0: int = b[0]
+		var r1: int = b[1]
+		var c0: int = b[2]
+		var c1: int = b[3]
+		var p := ReflectionProbe.new()
+		p.size = Vector3(c1 - c0 + 0.6, r1 - r0 + 1.6, BACK + FRONT + 1.0)
+		p.position = Vector3((c0 + c1) * 0.5, -(r0 + r1 + 1) * 0.5, (FRONT - BACK) * 0.5)
+		p.interior = true
+		p.box_projection = true
+		p.update_mode = ReflectionProbe.UPDATE_ONCE
+		p.ambient_mode = ReflectionProbe.AMBIENT_COLOR
+		p.ambient_color = Color(0.11, 0.11, 0.14)
+		p.ambient_color_energy = 0.6
+		p.blend_distance = 0.5
+		p.cull_mask = 0xFFFFF & ~MOVING
+		add_child(p)
+	counts.probes = boxes.size()
 
 
 # --- Every frame -------------------------------------------------------------

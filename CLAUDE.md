@@ -1,7 +1,9 @@
 # Tallowbone
 
-Gothic 2D Metroidvania / soulslike in Godot 4.7 (GDScript, Compatibility
-renderer), exported to the web and deployed to GitHub Pages from `main`.
+Gothic 2.5D Metroidvania / soulslike in Godot 4.7 (GDScript): 2D play in a
+3D world. Forward+ renderer on desktop (the Mac app CI builds), the lighter
+Compatibility renderer on the web build deployed to GitHub Pages from
+`main`.
 The design lives in `docs/DESIGN.md`. Keep its status markers ([slice] /
 [planned]) and the milestone table up to date when features land.
 

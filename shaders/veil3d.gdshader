@@ -13,12 +13,12 @@ void vertex() {
 }
 
 void fragment() {
-	vec2 uv = vec2(wpos.x + wpos.z, wpos.y) * 0.6;
-	float a = texture(crawl, uv * vec2(1.0, 0.4) + vec2(0.0, TIME * 0.03)).r;
-	float b = texture(crawl, uv * 2.3 - vec2(TIME * 0.02, TIME * 0.05)).r;
-	float veins = smoothstep(0.55, 0.75, a * 0.6 + b * 0.6);
-	// Brighter where you see it edge-on, like a soap film.
-	float edge = 1.0 - abs(dot(NORMAL, VIEW));
-	ALBEDO = color * (0.35 + 0.25 * b + 0.6 * veins + 0.4 * edge);
-	ALPHA = 0.1 + 0.3 * veins + 0.2 * edge;
+	vec2 uv = vec2(wpos.x + wpos.z, wpos.y);
+	// Hanging strands, stretched tall, slowly creeping downward; a finer
+	// web between them.
+	float strands = texture(crawl, vec2(uv.x * 2.2, uv.y * 0.12 + TIME * 0.015)).r;
+	float web = texture(crawl, vec2(uv.x * 5.0, uv.y * 0.5 + TIME * 0.04)).r;
+	float s = smoothstep(0.58, 0.82, strands) * 0.8 + smoothstep(0.66, 0.9, web) * 0.45;
+	ALBEDO = color * (0.3 + 1.6 * s);
+	ALPHA = clamp(0.04 + 0.5 * s, 0.0, 0.7);
 }
