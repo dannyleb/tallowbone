@@ -37,6 +37,10 @@ const FOV := 50.0
 const MOON_DIR := Vector3(0.3, 0.2, -1.0)
 ## The district's street level (the top of tile row 20), in metres.
 const STREET := -20.0
+## Level geometry is built in chunks this many tiles wide (see _build_level).
+const CHUNK := 16
+## The city is built in chunks this many metres wide.
+const CITY_CHUNK := 40.0
 ## Visibility layers of the 2D world: OVERLAY is drawn flat over the 3D
 ## (glows, swooshes, bars), ON_PLANE goes on the lit quad.
 const OVERLAY := 1
@@ -67,6 +71,9 @@ var _rain: GPUParticles3D
 var _drips: GPUParticles3D
 var _shadowed: Array[Light3D] = []
 var _time := 0.0
+## The browser's lighter renderer: lamps and the lantern throw no shadows,
+## the moon's are simpler, the city casts none, and it rains less.
+var _lite := false
 
 
 ## Collects quads into one mesh.
@@ -137,6 +144,7 @@ func _ready() -> void:
 	# The plane viewport draws the figures; they must repaint whenever they
 	# change, whether or not the 2D view "sees" them.
 	Figure.always = true
+	_lite = RenderingServer.get_current_rendering_method() == "gl_compatibility"
 	var game: SubViewport = main.game
 	game.positional_shadow_atlas_size = 4096
 	game.use_debanding = true
@@ -235,7 +243,10 @@ func _wood() -> StandardMaterial3D:
 	return m
 
 
+## Adds a mesh with its material; nothing for an empty mesh (returns null).
 func _add_mesh(mesh: Mesh, material: Material, parent: Node = self) -> MeshInstance3D:
+	if mesh.get_surface_count() == 0:
+		return null
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.material_override = material
@@ -307,8 +318,8 @@ func _environment() -> void:
 	moon.light_volumetric_fog_energy = 2.0
 	moon.shadow_enabled = true
 	moon.shadow_blur = 1.5
-	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-	moon.directional_shadow_max_distance = 90.0
+	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if _lite else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	moon.directional_shadow_max_distance = 40.0 if _lite else 90.0
 	moon.basis = Basis.looking_at(-MOON_DIR.normalized(), Vector3.UP)
 	add_child(moon)
 	_shadowed.append(moon)
@@ -340,53 +351,64 @@ func _camera() -> void:
 
 # --- The level ---------------------------------------------------------------
 
+## Built in chunks of CHUNK columns, so each light (and each shadow pass)
+## only draws the stone near it.
 func _build_level() -> void:
 	var lv = world.level
 	var w: int = lv.size_tiles.x
 	var h: int = lv.size_tiles.y
-	var stone := Builder.new()
-	var back := Builder.new()
-	var wood := Builder.new()
-	var water := Builder.new()
-	var solid := func(c: int, r: int) -> bool: return lv.kind_at(Vector2i(c, r)) == "stone"
-	for r in h:
-		for c in w:
-			var cell := Vector2i(c, r)
-			var k: String = lv.kind_at(cell)
-			var x0 := float(c)
-			var x1 := float(c + 1)
-			var yt := -float(r)
-			var yb := -float(r + 1)
-			match k:
-				"stone":
-					stone.quad(Vector3(x0, yt, FRONT), Vector3(x1, yt, FRONT), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.BACK)
-					if not solid.call(c, r - 1):
-						stone.quad(Vector3(x0, yt, -BACK), Vector3(x1, yt, -BACK), Vector3(x1, yt, FRONT), Vector3(x0, yt, FRONT), Vector3.UP)
-					if r + 1 < h and not solid.call(c, r + 1):
-						stone.quad(Vector3(x0, yb, -BACK), Vector3(x1, yb, -BACK), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.DOWN)
-					if not solid.call(c - 1, r):
-						stone.quad(Vector3(x0, yt, -BACK), Vector3(x0, yt, FRONT), Vector3(x0, yb, FRONT), Vector3(x0, yb, -BACK), Vector3.LEFT)
-					if not solid.call(c + 1, r):
-						stone.quad(Vector3(x1, yt, -BACK), Vector3(x1, yt, FRONT), Vector3(x1, yb, FRONT), Vector3(x1, yb, -BACK), Vector3.RIGHT)
-				"walkway":
-					wood.box(Vector3(x0, yt - 0.14, -1.1), Vector3(x1, yt, 0.75))
-				"water":
-					var top := yt
-					if lv.kind_at(Vector2i(c, r - 1)) != "water":
-						top = yt - 0.15
-						water.quad(Vector3(x0, top, -BACK), Vector3(x1, top, -BACK), Vector3(x1, top, FRONT), Vector3(x0, top, FRONT), Vector3.UP)
-					water.quad(Vector3(x0, top, FRONT), Vector3(x1, top, FRONT), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.BACK)
-			if lv.back_wall.get_cell_source_id(cell) != -1:
-				back.quad(Vector3(x0, yt, -BACK), Vector3(x1, yt, -BACK), Vector3(x1, yb, -BACK), Vector3(x0, yb, -BACK), Vector3.BACK)
-	_add_mesh(stone.mesh(), _stone_mat)
-	_add_mesh(back.mesh(), _stone(Color(0.62, 0.6, 0.6), 0.0))
-	_add_mesh(wood.mesh(), _wood())
 	var water_mat := ShaderMaterial.new()
 	water_mat.shader = WATER
 	water_mat.set_shader_parameter("ripples", _noise(9, 0.03, true))
-	_add_mesh(water.mesh(), water_mat)
-	counts.stone_faces = stone.faces()
-	counts.back_faces = back.faces()
+	var back_mat := _stone(Color(0.62, 0.6, 0.6), 0.0)
+	var wood_mat := _wood()
+	var solid := func(c: int, r: int) -> bool: return lv.kind_at(Vector2i(c, r)) == "stone"
+	counts.stone_faces = 0
+	counts.back_faces = 0
+	for c0 in range(0, w, CHUNK):
+		var stone := Builder.new()
+		var back := Builder.new()
+		var wood := Builder.new()
+		var water := Builder.new()
+		for r in h:
+			for c in range(c0, mini(w, c0 + CHUNK)):
+				_build_cell(lv, c, r, h, solid, stone, back, wood, water)
+		_add_mesh(stone.mesh(), _stone_mat)
+		_add_mesh(back.mesh(), back_mat)
+		_add_mesh(wood.mesh(), wood_mat)
+		_add_mesh(water.mesh(), water_mat)
+		counts.stone_faces += stone.faces()
+		counts.back_faces += back.faces()
+
+
+func _build_cell(lv, c: int, r: int, h: int, solid: Callable, stone: Builder, back: Builder, wood: Builder, water: Builder) -> void:
+	var cell := Vector2i(c, r)
+	var k: String = lv.kind_at(cell)
+	var x0 := float(c)
+	var x1 := float(c + 1)
+	var yt := -float(r)
+	var yb := -float(r + 1)
+	match k:
+		"stone":
+			stone.quad(Vector3(x0, yt, FRONT), Vector3(x1, yt, FRONT), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.BACK)
+			if not solid.call(c, r - 1):
+				stone.quad(Vector3(x0, yt, -BACK), Vector3(x1, yt, -BACK), Vector3(x1, yt, FRONT), Vector3(x0, yt, FRONT), Vector3.UP)
+			if r + 1 < h and not solid.call(c, r + 1):
+				stone.quad(Vector3(x0, yb, -BACK), Vector3(x1, yb, -BACK), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.DOWN)
+			if not solid.call(c - 1, r):
+				stone.quad(Vector3(x0, yt, -BACK), Vector3(x0, yt, FRONT), Vector3(x0, yb, FRONT), Vector3(x0, yb, -BACK), Vector3.LEFT)
+			if not solid.call(c + 1, r):
+				stone.quad(Vector3(x1, yt, -BACK), Vector3(x1, yt, FRONT), Vector3(x1, yb, FRONT), Vector3(x1, yb, -BACK), Vector3.RIGHT)
+		"walkway":
+			wood.box(Vector3(x0, yt - 0.14, -1.1), Vector3(x1, yt, 0.75))
+		"water":
+			var top := yt
+			if lv.kind_at(Vector2i(c, r - 1)) != "water":
+				top = yt - 0.15
+				water.quad(Vector3(x0, top, -BACK), Vector3(x1, top, -BACK), Vector3(x1, top, FRONT), Vector3(x0, top, FRONT), Vector3.UP)
+			water.quad(Vector3(x0, top, FRONT), Vector3(x1, top, FRONT), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.BACK)
+	if lv.back_wall.get_cell_source_id(cell) != -1:
+		back.quad(Vector3(x0, yt, -BACK), Vector3(x1, yt, -BACK), Vector3(x1, yb, -BACK), Vector3(x0, yb, -BACK), Vector3.BACK)
 
 
 ## The veils, rebuilt whenever one burns: two thin sheets across the
@@ -425,17 +447,34 @@ func _build_city() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1850
 	var w: float = world.level.size_tiles.x
-	var walls := Builder.new()
-	var roofs := Builder.new()
-	var windows := Builder.new()
-	walls.box(Vector3(-90, -46, -260), Vector3(w + 90, STREET, -BACK - 0.05))
+	var wall_mat := _stone(Color(0.55, 0.55, 0.6), 0.3)
+	var roof_mat := _stone(Color(0.38, 0.38, 0.42), 0.0)
+	var win_mat := ShaderMaterial.new()
+	win_mat.shader = WINDOWS
+	# The ground the city stands on: it only receives shadows.
+	var ground := Builder.new()
+	ground.box(Vector3(-90, -46, -260), Vector3(w + 90, STREET, -BACK - 0.05))
+	var g := _add_mesh(ground.mesh(), wall_mat, _city)
+	g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var buildings := 0
-	# z of the frontage, depth, lowest and highest height.
+	# z of the frontage, depth, lowest and highest height. Only the nearest
+	# row throws shadows that land anywhere you'd see.
+	var row_index := 0
 	for row in [[-7.0, 5.0, 5.0, 11.0], [-17.0, 7.0, 8.0, 17.0], [-38.0, 12.0, 12.0, 26.0]]:
 		var z: float = row[0]
 		var depth: float = row[1]
 		var x := -80.0
+		var walls := Builder.new()
+		var roofs := Builder.new()
+		var windows := Builder.new()
+		var chunk_end := x + CITY_CHUNK
 		while x < w + 80.0:
+			if x >= chunk_end:
+				_add_city_chunk(walls, roofs, windows, wall_mat, roof_mat, win_mat, row_index == 0 and not _lite)
+				walls = Builder.new()
+				roofs = Builder.new()
+				windows = Builder.new()
+				chunk_end += CITY_CHUNK
 			var bw := rng.randf_range(4.0, 8.5)
 			var bh := rng.randf_range(row[2], row[3])
 			var front := z + rng.randf_range(-0.6, 0.6)
@@ -465,7 +504,12 @@ func _build_city() -> void:
 				floor_y += 3.0
 			buildings += 1
 			x += bw + (rng.randf_range(1.0, 3.0) if rng.randf() < 0.15 else 0.0)
+		_add_city_chunk(walls, roofs, windows, wall_mat, roof_mat, win_mat, row_index == 0 and not _lite)
+		row_index += 1
 	# The church, a landmark over the plaza: a tower and its spire.
+	var walls := Builder.new()
+	var roofs := Builder.new()
+	var windows := Builder.new()
 	var cx := 128.0
 	var cz := -26.0
 	walls.box(Vector3(cx - 3.5, STREET - 2.0, cz - 7.0), Vector3(cx + 3.5, STREET + 30.0, cz))
@@ -480,13 +524,19 @@ func _build_city() -> void:
 			n = -n
 		roofs.tri(a, b, apex, n)
 	windows.quad(Vector3(cx - 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 21.0, cz + 0.03), Vector3(cx - 0.6, STREET + 21.0, cz + 0.03), Vector3.BACK, Color(0.8, 0.0, 0.0))
-	_add_mesh(walls.mesh(), _stone(Color(0.55, 0.55, 0.6), 0.3), _city)
-	_add_mesh(roofs.mesh(), _stone(Color(0.38, 0.38, 0.42), 0.0), _city)
-	var win_mat := ShaderMaterial.new()
-	win_mat.shader = WINDOWS
-	var lit := _add_mesh(windows.mesh(), win_mat, _city)
-	lit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_add_city_chunk(walls, roofs, windows, wall_mat, roof_mat, win_mat, false)
 	counts.buildings = buildings
+
+
+func _add_city_chunk(walls: Builder, roofs: Builder, windows: Builder, wall_mat: Material, roof_mat: Material, win_mat: Material, shadows: bool) -> void:
+	var cast := GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for part in [[walls, wall_mat], [roofs, roof_mat]]:
+		var mi := _add_mesh(part[0].mesh(), part[1], _city)
+		if mi:
+			mi.cast_shadow = cast
+	var lit := _add_mesh(windows.mesh(), win_mat, _city)
+	if lit:
+		lit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 # --- Lights ------------------------------------------------------------------
@@ -497,11 +547,11 @@ func _omni(color: Color, energy: float, radius: float, shadow: bool) -> OmniLigh
 	l.light_energy = energy
 	l.omni_range = radius
 	l.omni_attenuation = 1.4
-	l.shadow_enabled = shadow
+	l.shadow_enabled = shadow and not _lite
 	l.light_size = 0.12
 	l.light_volumetric_fog_energy = 2.5
 	add_child(l)
-	if shadow:
+	if shadow and not _lite:
 		_shadowed.append(l)
 	return l
 
@@ -579,7 +629,7 @@ func _rain_material() -> StandardMaterial3D:
 
 func _build_rain() -> void:
 	_rain = GPUParticles3D.new()
-	_rain.amount = 4000
+	_rain.amount = 1500 if _lite else 4000
 	_rain.lifetime = 1.5
 	_rain.preprocess = 1.5
 	_rain.local_coords = false
