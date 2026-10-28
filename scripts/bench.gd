@@ -167,10 +167,10 @@ func _measure(seconds: float) -> Dictionary:
 func _switch(off: Array, now_off: bool) -> void:
 	var systems: Array = SYSTEMS if off.has("everything") else off
 	for s in systems:
-		_set(s, now_off)
+		_switch_system(s, now_off)
 
 
-func _set(system: String, off: bool) -> void:
+func _switch_system(system: String, off: bool) -> void:
 	match system:
 		"figures":
 			for a in [player] + world.enemies:
