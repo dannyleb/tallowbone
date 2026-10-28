@@ -124,7 +124,11 @@ func _tp(x: float, y: float, facing := 1.0) -> void:
 
 
 func _shot(name: String) -> void:
+	# Invulnerable between shots, but not blinking in them.
+	player.iframes = 0.0
+	await physics_frame
 	await RenderingServer.frame_post_draw
 	var img := root.get_texture().get_image()
 	img.save_png("%s/%s.png" % [out_dir, name])
+	player.iframes = 999.0
 	print("saved ", name)

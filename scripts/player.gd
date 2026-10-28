@@ -79,7 +79,7 @@ func _ready() -> void:
 	refill()
 	_light = Glow.light(Color(1.0, 0.8, 0.55), 70.0, 1.2, 30.0)
 	add_child(_light)
-	_body_light = Glow.light(Color(0.8, 0.82, 1.0), 60.0, 0.6, 40.0)
+	_body_light = Glow.light(Color(0.82, 0.84, 1.0), 72.0, 0.95, 40.0)
 	_body_light.position = Vector2(0, -H / 2.0)
 	add_child(_body_light)
 	# Room for the pole overhead, the lantern flung out, quickstep ghosts
