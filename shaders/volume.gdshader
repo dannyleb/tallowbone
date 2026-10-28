@@ -6,7 +6,7 @@
 shader_type canvas_item;
 
 // How round: higher bends the edges away from you more steeply.
-uniform float bulge = 2.2;
+uniform float bulge = 1.6;
 // How far in from the edge the rounding reaches, in texture pixels.
 uniform float reach = 7.0;
 // Bumps from the drawing's own shading.

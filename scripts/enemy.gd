@@ -14,10 +14,10 @@ const Combat = preload("res://scripts/combat.gd")
 const Sfx = preload("res://scripts/sfx.gd")
 const Figure = preload("res://scripts/figure.gd")
 
-const ROBE := Color("2f2824")
-const ROBE_DARK := Color("1d1816")
+const ROBE := Color("4d4038")
+const ROBE_DARK := Color("2f2722")
 const FLESH := Color("c9bba1")
-const HOUND := Color("261e1c")
+const HOUND := Color("45372f")
 const GORGED_COLOR := Color("ff6a3d")
 
 @export_enum("communicant", "hound") var kind := "communicant"
@@ -272,7 +272,7 @@ static func _ease(x: float) -> float:
 
 
 func _paint_communicant(ci: CanvasItem, fl: bool, a: float) -> void:
-	var robe := _c(Color("3a2420") if gorged > 0 else ROBE, fl, a)
+	var robe := _c(Color("5c302a") if gorged > 0 else ROBE, fl, a)
 	var stride := sin(run_t * 9.0) * 2.0
 	ci.draw_rect(Rect2(-6 + stride, -8, 4, 8), _c(ROBE_DARK, fl, a))
 	ci.draw_rect(Rect2(2 - stride, -8, 4, 8), _c(ROBE_DARK, fl, a))
@@ -300,7 +300,7 @@ func _paint_communicant(ci: CanvasItem, fl: bool, a: float) -> void:
 
 
 func _paint_hound(ci: CanvasItem, fl: bool, a: float) -> void:
-	var body := _c(Color("3a211c") if gorged > 0 else HOUND, fl, a)
+	var body := _c(Color("5a2c24") if gorged > 0 else HOUND, fl, a)
 	_crouch = minf(1.0, t / 0.2) * 4.0 if state == "windup" else 0.0
 	_stretch = 1.18 if state == "strike" else 1.0
 	var g := sin(run_t * 16.0) * 4.0

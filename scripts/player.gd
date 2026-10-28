@@ -19,13 +19,13 @@ const H := 42.0
 ## How long (s) each press is remembered.
 const BUFFER := {"jump": 0.12, "attack": 0.2, "transform": 0.2, "shoot": 0.15, "dash": 0.12, "heal": 0.12, "interact": 0.12}
 
-const COAT := Color("2d2a36")
-const COAT_DARK := Color("18161d")
-const SCARF := Color("6e1c1f")
+const COAT := Color("4b4658")
+const COAT_DARK := Color("2a2733")
+const SCARF := Color("9a2a2c")
 const SKIN := Color("d9cdb8")
-const HAT := Color("111015")
-const POLE := Color("5a4331")
-const IRON := Color("2a2a30")
+const HAT := Color("2a2730")
+const POLE := Color("7a5a40")
+const IRON := Color("46464f")
 const LAMP := Color("ffcf7a")
 
 var world
@@ -79,7 +79,7 @@ func _ready() -> void:
 	refill()
 	_light = Glow.light(Color(1.0, 0.8, 0.55), 70.0, 1.2, 30.0)
 	add_child(_light)
-	_body_light = Glow.light(Color(0.8, 0.82, 1.0), 56.0, 0.45, 40.0)
+	_body_light = Glow.light(Color(0.8, 0.82, 1.0), 60.0, 0.6, 40.0)
 	_body_light.position = Vector2(0, -H / 2.0)
 	add_child(_body_light)
 	# Room for the pole overhead, the lantern flung out, quickstep ghosts
