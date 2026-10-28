@@ -51,9 +51,9 @@ func _ready() -> void:
 	_fig = Figure.new()
 	add_child(_fig)
 	if kind == "hound":
-		_fig.setup(Vector2(90, 48), Vector2(45, 38), _paint, 0.35)
+		_fig.setup(Vector2(90, 48), Vector2(45, 38), _paint)
 	else:
-		_fig.setup(Vector2(104, 92), Vector2(52, 80), _paint, 0.2)
+		_fig.setup(Vector2(104, 92), Vector2(52, 80), _paint)
 	reset()
 
 

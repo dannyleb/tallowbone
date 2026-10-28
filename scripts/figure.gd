@@ -16,7 +16,7 @@ var _painter: Node2D
 ## size: the drawing's bounds in world px. origin: where the actor's feet are
 ## inside them. paint: called with the CanvasItem to draw on, in the actor's
 ## own coordinates (feet at 0, 0).
-func setup(size: Vector2, origin: Vector2, paint: Callable, gloss := 0.25) -> void:
+func setup(size: Vector2, origin: Vector2, paint: Callable) -> void:
 	_viewport = SubViewport.new()
 	_viewport.transparent_bg = true
 	_viewport.disable_3d = true
@@ -34,7 +34,6 @@ func setup(size: Vector2, origin: Vector2, paint: Callable, gloss := 0.25) -> vo
 	scale = Vector2.ONE / RES
 	var m := ShaderMaterial.new()
 	m.shader = VOLUME
-	m.set_shader_parameter("gloss", gloss)
 	material = m
 
 

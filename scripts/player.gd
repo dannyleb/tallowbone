@@ -86,7 +86,7 @@ func _ready() -> void:
 	# behind, and lying down when dead.
 	_fig = Figure.new()
 	add_child(_fig)
-	_fig.setup(Vector2(160, 120), Vector2(80, 108), _paint, 0.3)
+	_fig.setup(Vector2(160, 120), Vector2(80, 108), _paint)
 
 
 func refill() -> void:

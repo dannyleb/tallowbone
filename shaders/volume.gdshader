@@ -11,8 +11,6 @@ uniform float bulge = 2.2;
 uniform float reach = 7.0;
 // Bumps from the drawing's own shading.
 uniform float detail = 0.6;
-// Wet sheen: specular strength.
-uniform float gloss : hint_range(0.0, 1.0) = 0.25;
 
 // TEXTURE only exists inside fragment(), so these are macros, not functions.
 #define alpha_at(uv) texture(TEXTURE, uv).a
@@ -34,6 +32,5 @@ void fragment() {
 	// Green up, like the tiles' normal maps.
 	vec3 normal = normalize(vec3(n * bulge, 1.0));
 	NORMAL_MAP = normal * 0.5 + 0.5;
-	SPECULAR_SHININESS = vec4(vec3(gloss), gloss);
 	COLOR = c * COLOR;
 }
