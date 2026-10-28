@@ -56,7 +56,7 @@ func roofed_at(p: Vector2) -> bool:
 ## walkway with sky above it), or -1 if there isn't one.
 func ground_below(x: float, y0: float, y1: float) -> float:
 	var c := floori(x / T.TILE)
-	for r in range(maxi(0, floori(y0 / T.TILE)), floori(y1 / T.TILE) + 1):
+	for r in range(maxi(0, floori(y0 / T.TILE)), mini(size_tiles.y + 1, floori(y1 / T.TILE) + 1)):
 		var k := kind_at(Vector2i(c, r))
 		if k != "stone" and k != "walkway":
 			continue

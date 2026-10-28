@@ -122,6 +122,9 @@ func _add_vignette() -> void:
 ## drawn at the render scale (never more than the window's own pixels).
 func fit_view() -> void:
 	var logical := get_viewport().get_visible_rect().size
+	# With no real window (headless runs) the stretch maths gives NaN.
+	if not logical.is_finite() or logical.x < 1.0 or logical.y < 1.0:
+		logical = Vector2(ProjectSettings.get_setting("display/window/size/viewport_width"), ProjectSettings.get_setting("display/window/size/viewport_height"))
 	var native := maxf(1.0, float(get_window().size.x) / maxf(1.0, logical.x))
 	render_scale = fixed_scale if fixed_scale > 0.0 else minf(native, render_cap)
 	game.size_2d_override = Vector2i(logical.round())

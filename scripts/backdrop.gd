@@ -195,13 +195,15 @@ func _draw_flicker(layer: Dictionary) -> void:
 	var flicker: Node2D = layer.flicker
 	var window: Color = layer.window
 	var start: float = -sprite.region_rect.position.x / PAINT_RES
+	var width: float = layer.width
+	# The view is never more than a couple of layer widths across.
+	var repeats := clampi(ceili(view.x / width) + 1, 1, 4)
 	for f in layer.flickers:
 		var flick := 0.5 + 0.5 * sin(time * 3.0 + f.z * 40.0)
-		var x: float = start + f.x
-		while x < view.x:
-			if x > -4.0:
+		for k in repeats:
+			var x: float = start + f.x + k * width
+			if x > -4.0 and x < view.x:
 				flicker.draw_rect(Rect2(x, sprite.position.y + f.y, 3.0, 5.0), Color(window, window.a * flick))
-			x += layer.width
 
 
 func _process(_delta: float) -> void:

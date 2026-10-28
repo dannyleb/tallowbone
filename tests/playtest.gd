@@ -31,34 +31,41 @@ func _run() -> void:
 	main.start_game()
 	await _frames(30)
 
-	await _level_loaded()
-	await _starts_with_little()
-	await _movement()
-	await _ledge_assist()
-	await _canal()
-	await _canal_jumps()
-	await _finds()
-	await _lamps()
-	await _melee()
-	await _parry_and_visceral()
-	await _rally()
-	await _blood_and_vials()
-	await _quickstep()
-	await _veil()
-	await _gates()
-	await _chimney()
-	await _map()
-	await _death_pile_and_gorge()
-	await _levelling()
-	await _controls()
-	await _render_scale()
-	await _lessons()
+	await _scenario("_level_loaded", _level_loaded)
+	await _scenario("_starts_with_little", _starts_with_little)
+	await _scenario("_movement", _movement)
+	await _scenario("_ledge_assist", _ledge_assist)
+	await _scenario("_canal", _canal)
+	await _scenario("_canal_jumps", _canal_jumps)
+	await _scenario("_finds", _finds)
+	await _scenario("_lamps", _lamps)
+	await _scenario("_melee", _melee)
+	await _scenario("_parry_and_visceral", _parry_and_visceral)
+	await _scenario("_rally", _rally)
+	await _scenario("_blood_and_vials", _blood_and_vials)
+	await _scenario("_quickstep", _quickstep)
+	await _scenario("_veil", _veil)
+	await _scenario("_gates", _gates)
+	await _scenario("_chimney", _chimney)
+	await _scenario("_map", _map)
+	await _scenario("_death_pile_and_gorge", _death_pile_and_gorge)
+	await _scenario("_levelling", _levelling)
+	await _scenario("_controls", _controls)
+	await _scenario("_render_scale", _render_scale)
+	await _scenario("_lessons", _lessons)
 
 	print("\n%d checks, %d failed" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
 
 # --- Helpers ---------------------------------------------------------------
+
+## Runs one scenario, announcing it first, so a log that stops short shows
+## where.
+func _scenario(name: String, f: Callable) -> void:
+	print("--- ", name.trim_prefix("_"))
+	await f.call()
+
 
 func _frames(n: int) -> void:
 	for i in n:
