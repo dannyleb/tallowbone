@@ -1,8 +1,9 @@
 // Wet stone for the 3D stage, mapped in world space (triplanar), so the
 // generated level geometry needs no UVs. Faces looking up get cobbles,
 // everything else cut-stone blocks. The rain does the rest: darker, glossy
-// stone; standing water in the dips of anything flat; thin sheets of water
-// running down walls, catching the lamps.
+// stone; standing water in the dips of anything flat, rings spreading
+// where the drops land in it; thin sheets of water running down walls,
+// catching the lamps.
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
@@ -23,9 +24,41 @@ uniform float wetness : hint_range(0.0, 1.0) = 0.85;
 // How much of the flat tops stands in puddles.
 uniform float puddles : hint_range(0.0, 1.0) = 0.45;
 uniform float bump = 1.0;
+// Rain rings in the puddles: how strongly they bend the reflections, and
+// how big a patch each ring has to itself (m).
+uniform float ripple_strength = 0.35;
+uniform float ripple_cell = 0.3;
 
 varying vec3 wpos;
 varying vec3 wnrm;
+
+vec2 hash2(vec2 p) {
+	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+	return fract(sin(p) * 43758.5453);
+}
+
+// The slope of the water's surface at p (in ring cells) from the rings
+// around it: each cell has a drop landing at its own moment, and its ring
+// widens and flattens out until the next.
+vec2 ripples(vec2 p, float t) {
+	vec2 g = floor(p);
+	vec2 slope = vec2(0.0);
+	for (int j = -1; j <= 1; j++) {
+		for (int i = -1; i <= 1; i++) {
+			vec2 c = g + vec2(float(i), float(j));
+			vec2 h = hash2(c);
+			float phase = fract(t * (0.7 + h.x * 0.6) + h.y);
+			vec2 d = p - (c + 0.15 + h * 0.7);
+			float r = length(d);
+			float x = (r - phase * 1.1) * 9.0;
+			// One crest and trough, fading as it spreads.
+			float wave = cos(x * 3.1416) * exp(-x * x * 0.5);
+			float amp = (1.0 - phase) * (1.0 - phase) * smoothstep(1.2, 0.2, r);
+			slope += d / max(r, 1e-3) * wave * amp;
+		}
+	}
+	return slope;
+}
 
 void vertex() {
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -86,8 +119,13 @@ void fragment() {
 	rough = mix(rough, rough * 0.35, wet);
 	// Not quite mirrors: rain pocks the puddles, so reflections blur a little.
 	rough = mix(rough, 0.09, max(puddle, sheet * 0.8));
-	// Standing water is flat; running water smooths the bumps a little.
+	// Standing water is flat but for the rings; running water smooths the
+	// bumps a little.
 	wn = normalize(mix(wn, n, max(puddle, sheet * 0.5)));
+	if (puddle > 0.01) {
+		vec2 rip = ripples(wpos.xz / ripple_cell, TIME) + ripples(wpos.xz / ripple_cell * 1.37 + 7.3, TIME * 1.13) * 0.7;
+		wn = normalize(wn + vec3(rip.x, 0.0, rip.y) * ripple_strength * puddle);
+	}
 
 	ALBEDO = albedo;
 	ROUGHNESS = clamp(rough, 0.02, 1.0);

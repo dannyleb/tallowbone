@@ -191,6 +191,10 @@ func _stage() -> void:
 	_check("a light for every street lamp, and a city behind", st.counts.lamp_lights == world.lamps.size() and st.counts.buildings > 50, str(st.counts))
 	_check("veils are built, and water drips off the ledges", st.counts.veil == 3 and st.counts.drips > 15, str(st.counts))
 	_check("indoor spaces get reflection probes (no sky in their puddles)", st.counts.probes >= 2 and st.counts.probes <= 12, str(st.counts))
+	_check("rain splashes where it lands, drainpipes pour, gas lamps burn in the street behind",
+		st.counts.splashes > 150 and st.counts.pours >= 3 and st.counts.gas_lamps >= 6, str(st.counts))
+	_check("mist lies over the streets and the canal", st.counts.mist >= 4, str(st.counts))
+	_check("watchers have rooftops to stand on", st.roofs.size() > 10, str(st.roofs.size()))
 	_check("the flat 2D tiles and night are off", not world.level.ground.visible and not world.get_node("Night").visible)
 	_check("actors and props draw onto the 3D plane, effects over it",
 		st.plane_vp.world_2d == main.game.world_2d and world.player.visibility_layer == st.ON_PLANE and main.game.canvas_cull_mask == st.OVERLAY)

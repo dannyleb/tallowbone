@@ -31,8 +31,9 @@ const LINGER := 5.0
 const EYES_OPEN := 7.0
 const EYES_CLOSE := 4.0
 ## The lightning light's energy and the fog's whitening at full flash.
-const LIGHT_ENERGY := 5.0
-const FOG_FLASH := Color(0.55, 0.6, 0.78)
+const LIGHT_ENERGY := 1.8
+const FOG_FLASH := Color(0.3, 0.33, 0.46)
+const AMBIENT_FLASH := 0.12
 const SKY_FLASH := 1.4
 ## A strike stronger than this draws its bolt.
 const BOLT_STRENGTH := 0.4
@@ -76,7 +77,7 @@ func _ready() -> void:
 	light = DirectionalLight3D.new()
 	light.light_color = Color(0.78, 0.84, 1.0)
 	light.light_energy = 0.0
-	light.light_volumetric_fog_energy = 1.5
+	light.light_volumetric_fog_energy = 0.25
 	light.shadow_enabled = false
 	light.light_cull_mask = 0xFFFFF & ~stage.INDOOR
 	light.visible = false
@@ -261,7 +262,7 @@ func _process(delta: float) -> void:
 	light.visible = f > 0.01
 	light.light_energy = f * LIGHT_ENERGY
 	stage.env.fog_light_color = _fog_base + FOG_FLASH * f
-	stage.env.ambient_light_energy = _ambient_base + f * 0.5
+	stage.env.ambient_light_energy = _ambient_base + f * AMBIENT_FLASH
 	var sky_f := snappedf(f * SKY_FLASH, 0.02)
 	if sky_f != _sky_flash:
 		_sky_flash = sky_f

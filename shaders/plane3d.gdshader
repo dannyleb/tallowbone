@@ -3,7 +3,10 @@
 // into a transparent viewport, and this quad shows that drawing at z = 0.
 // Each pixel's normal comes from how near it is to a silhouette edge (as in
 // shaders/volume.gdshader), so the 3D lights wrap round the figures; the
-// alpha cut-out lets them cast real shadows on the walls behind.
+// alpha cut-out lets them cast real shadows on the walls behind. Light
+// from behind (the moon, a lamp further back) shows through near the
+// edges, as it does through cloth and hair: a rim that keeps figures
+// readable against the dark.
 shader_type spatial;
 render_mode cull_disabled, diffuse_burley, specular_schlick_ggx;
 
@@ -14,6 +17,8 @@ uniform float bulge = 1.5;
 uniform float reach = 9.0;
 // Bumps from the drawing's own shading.
 uniform float detail = 0.5;
+// How much light from behind comes through at the edges.
+uniform float rim = 0.9;
 
 #define alpha_at(uv) texture(plane, uv).a
 #define lum_at(uv) dot(texture(plane, uv).rgb, vec3(0.299, 0.587, 0.114))
@@ -38,6 +43,7 @@ void fragment() {
 	n.x += (lum_at(UV - vec2(d.x, 0.0)) - lum_at(UV + vec2(d.x, 0.0))) * detail;
 	n.y += (lum_at(UV + vec2(0.0, d.y)) - lum_at(UV - vec2(0.0, d.y))) * detail;
 	NORMAL_MAP = normalize(vec3(n * bulge, 1.0)) * 0.5 + 0.5;
+	BACKLIGHT = vec3(rim * smoothstep(0.15, 0.9, length(n)));
 	ROUGHNESS = 0.7;
 	SPECULAR = 0.35;
 }

@@ -82,6 +82,12 @@ var _veil_mat: ShaderMaterial
 var _city: Node3D
 var _rain: GPUParticles3D
 var _drips: GPUParticles3D
+## Where drainpipes empty onto the street (filled by _build_city).
+var _pours := PackedVector3Array()
+var _splashes: GPUParticles3D
+var _pour: GPUParticles3D
+var _moths: GPUParticles3D
+var _moth_count := -1
 var _shadowed: Array[Light3D] = []
 var _time := 0.0
 ## The browser's lighter renderer: lamps and the lantern throw no shadows,
@@ -175,6 +181,10 @@ func _ready() -> void:
 	_build_plane()
 	_build_rain()
 	_build_drips()
+	_build_splashes()
+	_build_pours()
+	_build_moths()
+	_build_mist()
 	_build_probes()
 	storm = Storm.new()
 	storm.stage = self
@@ -470,109 +480,242 @@ func _build_veil() -> void:
 		_veil.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
-## The city behind: three rows of houses (nearer ones shorter), gabled or
-## flat, windows lit here and there; the church spire over the plaza; and
-## the ground they stand on.
+## The city behind: three rows of houses (nearer ones shorter), gabled,
+## chimneyed or parapeted; a cornice under every eave. The nearer two rows
+## get string courses between the floors and framed windows with sills,
+## a few lit and the rest dark glass that catches the sky; the nearest row
+## gets doors, and drainpipes pouring onto the street. Gas lamps burn along
+## the street behind the district; the church spire stands over the plaza.
+## The far row is only a skyline in the fog.
 func _build_city() -> void:
 	_city = Node3D.new()
 	add_child(_city)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1850
 	var w: float = world.level.size_tiles.x
-	var wall_mat := _stone(Color(0.55, 0.55, 0.6), 0.3)
-	var roof_mat := _stone(Color(0.38, 0.38, 0.42), 0.0)
 	var win_mat := ShaderMaterial.new()
 	win_mat.shader = WINDOWS
+	var mats := {
+		"walls": _stone(Color(0.55, 0.55, 0.6), 0.3),
+		"roofs": _stone(Color(0.38, 0.38, 0.42), 0.0),
+		"trim": _stone(Color(0.4, 0.4, 0.44), 0.1),
+		"glass": _glass(),
+		"iron": _iron(),
+		"wood": _wood(),
+		"windows": win_mat,
+	}
 	# The ground the city stands on: it only receives shadows.
 	var ground := Builder.new()
 	ground.box(Vector3(-90, -46, -260), Vector3(w + 90, STREET, -BACK - 0.12))
-	var g := _add_mesh(ground.mesh(), wall_mat, _city)
+	var g := _add_mesh(ground.mesh(), mats.walls, _city)
 	g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var buildings := 0
-	# z of the frontage, depth, lowest and highest height. Only the nearest
-	# row throws shadows that land anywhere you'd see.
+	# z of the frontage, depth, lowest and highest height. Low enough to
+	# leave a band of sky over the rooftops (the moon, the storm, what the
+	# storm shows); only the church stands into it. Only the nearest row
+	# throws shadows that land anywhere you'd see.
 	var row_index := 0
-	for row in [[-7.0, 5.0, 5.0, 11.0], [-17.0, 7.0, 8.0, 17.0], [-38.0, 12.0, 12.0, 26.0]]:
+	for row in [[-7.0, 5.0, 4.0, 7.5], [-17.0, 7.0, 6.5, 11.0], [-38.0, 12.0, 9.0, 16.0]]:
 		var z: float = row[0]
 		var depth: float = row[1]
 		var x := -80.0
-		var walls := Builder.new()
-		var roofs := Builder.new()
-		var windows := Builder.new()
+		var b := _city_builders()
 		var chunk_end := x + CITY_CHUNK
+		var shadows := row_index == 0 and not _lite
 		while x < w + 80.0:
 			if x >= chunk_end:
-				_add_city_chunk(walls, roofs, windows, wall_mat, roof_mat, win_mat, row_index == 0 and not _lite)
-				walls = Builder.new()
-				roofs = Builder.new()
-				windows = Builder.new()
+				_add_city_chunk(b, mats, shadows)
+				b = _city_builders()
 				chunk_end += CITY_CHUNK
 			var bw := rng.randf_range(4.0, 8.5)
 			var bh := rng.randf_range(row[2], row[3])
 			var front := z + rng.randf_range(-0.6, 0.6)
-			walls.box(Vector3(x, STREET - 2.0, front - depth), Vector3(x + bw, STREET + bh, front))
-			var top := STREET + bh
-			if rng.randf() < 0.6:
-				# A gable along the street.
-				var ridge := top + bw * rng.randf_range(0.3, 0.5)
-				var mid := front - depth / 2.0
-				if row_index == 1:
-					roofs.append([x, x + bw, ridge, mid])
-				roofs.quad(Vector3(x - 0.2, top, front + 0.3), Vector3(x + bw + 0.2, top, front + 0.3), Vector3(x + bw + 0.2, ridge, mid), Vector3(x - 0.2, ridge, mid), Vector3(0, 0.7, 0.7).normalized())
-				roofs.quad(Vector3(x - 0.2, top, front - depth - 0.3), Vector3(x + bw + 0.2, top, front - depth - 0.3), Vector3(x + bw + 0.2, ridge, mid), Vector3(x - 0.2, ridge, mid), Vector3(0, 0.7, -0.7).normalized())
-				roofs.tri(Vector3(x, top, front), Vector3(x, ridge, mid), Vector3(x, top, front - depth), Vector3.LEFT)
-				roofs.tri(Vector3(x + bw, top, front), Vector3(x + bw, ridge, mid), Vector3(x + bw, top, front - depth), Vector3.RIGHT)
-			elif rng.randf() < 0.7:
-				if row_index == 1:
-					roofs.append([x, x + bw, top, front - depth * 0.3])
-				# Chimney stacks.
-				var cx := x + rng.randf_range(0.5, bw - 1.2)
-				walls.box(Vector3(cx, top, front - depth * 0.6), Vector3(cx + 0.7, top + rng.randf_range(1.0, 2.2), front - depth * 0.6 + 0.7))
-			# Windows, a few lit; one in six of those flickers.
-			var floor_y := STREET + 1.6
-			while floor_y < top - 1.4:
-				var wx := x + 0.8
-				while wx < x + bw - 1.2:
-					if rng.randf() < 0.16:
-						var col := Color(rng.randf_range(0.35, 0.9), rng.randf() if rng.randf() < 0.17 else 0.0, 0.0)
-						windows.quad(Vector3(wx, floor_y + 0.85, front + 0.03), Vector3(wx + 0.45, floor_y + 0.85, front + 0.03), Vector3(wx + 0.45, floor_y, front + 0.03), Vector3(wx, floor_y, front + 0.03), Vector3.BACK, col)
-					wx += 1.6
-				floor_y += 3.0
+			_house(b, rng, x, bw, bh, front, depth, row_index)
 			buildings += 1
 			x += bw + (rng.randf_range(1.0, 3.0) if rng.randf() < 0.15 else 0.0)
-		_add_city_chunk(walls, roofs, windows, wall_mat, roof_mat, win_mat, row_index == 0 and not _lite)
+		_add_city_chunk(b, mats, shadows)
 		row_index += 1
+	_gas_lamps(rng, w, mats)
 	# The church, a landmark over the plaza: a tower and its spire.
-	var walls := Builder.new()
-	var roofs := Builder.new()
-	var windows := Builder.new()
+	var church := _city_builders()
 	var cx := 128.0
 	var cz := -26.0
-	walls.box(Vector3(cx - 3.5, STREET - 2.0, cz - 7.0), Vector3(cx + 3.5, STREET + 30.0, cz))
+	church.walls.box(Vector3(cx - 3.5, STREET - 2.0, cz - 7.0), Vector3(cx + 3.5, STREET + 30.0, cz))
+	church.trim.box(Vector3(cx - 3.8, STREET + 29.4, cz - 7.3), Vector3(cx + 3.8, STREET + 30.2, cz + 0.3))
+	church.trim.box(Vector3(cx - 3.7, STREET + 18.0, cz - 7.2), Vector3(cx + 3.7, STREET + 18.4, cz + 0.2))
 	var apex := Vector3(cx, STREET + 52.0, cz - 3.5)
 	var corners := [Vector3(cx - 3.5, STREET + 30.0, cz), Vector3(cx + 3.5, STREET + 30.0, cz), Vector3(cx + 3.5, STREET + 30.0, cz - 7.0), Vector3(cx - 3.5, STREET + 30.0, cz - 7.0)]
 	var middle := Vector3(cx, STREET + 30.0, cz - 3.5)
 	for i in 4:
 		var a: Vector3 = corners[i]
-		var b: Vector3 = corners[(i + 1) % 4]
-		var n := (b - a).cross(apex - a).normalized()
-		if n.dot((a + b) * 0.5 - middle) < 0.0:
+		var c: Vector3 = corners[(i + 1) % 4]
+		var n := (c - a).cross(apex - a).normalized()
+		if n.dot((a + c) * 0.5 - middle) < 0.0:
 			n = -n
-		roofs.tri(a, b, apex, n)
-	windows.quad(Vector3(cx - 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 21.0, cz + 0.03), Vector3(cx - 0.6, STREET + 21.0, cz + 0.03), Vector3.BACK, Color(0.8, 0.0, 0.0))
-	_add_city_chunk(walls, roofs, windows, wall_mat, roof_mat, win_mat, false)
+		church.roofs.tri(a, c, apex, n)
+	# Pinnacles at the tower's corners.
+	for corner in corners:
+		var k: Vector3 = corner
+		church.trim.box(k + Vector3(-0.35, 0.0, -0.35), k + Vector3(0.35, 3.5, 0.35))
+	church.windows.quad(Vector3(cx - 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 21.0, cz + 0.03), Vector3(cx - 0.6, STREET + 21.0, cz + 0.03), Vector3.BACK, Color(0.8, 0.0, 0.0))
+	_add_city_chunk(church, mats, false)
 	counts.buildings = buildings
 
 
-func _add_city_chunk(walls: Builder, roofs: Builder, windows: Builder, wall_mat: Material, roof_mat: Material, win_mat: Material, shadows: bool) -> void:
+## One house, its front at z = front, from x to x + bw, bh high.
+func _house(b: Dictionary, rng: RandomNumberGenerator, x: float, bw: float, bh: float, front: float, depth: float, row: int) -> void:
+	var walls: Builder = b.walls
+	var trim: Builder = b.trim
+	var roof: Builder = b.roofs
+	var top := STREET + bh
+	var near := row < 2
+	walls.box(Vector3(x, STREET - 2.0, front - depth), Vector3(x + bw, top, front))
+	# The cornice under the eaves.
+	trim.box(Vector3(x - 0.12, top - 0.32, front - 0.05), Vector3(x + bw + 0.12, top, front + 0.3))
+	if rng.randf() < 0.6:
+		# A gable along the street.
+		var ridge := top + bw * rng.randf_range(0.3, 0.5)
+		var mid := front - depth / 2.0
+		if row == 1:
+			roofs.append([x, x + bw, ridge, mid])
+		roof.quad(Vector3(x - 0.2, top, front + 0.3), Vector3(x + bw + 0.2, top, front + 0.3), Vector3(x + bw + 0.2, ridge, mid), Vector3(x - 0.2, ridge, mid), Vector3(0, 0.7, 0.7).normalized())
+		roof.quad(Vector3(x - 0.2, top, front - depth - 0.3), Vector3(x + bw + 0.2, top, front - depth - 0.3), Vector3(x + bw + 0.2, ridge, mid), Vector3(x - 0.2, ridge, mid), Vector3(0, 0.7, -0.7).normalized())
+		roof.tri(Vector3(x, top, front), Vector3(x, ridge, mid), Vector3(x, top, front - depth), Vector3.LEFT)
+		roof.tri(Vector3(x + bw, top, front), Vector3(x + bw, ridge, mid), Vector3(x + bw, top, front - depth), Vector3.RIGHT)
+		if near and rng.randf() < 0.5:
+			# A dormer in the roof.
+			var dx := x + rng.randf_range(0.8, maxf(0.9, bw - 2.0))
+			var dz := front - 0.3
+			walls.box(Vector3(dx, top, dz - 1.4), Vector3(dx + 1.1, top + 1.5, dz))
+			trim.box(Vector3(dx - 0.1, top + 1.5, dz - 1.5), Vector3(dx + 1.2, top + 1.65, dz + 0.1))
+			_window(b, rng, dx + 0.3, top + 0.35, dz, 0.5, 0.8, true)
+	elif rng.randf() < 0.7:
+		if row == 1:
+			roofs.append([x, x + bw, top, front - depth * 0.3])
+		# Chimney stacks, each with its pots.
+		var cx := x + rng.randf_range(0.5, bw - 1.2)
+		var cz := front - depth * 0.6
+		var ch := top + rng.randf_range(1.0, 2.2)
+		walls.box(Vector3(cx, top, cz), Vector3(cx + 0.7, ch, cz + 0.7))
+		trim.box(Vector3(cx - 0.08, ch - 0.15, cz - 0.08), Vector3(cx + 0.78, ch, cz + 0.78))
+		if near:
+			for k in rng.randi_range(1, 3):
+				var px := cx + 0.12 + k * 0.2
+				trim.box(Vector3(px, ch, cz + 0.25), Vector3(px + 0.14, ch + rng.randf_range(0.25, 0.45), cz + 0.39))
+	else:
+		# A parapet with coping.
+		if row == 1:
+			roofs.append([x, x + bw, top + 0.7, front - 0.3])
+		walls.box(Vector3(x, top, front - 0.35), Vector3(x + bw, top + 0.7, front))
+		trim.box(Vector3(x - 0.08, top + 0.7, front - 0.42), Vector3(x + bw + 0.08, top + 0.82, front + 0.08))
+	# Floors: a string course at each, then the windows.
+	var door_x := x + rng.randf_range(0.6, maxf(0.7, bw - 1.8)) if row == 0 else -1000.0
+	var floor_y := STREET + 1.6
+	while floor_y < top - 1.4:
+		if near and floor_y > STREET + 2.0:
+			trim.box(Vector3(x, floor_y - 0.55, front), Vector3(x + bw, floor_y - 0.38, front + 0.12))
+		var wx := x + 0.8
+		while wx < x + bw - 1.2:
+			if not (floor_y < STREET + 3.0 and absf(wx + 0.22 - door_x - 0.55) < 1.2):
+				_window(b, rng, wx, floor_y, front, 0.45, 0.85, near)
+			wx += 1.6
+		floor_y += 3.0
+	if row == 0:
+		# A door, recessed in its frame, a step before it.
+		b.wood.box(Vector3(door_x, STREET, front - 0.12), Vector3(door_x + 1.1, STREET + 2.3, front - 0.02))
+		trim.box(Vector3(door_x - 0.16, STREET, front - 0.12), Vector3(door_x, STREET + 2.5, front + 0.08))
+		trim.box(Vector3(door_x + 1.1, STREET, front - 0.12), Vector3(door_x + 1.26, STREET + 2.5, front + 0.08))
+		trim.box(Vector3(door_x - 0.22, STREET + 2.3, front - 0.12), Vector3(door_x + 1.32, STREET + 2.62, front + 0.1))
+		trim.box(Vector3(door_x - 0.25, STREET, front), Vector3(door_x + 1.35, STREET + 0.16, front + 0.45))
+		if rng.randf() < 0.55:
+			# A gutter along the eaves, its downpipe, and the water out of it.
+			var px := x + bw - 0.3 if door_x < x + bw - 2.0 else x + 0.3
+			var iron: Builder = b.iron
+			iron.box(Vector3(x, top - 0.34, front + 0.3), Vector3(x + bw, top - 0.2, front + 0.44))
+			iron.box(Vector3(px - 0.06, STREET + 0.45, front + 0.06), Vector3(px + 0.06, top - 0.3, front + 0.18))
+			iron.box(Vector3(px - 0.06, STREET + 0.33, front + 0.06), Vector3(px + 0.06, STREET + 0.47, front + 0.42))
+			for band in range(1, int(bh / 2.5)):
+				iron.box(Vector3(px - 0.08, STREET + band * 2.5, front), Vector3(px + 0.08, STREET + band * 2.5 + 0.06, front + 0.2))
+			_pours.append(Vector3(px, STREET + 0.38, front + 0.44))
+
+
+## A window at (x, y) on a front at z: lit (one in six), or dark glass;
+## nearer houses frame it and give it a sill.
+func _window(b: Dictionary, rng: RandomNumberGenerator, x: float, y: float, front: float, ww: float, wh: float, framed: bool) -> void:
+	var z := front + 0.05
+	if rng.randf() < 0.16:
+		# Lit; one in six of those flickers.
+		var col := Color(rng.randf_range(0.35, 0.9), rng.randf() if rng.randf() < 0.17 else 0.0, 0.0)
+		b.windows.quad(Vector3(x, y + wh, z), Vector3(x + ww, y + wh, z), Vector3(x + ww, y, z), Vector3(x, y, z), Vector3.BACK, col)
+	elif framed:
+		b.glass.quad(Vector3(x, y + wh, z), Vector3(x + ww, y + wh, z), Vector3(x + ww, y, z), Vector3(x, y, z), Vector3.BACK)
+	if framed:
+		b.trim.box(Vector3(x - 0.09, y - 0.08, front), Vector3(x + ww + 0.09, y + wh + 0.1, front + 0.04))
+		b.trim.box(Vector3(x - 0.14, y - 0.17, front), Vector3(x + ww + 0.14, y - 0.07, front + 0.16))
+		if rng.randf() < 0.3:
+			# A lintel.
+			b.trim.box(Vector3(x - 0.16, y + wh + 0.1, front), Vector3(x + ww + 0.16, y + wh + 0.26, front + 0.1))
+
+
+## Gas lamps along the street behind the district, every dozen metres or
+## so, a few gone out: no light of their own, only their glow in the fog.
+func _gas_lamps(rng: RandomNumberGenerator, w: float, mats: Dictionary) -> void:
+	var b := _city_builders()
+	var x := rng.randf_range(2.0, 8.0)
+	var lit := 0
+	while x < w:
+		var z := -5.2
+		b.iron.box(Vector3(x - 0.05, STREET, z - 0.05), Vector3(x + 0.05, STREET + 3.0, z + 0.05))
+		b.iron.box(Vector3(x - 0.1, STREET, z - 0.1), Vector3(x + 0.1, STREET + 0.35, z + 0.1))
+		b.iron.box(Vector3(x - 0.2, STREET + 3.0, z - 0.2), Vector3(x + 0.2, STREET + 3.06, z + 0.2))
+		b.iron.box(Vector3(x - 0.14, STREET + 3.5, z - 0.14), Vector3(x + 0.14, STREET + 3.58, z + 0.14))
+		if rng.randf() < 0.75:
+			b.windows.box(Vector3(x - 0.13, STREET + 3.06, z - 0.13), Vector3(x + 0.13, STREET + 3.5, z + 0.13), Color(1.0, rng.randf() if rng.randf() < 0.3 else 0.0, 0.0))
+			lit += 1
+		else:
+			b.glass.box(Vector3(x - 0.13, STREET + 3.06, z - 0.13), Vector3(x + 0.13, STREET + 3.5, z + 0.13))
+		x += rng.randf_range(10.0, 15.0)
+	_add_city_chunk(b, mats, false)
+	counts.gas_lamps = lit
+
+
+## A fresh set of builders for a city chunk. In the browser the small
+## things go in with the walls (one draw instead of four) and there's no
+## dark glass.
+func _city_builders() -> Dictionary:
+	var walls := Builder.new()
+	if _lite:
+		return {"walls": walls, "roofs": Builder.new(), "windows": Builder.new(), "trim": walls, "iron": walls, "wood": walls, "glass": Builder.new()}
+	return {"walls": walls, "roofs": Builder.new(), "windows": Builder.new(), "trim": Builder.new(), "iron": Builder.new(), "wood": Builder.new(), "glass": Builder.new()}
+
+
+func _add_city_chunk(b: Dictionary, mats: Dictionary, shadows: bool) -> void:
 	var cast := GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	for part in [[walls, wall_mat], [roofs, roof_mat]]:
-		var mi := _add_mesh(part[0].mesh(), part[1], _city)
+	var done := {}
+	for part in ["walls", "roofs", "trim", "iron", "wood", "glass", "windows"]:
+		var builder: Builder = b[part]
+		if done.has(builder) or (_lite and part == "glass"):
+			continue
+		done[builder] = true
+		var mi := _add_mesh(builder.mesh(), mats[part], _city)
 		if mi:
-			mi.cast_shadow = cast
-	var lit := _add_mesh(windows.mesh(), win_mat, _city)
-	if lit:
-		lit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.cast_shadow = cast if part in ["walls", "roofs", "trim", "iron"] else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+func _glass() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.015, 0.018, 0.024)
+	m.roughness = 0.05
+	m.metallic_specular = 0.8
+	return m
+
+
+func _iron() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.045, 0.045, 0.05)
+	m.metallic = 0.75
+	m.roughness = 0.32
+	return m
 
 
 # --- Lights ------------------------------------------------------------------
@@ -612,7 +755,7 @@ func _build_lights() -> void:
 		_lamps.append({"lamp": lamp, "light": light, "bulb": bulb})
 	_lantern = _omni(Color(1.0, 0.74, 0.46), 2.0, 5.0, true)
 	# A faint cold fill so you can always read the Lamplighter.
-	_fill = _omni(Color(0.7, 0.78, 1.0), 0.5, 4.0, false)
+	_fill = _omni(Color(0.7, 0.78, 1.0), 0.75, 4.5, false)
 	_fill.light_volumetric_fog_energy = 0.0
 	_pile = _omni(Color(1.0, 0.72, 0.4), 1.6, 3.5, false)
 	for it in world.pickups:
@@ -748,6 +891,187 @@ func _build_drips() -> void:
 	add_child(_drips)
 
 
+## Rain splashing where it lands: on the first stone, walkway or water
+## each column of the level offers the sky, and on the street behind. One
+## emitter; its points are spread through the level.
+func _build_splashes() -> void:
+	var lv = world.level
+	var w: int = lv.size_tiles.x
+	var h: int = lv.size_tiles.y
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 91
+	var points := PackedVector3Array()
+	for c in w:
+		for r in h:
+			if lv.back_wall.get_cell_source_id(Vector2i(c, r)) != -1:
+				break
+			var k: String = lv.kind_at(Vector2i(c, r))
+			if k == "":
+				continue
+			var y := -float(r) + 0.02
+			var z0 := -BACK + 0.2
+			var z1 := FRONT - 0.1
+			if k == "walkway":
+				z0 = -1.0
+				z1 = 0.7
+			elif k == "water":
+				y = -float(r) - 0.13
+			elif k == "veil":
+				break
+			for i in 3:
+				points.append(Vector3(c + rng.randf(), y, rng.randf_range(z0, z1)))
+			break
+		points.append(Vector3(c + rng.randf(), STREET + 0.02, rng.randf_range(-6.6, -3.4)))
+	counts.splashes = points.size()
+	_splashes = _point_emitter(points, mini(points.size() * 2, 700 if _lite else 1800), 0.32)
+	var pm: ParticleProcessMaterial = _splashes.process_material
+	pm.direction = Vector3(0, 1, 0)
+	pm.spread = 38.0
+	pm.initial_velocity_min = 0.8
+	pm.initial_velocity_max = 2.0
+	pm.gravity = Vector3(0, -9.8, 0)
+	pm.scale_min = 0.5
+	pm.scale_max = 1.2
+	var drop := QuadMesh.new()
+	drop.size = Vector2(0.014, 0.05)
+	drop.material = _rain_material()
+	_splashes.draw_pass_1 = drop
+
+
+## Water out of the drainpipes in the street behind, splashing.
+func _build_pours() -> void:
+	counts.pours = _pours.size()
+	if _pours.is_empty():
+		return
+	_pour = _point_emitter(_pours, _pours.size() * 30, 0.45)
+	var pm: ParticleProcessMaterial = _pour.process_material
+	pm.direction = Vector3(0, -0.3, 1.0)
+	pm.spread = 7.0
+	pm.initial_velocity_min = 0.7
+	pm.initial_velocity_max = 1.0
+	pm.gravity = Vector3(0, -9.8, 0)
+	var drop := QuadMesh.new()
+	drop.size = Vector2(0.035, 0.12)
+	var m := _rain_material()
+	m.albedo_color = Color(0.75, 0.8, 0.9, 0.5)
+	drop.material = m
+	_pour.draw_pass_1 = drop
+
+
+## Moths round the lit lamps (rebuilt as lamps are lit).
+func _build_moths() -> void:
+	var points := PackedVector3Array()
+	for e in _lamps:
+		if e.lamp.lit:
+			points.append((e.light as OmniLight3D).position)
+	_moth_count = points.size()
+	if _moths:
+		_moths.queue_free()
+		_moths = null
+	if points.is_empty():
+		return
+	_moths = _point_emitter(points, points.size() * 7, 3.0)
+	var pm: ParticleProcessMaterial = _moths.process_material
+	pm.direction = Vector3(0, 1, 0)
+	pm.spread = 180.0
+	pm.initial_velocity_min = 0.2
+	pm.initial_velocity_max = 0.6
+	pm.gravity = Vector3.ZERO
+	pm.damping_min = 0.5
+	pm.damping_max = 1.0
+	pm.turbulence_enabled = true
+	pm.turbulence_noise_strength = 3.0
+	pm.turbulence_noise_scale = 1.2
+	pm.turbulence_noise_speed_random = 0.5
+	pm.turbulence_influence_min = 0.3
+	pm.turbulence_influence_max = 0.6
+	_moths.transform_align = GPUParticles3D.TRANSFORM_ALIGN_Z_BILLBOARD
+	var speck := QuadMesh.new()
+	speck.size = Vector2(0.035, 0.035)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(1.0, 0.75, 0.45) * 1.6
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+	speck.material = m
+	_moths.draw_pass_1 = speck
+
+
+## A particle emitter whose particles start at the given points.
+func _point_emitter(points: PackedVector3Array, amount: int, lifetime: float) -> GPUParticles3D:
+	var img := Image.create_empty(points.size(), 1, false, Image.FORMAT_RGBF)
+	for i in points.size():
+		var p := points[i]
+		img.set_pixel(i, 0, Color(p.x, p.y, p.z))
+	var gp := GPUParticles3D.new()
+	gp.amount = maxi(1, amount)
+	gp.lifetime = lifetime
+	gp.preprocess = lifetime
+	gp.local_coords = false
+	var lo := points[0]
+	var hi := points[0]
+	for p in points:
+		lo = lo.min(p)
+		hi = hi.max(p)
+	gp.visibility_aabb = AABB(lo - Vector3(3, 3, 3), hi - lo + Vector3(6, 6, 6))
+	gp.transform_align = GPUParticles3D.TRANSFORM_ALIGN_Z_BILLBOARD_Y_TO_VELOCITY
+	gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_POINTS
+	pm.emission_point_texture = ImageTexture.create_from_image(img)
+	pm.emission_point_count = points.size()
+	gp.process_material = pm
+	gp.layers = MOVING
+	add_child(gp)
+	return gp
+
+
+## Mist lying low over every open street and walkway, thicker over the
+## canal, for the lamps to light (volumetric fog; not in the browser).
+func _build_mist() -> void:
+	counts.mist = 0
+	if _lite:
+		return
+	var lv = world.level
+	var w: int = lv.size_tiles.x
+	var h: int = lv.size_tiles.y
+	var floors := []
+	for c in w:
+		var y: float = lv.ground_below(c * PX + PX * 0.5, 0.0, h * PX)
+		var water := false
+		for r in h:
+			if lv.kind_at(Vector2i(c, r)) == "water":
+				water = true
+				break
+		floors.append([y, water])
+	var street := FogMaterial.new()
+	street.density = 0.09
+	street.albedo = Color(0.75, 0.8, 0.9)
+	street.height_falloff = 1.6
+	street.edge_fade = 0.6
+	var canal := FogMaterial.new()
+	canal.density = 0.16
+	canal.albedo = Color(0.7, 0.78, 0.85)
+	canal.height_falloff = 1.0
+	canal.edge_fade = 0.7
+	var c0 := 0
+	while c0 < w:
+		var c1 := c0 + 1
+		while c1 < w and floors[c1][0] == floors[c0][0] and floors[c1][1] == floors[c0][1]:
+			c1 += 1
+		var y: float = floors[c0][0]
+		if y >= 0.0:
+			var over_water: bool = floors[c0][1]
+			var tall := 2.2 if over_water else 1.3
+			var fog := FogVolume.new()
+			fog.shape = RenderingServer.FOG_VOLUME_SHAPE_BOX
+			fog.size = Vector3(c1 - c0 + 1.0, tall, BACK + FRONT + 3.0)
+			fog.position = Vector3((c0 + c1) * 0.5, -y / PX + tall * 0.5 - 0.2, (FRONT - BACK - 1.5) * 0.5)
+			fog.material = canal if over_water else street
+			add_child(fog)
+			counts.mist += 1
+		c0 = c1
+
+
 ## Indoors (wherever the level has a back wall) wet floors should reflect
 ## the room, not the open sky. Indoor cells are grouped into boxes (runs of
 ## rows with about the same span), each with an interior reflection probe,
@@ -858,6 +1182,12 @@ func _update_lights() -> void:
 	for e in _finds:
 		var light: OmniLight3D = e.light
 		light.visible = not e.find.taken
+	var lit := 0
+	for e in _lamps:
+		if e.lamp.lit:
+			lit += 1
+	if lit != _moth_count:
+		_build_moths()
 
 
 ## Switches a part of the stage on or off (the benchmark measures each).
@@ -875,9 +1205,9 @@ func set_feature(feature: String, on: bool) -> void:
 		"glow":
 			env.glow_enabled = on
 		"rain":
-			_rain.visible = on
-			if _drips:
-				_drips.visible = on
+			for p in [_rain, _drips, _splashes, _pour]:
+				if p:
+					p.visible = on
 		"city":
 			_city.visible = on
 		"plane":
