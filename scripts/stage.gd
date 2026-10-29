@@ -136,7 +136,9 @@ class Builder:
 			colors.append(col)
 		indices.append_array(PackedInt32Array([i, i + 1, i + 2]))
 
-	func box(lo: Vector3, hi: Vector3, col := Color.WHITE) -> void:
+	## A box. `slab` leaves out its back (-z) face, for things set against
+	## a wall, where that face is never seen.
+	func box(lo: Vector3, hi: Vector3, col := Color.WHITE, slab := false) -> void:
 		var x0 := lo.x
 		var y0 := lo.y
 		var z0 := lo.z
@@ -144,7 +146,8 @@ class Builder:
 		var y1 := hi.y
 		var z1 := hi.z
 		quad(Vector3(x0, y0, z1), Vector3(x1, y0, z1), Vector3(x1, y1, z1), Vector3(x0, y1, z1), Vector3.BACK, col)
-		quad(Vector3(x0, y0, z0), Vector3(x1, y0, z0), Vector3(x1, y1, z0), Vector3(x0, y1, z0), Vector3.FORWARD, col)
+		if not slab:
+			quad(Vector3(x0, y0, z0), Vector3(x1, y0, z0), Vector3(x1, y1, z0), Vector3(x0, y1, z0), Vector3.FORWARD, col)
 		quad(Vector3(x0, y1, z0), Vector3(x1, y1, z0), Vector3(x1, y1, z1), Vector3(x0, y1, z1), Vector3.UP, col)
 		quad(Vector3(x0, y0, z0), Vector3(x1, y0, z0), Vector3(x1, y0, z1), Vector3(x0, y0, z1), Vector3.DOWN, col)
 		quad(Vector3(x0, y0, z0), Vector3(x0, y1, z0), Vector3(x0, y1, z1), Vector3(x0, y0, z1), Vector3.LEFT, col)
@@ -521,10 +524,10 @@ func _dress_cell(lv, c: int, r: int, solid: Callable, stone: Builder, inner: Bui
 		if open_above:
 			var lip := 0.06 + _hash(c, r) * 0.07
 			var drop := 0.15 + _hash(c + 7, r) * 0.07
-			into.box(Vector3(x0 - 0.01, yt - drop, FRONT), Vector3(x1 + 0.01, yt - 0.004, FRONT + lip))
+			into.box(Vector3(x0 - 0.01, yt - drop, FRONT), Vector3(x1 + 0.01, yt - 0.004, FRONT + lip), Color.WHITE, true)
 		if c % 6 == 3 and solid.call(c, r + 1):
 			var top := yt - (0.24 if open_above else 0.0)
-			stone.box(Vector3(x0 + 0.15, yb, FRONT), Vector3(x0 + 0.8, top, FRONT + 0.1))
+			stone.box(Vector3(x0 + 0.15, yb, FRONT), Vector3(x0 + 0.8, top, FRONT + 0.1), Color.WHITE, true)
 		elif _hash(c * 3, r * 5) < 0.45:
 			# A stone or two sitting proud of the face, for the light to catch.
 			for i in 1 + int(_hash(c, r * 7) * 2.0):
@@ -532,7 +535,7 @@ func _dress_cell(lv, c: int, r: int, solid: Callable, stone: Builder, inner: Bui
 				var sy := yb + 0.08 + _hash(c, r + i * 17) * 0.62
 				var sw := 0.22 + _hash(c + i, r + 3) * 0.3
 				var sh := 0.12 + _hash(c + 5, r + i) * 0.12
-				stone.box(Vector3(sx, sy, FRONT), Vector3(minf(sx + sw, x1), minf(sy + sh, yt - 0.02), FRONT + 0.015 + _hash(c + i * 7, r + 11) * 0.035))
+				stone.box(Vector3(sx, sy, FRONT), Vector3(minf(sx + sw, x1), minf(sy + sh, yt - 0.02), FRONT + 0.015 + _hash(c + i * 7, r + 11) * 0.035), Color.WHITE, true)
 	if lv.back_wall.get_cell_source_id(Vector2i(c, r)) != -1 and k == "":
 		var zb := -BACK
 		if c % 4 == 0:
@@ -884,7 +887,7 @@ func _house(b: Dictionary, rng: RandomNumberGenerator, x: float, bw: float, bh: 
 	var floor_y := STREET + 1.6
 	while floor_y < top - 1.4:
 		if near and floor_y > STREET + 2.0:
-			trim.box(Vector3(x, floor_y - 0.55, front), Vector3(x + bw, floor_y - 0.38, front + 0.12))
+			trim.box(Vector3(x, floor_y - 0.55, front), Vector3(x + bw, floor_y - 0.38, front + 0.12), Color.WHITE, true)
 		var wx := x + 0.8
 		while wx < x + bw - 1.2:
 			if not (floor_y < STREET + 3.0 and absf(wx + 0.22 - door_x - 0.55) < 1.2):
@@ -967,8 +970,8 @@ func _window(b: Dictionary, rng: RandomNumberGenerator, x: float, y: float, fron
 			var px := x - 0.28 + (ww + 0.56) * i / 6.0
 			b.iron.box(Vector3(px - 0.012, y - 0.12, front + 0.5), Vector3(px + 0.012, y + 0.57, front + 0.53))
 	if framed:
-		b.trim.box(Vector3(x - 0.09, y - 0.08, front), Vector3(x + ww + 0.09, y + wh + 0.1, front + 0.04))
-		b.trim.box(Vector3(x - 0.14, y - 0.17, front), Vector3(x + ww + 0.14, y - 0.07, front + 0.16))
+		b.trim.box(Vector3(x - 0.09, y - 0.08, front), Vector3(x + ww + 0.09, y + wh + 0.1, front + 0.04), Color.WHITE, true)
+		b.trim.box(Vector3(x - 0.14, y - 0.17, front), Vector3(x + ww + 0.14, y - 0.07, front + 0.16), Color.WHITE, true)
 		if rng.randf() < 0.3:
 			# A lintel.
 			b.trim.box(Vector3(x - 0.16, y + wh + 0.1, front), Vector3(x + ww + 0.16, y + wh + 0.26, front + 0.1))
@@ -1112,6 +1115,8 @@ func _city_builders() -> Dictionary:
 func _add_city_chunk(b: Dictionary, mats: Dictionary, shadows: bool) -> void:
 	var cast := GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var done := {}
+	# (Only walls and roofs throw shadows: the trim and ironwork are too
+	# small for theirs to read, and each costs a shadow pass.)
 	for part in ["walls", "roofs", "trim", "iron", "wood", "glass", "windows"]:
 		var builder: Builder = b[part]
 		if done.has(builder) or (_lite and part == "glass"):
@@ -1119,7 +1124,7 @@ func _add_city_chunk(b: Dictionary, mats: Dictionary, shadows: bool) -> void:
 		done[builder] = true
 		var mi := _add_mesh(builder.mesh(), mats[part], _city)
 		if mi:
-			mi.cast_shadow = cast if part in ["walls", "roofs", "trim", "iron"] else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.cast_shadow = cast if part in ["walls", "roofs"] else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 func _glass() -> StandardMaterial3D:
