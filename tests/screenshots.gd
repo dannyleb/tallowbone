@@ -149,6 +149,7 @@ func _run() -> void:
 	if main.stage:
 		await _tp(lamp.position.x + 260.0, 640.0, 1.0)
 		await _frames(20)
+		world.fx.notice = {}
 		main.stage.storm.pose(1.0, 0.3)
 		await _shot("15-lightning")
 		main.stage.storm.pose(0.0, 2.5)
