@@ -113,12 +113,12 @@ void fragment() {
 
 	// Water on anything facing up: always in the joints, and where the
 	// ground dips (the noise), filling from the lowest parts up.
-	float flat = smoothstep(0.75, 0.95, n.y);
+	float flatness = smoothstep(0.75, 0.95, n.y);
 	float noise_top = texture(wet_noise, wpos.xz * 0.23).r;
 	float level = clamp((noise_top - (1.0 - puddles)) * 6.0, 0.0, 1.0);
 	float pool = smoothstep(level - 0.08, level, 1.0 - height) * step(0.01, level);
 	float joints = smoothstep(0.34, 0.22, height) * wetness;
-	float puddle = max(pool, joints) * flat;
+	float puddle = max(pool, joints) * flatness;
 	// Running water down the walls: thin streaks that slide downward.
 	float across = texture(wet_noise, vec2(wpos.x * 1.7 + wpos.z * 1.7, 0.37)).r;
 	float flow = texture(wet_noise, vec2(wpos.x * 3.1 + wpos.z * 3.1, wpos.y * 0.35 + TIME * 0.18)).r;

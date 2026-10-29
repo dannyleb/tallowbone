@@ -313,6 +313,11 @@ func _environment() -> void:
 	env.ssao_enabled = true
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 1.6
+	# Light bouncing off what it hits (lamplight warming the walls round a
+	# lamp, the floor under the lantern): desktop only.
+	env.ssil_enabled = not _lite
+	env.ssil_radius = 4.0
+	env.ssil_intensity = 1.4
 	env.glow_enabled = true
 	env.glow_intensity = 0.9
 	env.glow_strength = 1.0
@@ -503,7 +508,24 @@ func _dress_cell(lv, c: int, r: int, solid: Callable, stone: Builder, inner: Bui
 		if c % 6 == 3 and solid.call(c, r + 1):
 			var top := yt - (0.24 if open_above else 0.0)
 			stone.box(Vector3(x0 + 0.15, yb, FRONT), Vector3(x0 + 0.8, top, FRONT + 0.1))
-	elif k == "walkway":
+	if lv.back_wall.get_cell_source_id(Vector2i(c, r)) != -1 and k == "":
+		var zb := -BACK
+		if c % 4 == 0:
+			inner.box(Vector3(x0 + 0.1, yb - 0.02, zb), Vector3(x0 + 0.65, yt + 0.02, zb + 0.28))
+		# Chains hanging from the vault here and there.
+		if solid.call(c, r - 1) and c % 7 == 2:
+			var length := 0.8 + _hash(c, r) * 1.2
+			var links := int(length / 0.09)
+			for i in links:
+				var y := yt - i * 0.09
+				var wide := i % 2 == 0
+				iron.box(Vector3(x0 + 0.5 - (0.03 if wide else 0.008), y - 0.1, -2.3 - (0.008 if wide else 0.03)), Vector3(x0 + 0.5 + (0.03 if wide else 0.008), y, -2.3 + (0.008 if wide else 0.03)))
+		# An arched rib springing from the pilasters, where the room's ceiling is.
+		if solid.call(c, r - 1):
+			var k4 := c % 4
+			var drop := [0.55, 0.22, 0.08, 0.22][k4]
+			inner.box(Vector3(x0, yt - drop - 0.18, zb), Vector3(x1, yt, zb + 0.22))
+	if k == "walkway":
 		var z := -1.0
 		for i in 2:
 			var px := x0 + 0.25 + i * 0.5
@@ -600,6 +622,9 @@ func _build_city() -> void:
 		_add_city_chunk(b, mats, shadows)
 		row_index += 1
 	_gas_lamps(rng, w, mats)
+	_far_spires(rng, w, mats)
+	if not _lite:
+		_street_clutter(rng, w, mats)
 	# The church, a landmark over the plaza: a tower and its spire.
 	var church := _city_builders()
 	var cx := 128.0
@@ -837,6 +862,109 @@ func _gas_lamps(rng: RandomNumberGenerator, w: float, mats: Dictionary) -> void:
 		x += rng.randf_range(10.0, 15.0)
 	_add_city_chunk(b, mats, false)
 	counts.gas_lamps = lit
+
+
+## What's left in the street behind the district: barrels, crates, a
+## handcart on its side, sacks against the walls. Desktop only.
+func _street_clutter(rng: RandomNumberGenerator, w: float, mats: Dictionary) -> void:
+	var b := _city_builders()
+	var wood: Builder = b.wood
+	var iron: Builder = b.iron
+	var x := rng.randf_range(1.0, 5.0)
+	var placed := 0
+	while x < w:
+		var z := rng.randf_range(-6.4, -4.0)
+		match rng.randi() % 4:
+			0:
+				for i in rng.randi_range(1, 3):
+					_barrel(wood, iron, Vector3(x + i * 0.65, STREET, z + rng.randf_range(-0.3, 0.3)), rng.randf_range(0.26, 0.32))
+			1:
+				var s := rng.randf_range(0.5, 0.75)
+				wood.box(Vector3(x, STREET, z - s), Vector3(x + s, STREET + s, z))
+				if rng.randf() < 0.6:
+					var t := s * 0.75
+					wood.box(Vector3(x + 0.1, STREET + s, z - t - 0.05), Vector3(x + 0.1 + t, STREET + s + t, z - 0.05))
+			2:
+				# A handcart: its bed, two spoked wheels, the shafts down.
+				wood.box(Vector3(x, STREET + 0.45, z - 0.7), Vector3(x + 1.4, STREET + 0.6, z))
+				wood.box(Vector3(x, STREET + 0.6, z - 0.06), Vector3(x + 1.4, STREET + 0.9, z))
+				for wz in [z + 0.04, z - 0.78]:
+					_wheel(wood, Vector3(x + 0.7, STREET + 0.45, wz), 0.45)
+				wood.box(Vector3(x + 1.4, STREET + 0.05, z - 0.62), Vector3(x + 2.3, STREET + 0.1, z - 0.55))
+				wood.box(Vector3(x + 1.4, STREET + 0.05, z - 0.15), Vector3(x + 2.3, STREET + 0.1, z - 0.08))
+			3:
+				for i in rng.randi_range(2, 4):
+					var sx := x + i * 0.45
+					wood.box(Vector3(sx, STREET, z - 0.35), Vector3(sx + 0.42, STREET + rng.randf_range(0.35, 0.5), z), Color(0.75, 0.68, 0.55))
+		placed += 1
+		x += rng.randf_range(4.0, 11.0)
+	_add_city_chunk(b, mats, false)
+	counts.clutter = placed
+
+
+## A barrel standing at `base`: eight staves round, iron hoops.
+func _barrel(wood: Builder, iron: Builder, base: Vector3, radius: float) -> void:
+	var height := radius * 2.9
+	for i in 8:
+		var a0 := TAU * i / 8.0
+		var a1 := TAU * (i + 1) / 8.0
+		var n := Vector3(cos((a0 + a1) * 0.5), 0, sin((a0 + a1) * 0.5))
+		var p0 := Vector3(cos(a0), 0, sin(a0))
+		var p1 := Vector3(cos(a1), 0, sin(a1))
+		for k in 2:
+			var y0 := height * 0.5 * k
+			var r0 := radius * (0.88 if k == 0 else 1.0)
+			var r1 := radius * (1.0 if k == 0 else 0.88)
+			wood.quad(base + p0 * r0 + Vector3(0, y0, 0), base + p1 * r0 + Vector3(0, y0, 0), base + p1 * r1 + Vector3(0, y0 + height * 0.5, 0), base + p0 * r1 + Vector3(0, y0 + height * 0.5, 0), n)
+		wood.tri(base + Vector3(0, height, 0), base + p0 * radius * 0.88 + Vector3(0, height, 0), base + p1 * radius * 0.88 + Vector3(0, height, 0), Vector3.UP)
+	for hy in [0.15, 0.85]:
+		var y := base.y + height * hy
+		var r := radius * (0.93 if hy < 0.5 else 0.93) + 0.012
+		iron.box(Vector3(base.x - r, y, base.z - r), Vector3(base.x + r, y + 0.04, base.z + r))
+
+
+## A cart wheel facing you at `centre`: rim, hub and six spokes.
+func _wheel(wood: Builder, centre: Vector3, radius: float) -> void:
+	for i in 12:
+		var a0 := TAU * i / 12.0
+		var a1 := TAU * (i + 1) / 12.0
+		var o0 := Vector3(cos(a0), sin(a0), 0) * radius
+		var o1 := Vector3(cos(a1), sin(a1), 0) * radius
+		var i0 := o0 * 0.84
+		var i1 := o1 * 0.84
+		wood.quad(centre + o0, centre + o1, centre + i1, centre + i0, Vector3.BACK)
+	for i in 6:
+		var a := TAU * i / 6.0
+		var d := Vector3(cos(a), sin(a), 0)
+		var side := Vector3(-d.y, d.x, 0) * 0.025
+		wood.quad(centre + side, centre - side, centre - side + d * radius * 0.85, centre + side + d * radius * 0.85, Vector3.BACK)
+	wood.box(centre - Vector3(0.07, 0.07, 0.06), centre + Vector3(0.07, 0.07, 0.06))
+
+
+## Far beyond the houses, deep in the fog: towers and spires of the rest
+## of the city, only pale shapes, so it reads as going on and on.
+func _far_spires(rng: RandomNumberGenerator, w: float, mats: Dictionary) -> void:
+	var b := _city_builders()
+	var x := -60.0
+	while x < w + 60.0:
+		var z := rng.randf_range(-75.0, -62.0)
+		var s := rng.randf_range(4.0, 7.0)
+		var h := rng.randf_range(18.0, 34.0)
+		b.walls.box(Vector3(x, STREET - 2.0, z - s), Vector3(x + s, STREET + h, z))
+		var apex := Vector3(x + s * 0.5, STREET + h + s * rng.randf_range(1.8, 3.2), z - s * 0.5)
+		var c := [Vector3(x, STREET + h, z), Vector3(x + s, STREET + h, z), Vector3(x + s, STREET + h, z - s), Vector3(x, STREET + h, z - s)]
+		for i in 4:
+			var a: Vector3 = c[i]
+			var d: Vector3 = c[(i + 1) % 4]
+			var n := (d - a).cross(apex - a).normalized()
+			if n.dot((a + d) * 0.5 - Vector3(apex.x, a.y, apex.z)) < 0.0:
+				n = -n
+			b.roofs.tri(a, d, apex, n)
+		if rng.randf() < 0.4:
+			var wy := STREET + h * rng.randf_range(0.5, 0.85)
+			b.windows.quad(Vector3(x + s * 0.4, wy + 1.2, z + 0.05), Vector3(x + s * 0.6, wy + 1.2, z + 0.05), Vector3(x + s * 0.6, wy, z + 0.05), Vector3(x + s * 0.4, wy, z + 0.05), Vector3.BACK, Color(0.6, 0.0, 0.0))
+		x += rng.randf_range(14.0, 30.0)
+	_add_city_chunk(b, mats, false)
 
 
 ## A fresh set of builders for a city chunk. In the browser the small
