@@ -10,6 +10,7 @@ const Keys = preload("res://scripts/keys.gd")
 const MapView = preload("res://scripts/map_view.gd")
 const Bench = preload("res://scripts/bench.gd")
 const Stage = preload("res://scripts/stage.gd")
+const Controls = preload("res://scripts/controls.gd")
 
 const INK := Color("07080d")
 const BONE := Color("e8dfcf")
@@ -52,6 +53,12 @@ var render_cap := RENDER_MAX
 var fixed_scale := 0.0
 var _begin: Button
 var _resume: Button
+## The Controls panel, the screen it was opened from, the key buttons by
+## action, and the action waiting for its new key ("" when none is).
+var controls_screen: Control
+var _controls_from: Control
+var _bind_buttons := {}
+var _rebinding := ""
 var _map: Control
 var _keys: Label
 var _debug_allowed := false
@@ -71,6 +78,7 @@ var _settle := SETTLE
 
 
 func _ready() -> void:
+	Controls.load_saved()
 	$HudLayer/Hud.world = world
 	$View/Game/BackdropLayer/Backdrop.world = world
 	view.texture = game.get_texture()
@@ -93,9 +101,12 @@ func _ready() -> void:
 	world.show_hitboxes = web_debug
 	title = _build_title()
 	pause_screen = _build_pause()
+	controls_screen = _build_controls()
 	$UiLayer.add_child(title)
 	$UiLayer.add_child(pause_screen)
+	$UiLayer.add_child(controls_screen)
 	pause_screen.visible = false
+	controls_screen.visible = false
 	_begin.grab_focus()
 	if query.contains("perf"):
 		toggle_perf()
@@ -205,14 +216,35 @@ func set_paused(on: bool) -> void:
 		_resume.grab_focus()
 
 
+## While a binding waits for its key, the next key press is it (Esc
+## cancels), before anything else sees it.
+func _input(event: InputEvent) -> void:
+	if _rebinding == "" or not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	get_viewport().set_input_as_handled()
+	var key := event as InputEventKey
+	if key.keycode != KEY_ESCAPE:
+		Controls.rebind(_rebinding, int(key.physical_keycode if key.physical_keycode != KEY_NONE else key.keycode))
+		Controls.save()
+	var done := _rebinding
+	_rebinding = ""
+	_refresh_bindings()
+	(_bind_buttons[done] as Button).grab_focus()
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if controls_screen.visible:
+		if event.is_action_pressed("pause") or event.is_action_pressed("back"):
+			close_controls()
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("toggle_hitboxes") and _debug_allowed:
 		world.show_hitboxes = not world.show_hitboxes
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
 		toggle_perf()
 		get_viewport().set_input_as_handled()
 	if not world.running:
-		if event.is_action_pressed("confirm"):
+		if event.is_action_pressed("confirm") and title.visible:
 			start_game()
 			get_viewport().set_input_as_handled()
 		return
@@ -314,13 +346,20 @@ func _build_title() -> Control:
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 18)
 	columns.alignment = BoxContainer.ALIGNMENT_CENTER
-	columns.add_child(_controls("Mouse & keyboard", KEYBOARD, "No mouse? J strikes."))
+	columns.add_child(_controls("Mouse & keyboard", KEYBOARD, "Trackpad? J strikes; later, K or Ctrl-click fires."))
 	columns.add_child(_controls("Gamepad", GAMEPAD, ""))
 	box.add_child(columns)
 
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 10)
 	_begin = _button("Begin the night")
 	_begin.pressed.connect(start_game)
-	box.add_child(_begin)
+	buttons.add_child(_begin)
+	var keys_button := _button("Controls")
+	keys_button.pressed.connect(func(): open_controls(title))
+	buttons.add_child(keys_button)
+	box.add_child(buttons)
 	box.add_child(_label("Everything else you'll find along the way.", FELL_ITALIC, 9, BONE_DIM))
 	box.add_child(_label("Greybox: shapes stand in for the art.", FELL, 7, Color(0.91, 0.87, 0.81, 0.45)))
 	return parts[0]
@@ -366,10 +405,91 @@ func _build_pause() -> Control:
 	_keys = _label("", FELL, 8, BONE_DIM)
 	_keys.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_keys)
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 10)
 	_resume = _button("Resume")
 	_resume.pressed.connect(func(): set_paused(false))
-	box.add_child(_resume)
+	buttons.add_child(_resume)
+	var keys_button := _button("Controls")
+	keys_button.pressed.connect(func(): open_controls(pause_screen))
+	buttons.add_child(keys_button)
+	box.add_child(buttons)
 	return parts[0]
+
+
+## The Controls panel: every rebindable action with its key; pick one, press
+## the new key.
+func _build_controls() -> Control:
+	var parts := _card(330.0)
+	var box: VBoxContainer = parts[1]
+	box.add_child(_label("Controls", FELL_SC, 18, BONE))
+	box.add_child(_label("Choose an action, then press its new key.  Esc cancels.", FELL_ITALIC, 8, BONE_DIM))
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("v_separation", 2)
+	for entry in Controls.REBINDABLE:
+		var action: String = entry[0]
+		grid.add_child(_label(entry[1], FELL, 9, BONE, HORIZONTAL_ALIGNMENT_RIGHT))
+		var b := _button("")
+		b.add_theme_font_size_override("font_size", 9)
+		b.custom_minimum_size = Vector2(110, 0)
+		b.size_flags_horizontal = Control.SIZE_FILL
+		b.pressed.connect(func(): _start_rebind(action))
+		_bind_buttons[action] = b
+		grid.add_child(b)
+	var center := CenterContainer.new()
+	center.add_child(grid)
+	box.add_child(center)
+	box.add_child(_label("Mouse: left-click strikes; right-click or Ctrl-click fires the pistol.", FELL_ITALIC, 8, BONE_DIM))
+	box.add_child(_label("Gamepad: as shown on the title; it doesn't change.", FELL_ITALIC, 8, BONE_DIM))
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 10)
+	var reset := _button("Reset to defaults")
+	reset.pressed.connect(func():
+		Controls.reset()
+		_refresh_bindings())
+	row.add_child(reset)
+	var back := _button("Back")
+	back.pressed.connect(close_controls)
+	row.add_child(back)
+	box.add_child(row)
+	return parts[0]
+
+
+## Shows the Controls panel in place of `from` (the title or the pause card).
+func open_controls(from: Control) -> void:
+	_controls_from = from
+	from.visible = false
+	controls_screen.visible = true
+	_refresh_bindings()
+	(_bind_buttons[Controls.REBINDABLE[0][0]] as Button).grab_focus()
+
+
+func close_controls() -> void:
+	_rebinding = ""
+	controls_screen.visible = false
+	if _controls_from:
+		_controls_from.visible = true
+	if _controls_from == title:
+		_begin.grab_focus()
+	else:
+		_resume.grab_focus()
+
+
+func _start_rebind(action: String) -> void:
+	_rebinding = action
+	(_bind_buttons[action] as Button).text = "Press a key..."
+
+
+func _refresh_bindings() -> void:
+	for action in _bind_buttons:
+		var k := Controls.keys(action)
+		(_bind_buttons[action] as Button).text = Controls.key_name(k[0]) if not k.is_empty() else "(none)"
+	if _keys:
+		_keys.text = _keys_text()
 
 
 ## The keys you have now, for the pause screen.

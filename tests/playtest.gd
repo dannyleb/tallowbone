@@ -7,6 +7,8 @@ extends SceneTree
 const Combat = preload("res://scripts/combat.gd")
 const T = preload("res://scripts/tuning.gd")
 const Art = preload("res://scripts/art.gd")
+const Controls = preload("res://scripts/controls.gd")
+const Keys = preload("res://scripts/keys.gd")
 
 var main
 var world
@@ -49,6 +51,7 @@ func _run() -> void:
 	await _scenario("_canal", _canal)
 	await _scenario("_canal_jumps", _canal_jumps)
 	await _scenario("_finds", _finds)
+	await _scenario("_keyboard", _keyboard)
 	await _scenario("_lamps", _lamps)
 	await _scenario("_melee", _melee)
 	await _scenario("_parry_and_visceral", _parry_and_visceral)
@@ -383,6 +386,56 @@ func _finds() -> void:
 		await _frames(3)
 		_check("%s gives %s" % [pair[0], pair[1]], it.taken and player.has(pair[1]))
 	_fresh()
+
+
+## Trackpads: J strikes, K or Ctrl-click fires; keys can be rebound, saved
+## and reset; prompts name whatever is bound.
+func _keyboard() -> void:
+	_check("prompts name the mouse button and the key", Keys.label("attack") == "Left-click / J" and Keys.label("shoot") == "Right-click / K",
+		"%s | %s" % [Keys.label("attack"), Keys.label("shoot")])
+	await _tp(1600.0, 640.0, 1.0, 99.0)
+	player.bullets = player.max_bullets
+	var bullets: int = player.bullets
+	_key_event(KEY_CTRL, true)
+	_click(true)
+	var fired: bool = await _wait_until(func(): return player.state == "shoot", 10)
+	var struck: bool = player.state == "attack"
+	_click(false)
+	_key_event(KEY_CTRL, false)
+	await _frames(30)
+	_check("Ctrl-click fires the pistol, and doesn't strike", fired and not struck and player.bullets == bullets - 1,
+		"fired %s struck %s bullets %d of %d" % [fired, struck, player.bullets, bullets])
+
+	Controls.rebind("attack", KEY_Z)
+	var attack_keys := Controls.keys("attack")
+	_check("rebinding strike to Z replaces J, and prompts say Z", attack_keys.size() == 1 and attack_keys[0] == KEY_Z and Keys.label("attack") == "Left-click / Z",
+		"%s %s" % [attack_keys, Keys.label("attack")])
+	Controls.rebind("attack", KEY_K)
+	var shoot_keys := Controls.keys("shoot")
+	_check("taking another action's key swaps them", shoot_keys.size() == 1 and shoot_keys[0] == KEY_Z, str(shoot_keys))
+	Controls.save()
+	InputMap.load_from_project_settings()
+	Controls.load_saved()
+	_check("bindings are saved and come back", Controls.keys("attack")[0] == KEY_K and Controls.keys("shoot")[0] == KEY_Z)
+	Controls.reset()
+	_check("reset brings back J and K, and forgets the saved ones",
+		Controls.keys("attack").has(KEY_J) and Controls.keys("shoot").has(KEY_K) and not FileAccess.file_exists(Controls.FILE))
+	_fresh()
+
+
+func _key_event(key: Key, down: bool) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = key
+	ev.physical_keycode = key
+	ev.pressed = down
+	Input.parse_input_event(ev)
+
+
+func _click(down: bool) -> void:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = down
+	Input.parse_input_event(ev)
 
 
 func _quickstep() -> void:

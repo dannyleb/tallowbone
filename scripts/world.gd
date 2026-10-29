@@ -12,6 +12,7 @@ const Combat = preload("res://scripts/combat.gd")
 const Tallow = preload("res://scripts/tallow.gd")
 const Sfx = preload("res://scripts/sfx.gd")
 const Keys = preload("res://scripts/keys.gd")
+const Controls = preload("res://scripts/controls.gd")
 
 const ACTIONS := [
 	"move_left", "move_right", "move_up", "move_down", "jump", "attack", "transform", "shoot",
@@ -133,9 +134,17 @@ func cam_top_left() -> Vector2:
 func read_input() -> Dictionary:
 	var held := {}
 	var pressed := {}
+	# Ctrl-click is the pistol (trackpads without right-click), not a strike.
+	var ctrl_click := Controls.ctrl_click()
 	for a in ACTIONS:
 		var now := Input.is_action_pressed(a)
-		var edge: bool = Input.is_action_just_pressed(a) or (now and not _prev.get(a, false))
+		var just := Input.is_action_just_pressed(a)
+		if ctrl_click and a == "attack" and not Controls.key_held("attack"):
+			now = false
+			just = false
+		elif ctrl_click and a == "shoot":
+			now = true
+		var edge: bool = just or (now and not _prev.get(a, false))
 		pressed[a] = edge and not _counted.get(a, false)
 		_counted[a] = now and (pressed[a] or _counted.get(a, false))
 		held[a] = now

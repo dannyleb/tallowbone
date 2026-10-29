@@ -137,6 +137,9 @@ func _run() -> void:
 	main.set_paused(true)
 	await _frames(4)
 	await _shot("13-map")
+	main.open_controls(main.pause_screen)
+	await _shot("14-controls")
+	main.close_controls()
 	main.set_paused(false)
 
 	print("screenshots written to ", out_dir)
