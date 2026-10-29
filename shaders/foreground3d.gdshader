@@ -1,6 +1,6 @@
-// Foreground silhouettes between you and the play (pillars of an arcade,
-// chains hanging from somewhere overhead), close to the camera and out of
-// focus. Where one passes in front of the Lamplighter it thins away, a
+// Foreground silhouettes between you and the play (chains hanging from
+// somewhere overhead, hooks and gibbet cages on them), close to the camera
+// and out of focus. Where one passes in front of the Lamplighter it thins away, a
 // dither rather than see-through, so it keeps writing depth and the depth
 // of field still blurs what's left of it.
 shader_type spatial;

@@ -20,6 +20,9 @@ extends Node3D
 const Figure = preload("res://scripts/figure.gd")
 const Storm = preload("res://scripts/storm.gd")
 const Gate = preload("res://scripts/props/gate.gd")
+
+## Every material has been drawn once (the shaders are compiled).
+signal warmed
 const FOREGROUND := preload("res://shaders/foreground3d.gdshader")
 const STONE := preload("res://shaders/stone3d.gdshader")
 const WATER := preload("res://shaders/water3d.gdshader")
@@ -451,7 +454,7 @@ func _environment() -> void:
 	# Thin enough not to haze the play space, thick enough that lamps and
 	# the moon throw shafts through it.
 	env.volumetric_fog_enabled = true
-	env.volumetric_fog_density = 0.012
+	env.volumetric_fog_density = 0.017
 	env.volumetric_fog_albedo = Color(0.7, 0.75, 0.85)
 	env.volumetric_fog_length = 48.0
 	env.volumetric_fog_ambient_inject = 0.15
@@ -1461,7 +1464,7 @@ func _omni(color: Color, energy: float, radius: float, shadow: bool) -> OmniLigh
 	l.omni_attenuation = 1.4
 	l.shadow_enabled = shadow and not _lite
 	l.light_size = 0.12
-	l.light_volumetric_fog_energy = 2.5
+	l.light_volumetric_fog_energy = 3.5
 	# Lights well off screen fade out, and their shadows sooner: every
 	# shadowed light re-renders its shadow whenever the plane moves.
 	l.distance_fade_enabled = true
@@ -1645,11 +1648,12 @@ func _build_gates() -> void:
 
 
 ## Between you and the play, close to the camera and out of focus: now and
-## then a pillar of an arcade you're looking through, or a chain hanging
-## from something overhead. They slide past faster than the play (they're
-## nearer), which is most of what makes the view feel deep. They clear
-## round the Lamplighter (shaders/foreground3d.gdshader). Desktop only:
-## the browser's renderer has no depth of field to soften them.
+## then a chain hanging from something overhead, a meat hook or a gibbet
+## cage on the end of it. They slide past faster than the play (they're
+## nearer), which is most of what makes the view feel deep, and they keep
+## to the top of the frame. They clear round the Lamplighter
+## (shaders/foreground3d.gdshader). Desktop only: the browser's renderer
+## has no depth of field to soften them.
 func _build_foreground() -> void:
 	counts.foreground = 0
 	if _lite:
@@ -1661,7 +1665,6 @@ func _build_foreground() -> void:
 	rng.seed = 77
 	var b := Builder.new()
 	var x := rng.randf_range(10.0, 18.0)
-	var pillar := true
 	while x < w - 8.0:
 		# The ground here: the first stone from the top.
 		var ground := -float(h)
@@ -1669,34 +1672,34 @@ func _build_foreground() -> void:
 			if lv.kind_at(Vector2i(int(x), r)) == "stone":
 				ground = -float(r)
 				break
-		if pillar:
-			var z := rng.randf_range(5.0, 6.2)
-			var foot := Vector3(x, ground - 14.0, z)
-			b.frustum(foot, 0.34, 0.34, 13.0, 4)
-			b.frustum(foot + Vector3(0, 13.0, 0), 0.44, 0.4, 0.3, 4)
-			b.frustum(foot + Vector3(0, 13.3, 0), 0.28, 0.28, 6.0, 8)
-			b.frustum(foot + Vector3(0, 19.3, 0), 0.34, 0.44, 0.35, 8)
-			b.frustum(foot + Vector3(0, 19.65, 0), 0.5, 0.5, 12.0, 4)
+		var z := rng.randf_range(5.2, 6.4)
+		var bottom := ground + rng.randf_range(4.3, 5.6)
+		var y := ground + 14.0
+		var flip := false
+		while y > bottom:
+			if flip:
+				b.box(Vector3(x - 0.012, y - 0.17, z - 0.05), Vector3(x + 0.012, y, z + 0.05))
+			else:
+				b.box(Vector3(x - 0.05, y - 0.17, z - 0.012), Vector3(x + 0.05, y, z + 0.012))
+			flip = not flip
+			y -= 0.13
+		if rng.randf() < 0.4:
+			# A gibbet cage: a ring top and bottom, bars between, a cap.
+			var top := Vector3(x, y - 0.1, z)
+			b.frustum(top + Vector3(0, -0.12, 0), 0.06, 0.06, 0.12, 6)
+			b.frustum(top + Vector3(0, -0.2, 0), 0.38, 0.06, 0.12, 8)
+			for i in 8:
+				var a := TAU * i / 8.0
+				var o := Vector3(cos(a), 0, sin(a)) * 0.36
+				b.strut(top + Vector3(0, -0.2, 0) + o, top + Vector3(0, -1.25, 0) + o * 0.92, 0.025)
+			b.frustum(top + Vector3(0, -1.3, 0), 0.36, 0.36, 0.06, 8)
 		else:
-			var z := rng.randf_range(5.2, 6.4)
-			var bottom := ground + rng.randf_range(4.0, 5.5)
-			var y := ground + 14.0
-			var flip := false
-			while y > bottom:
-				if flip:
-					b.box(Vector3(x - 0.012, y - 0.17, z - 0.05), Vector3(x + 0.012, y, z + 0.05))
-				else:
-					b.box(Vector3(x - 0.05, y - 0.17, z - 0.012), Vector3(x + 0.05, y, z + 0.012))
-				flip = not flip
-				y -= 0.13
-			# A meat hook at the end.
+			# A meat hook.
 			b.strut(Vector3(x, y, z), Vector3(x, y - 0.35, z), 0.04)
 			b.strut(Vector3(x, y - 0.35, z), Vector3(x + 0.16, y - 0.3, z), 0.035)
 			b.strut(Vector3(x + 0.16, y - 0.3, z), Vector3(x + 0.18, y - 0.14, z), 0.03)
 		counts.foreground += 1
-		# Chains more often than pillars: a pillar hides more.
-		pillar = rng.randf() < 0.35
-		x += rng.randf_range(16.0, 26.0)
+		x += rng.randf_range(12.0, 22.0)
 	_fore_mat = ShaderMaterial.new()
 	_fore_mat.shader = FOREGROUND
 	_fore = _add_mesh(b.mesh(), _fore_mat)
@@ -2216,7 +2219,9 @@ func _prewarm() -> void:
 		copy.position = Vector3((seen.size() % 8) * 0.03 - 0.1, (seen.size() / 8) * 0.03 - 0.1, -1.0) - box.get_center() * copy.scale.x
 		holder.add_child(copy)
 	counts.prewarmed = seen.size()
-	get_tree().create_timer(0.5).timeout.connect(holder.queue_free)
+	get_tree().create_timer(0.5).timeout.connect(func():
+		holder.queue_free()
+		warmed.emit())
 
 
 # --- Every frame -------------------------------------------------------------

@@ -308,8 +308,9 @@ The Metroidvania-native mechanic.
   figures are drawn on the plane, smoothed (multisampled). Behind the
   play, coffins stand against the walls or lie on the stones, with
   barrels, stacked crates and a cartwheel leaning by a door; in front of
-  it (desktop), now and then a pillar or a hanging chain passes close to
-  the camera, out of focus, thinning away where it crosses you. The swing's
+  it (desktop), now and then a chain hangs close to the camera, a meat
+  hook or a gibbet cage on its end, out of focus, sliding past faster
+  than the play and thinning away where it crosses you. The swing's
   trail is a fading blur, not
   a painted band; the health bar sits in an iron frame. Blood stays on
   the stone where things are struck and the rain washes it away over
@@ -415,7 +416,10 @@ The Metroidvania-native mechanic.
   over 20 ms drop the render scale a step (2x, 1.5x, 1x); still slow at
   the smallest, the **quality** steps down (High, Balanced, Fast; also in
   the pause menu, saved). Every material is drawn once at load so shaders
-  compile then, not as a hitch at first sight. Firefox pays far
+  compile then, behind the title, not as a hitch at first sight; the
+  title's Begin waits for it ("Lighting the lamps…", the first time on a
+  machine). The far rows of the city use a cheaper stone (no running
+  water or puddles), bounce light runs at low quality. Firefox pays far
   more per draw call than Chrome, so the backdrop's skyline is painted once
   into textures and scrolled, rain is one batch of lines, and pickups glow
   with drawn halos instead of lights. Physics catches up at most 3 ticks a

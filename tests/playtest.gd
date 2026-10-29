@@ -199,10 +199,13 @@ func _stage() -> void:
 	_check("rain splashes where it lands, drainpipes pour, gas lamps burn in the street behind",
 		st.counts.splashes > 150 and st.counts.pours >= 3 and st.counts.gas_lamps >= 4, str(st.counts))
 	_check("mist lies over the streets and the canal", st.counts.mist >= 4, str(st.counts))
-	_check("pillars and chains stand out of focus between you and the play", st.counts.foreground >= 4, str(st.counts))
+	_check("chains, hooks and cages hang out of focus between you and the play", st.counts.foreground >= 4, str(st.counts))
 	_check("coffins, barrels and crates are left about the streets and rooms", st.counts.clutter_level >= 6, str(st.counts))
 	_check("watchers have rooftops to stand on", st.roofs.size() > 10, str(st.roofs.size()))
 	_check("every material is drawn once at load (no first-sight hitches)", st.counts.prewarmed >= 12, str(st.counts.prewarmed))
+	if main._begin.disabled:
+		await st.warmed
+	_check("Begin opens on the title once they're compiled", not main._begin.disabled and main._begin.text == "Begin the night", main._begin.text)
 	st.set_quality(2)
 	var fast: bool = not st.env.volumetric_fog_enabled and not st.env.ssao_enabled and not st.env.ssr_enabled
 	st.set_quality(0)

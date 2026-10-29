@@ -133,6 +133,15 @@ func _ready() -> void:
 	pause_screen.visible = false
 	controls_screen.visible = false
 	_begin.grab_focus()
+	if stage:
+		# The first time on a machine the shaders compile behind the title
+		# (the stage's prewarm); start before that and it's a hitch in play.
+		_begin.disabled = true
+		_begin.text = "Lighting the lamps…"
+		stage.warmed.connect(func():
+			_begin.disabled = false
+			_begin.text = "Begin the night"
+			_begin.grab_focus())
 	if query.contains("perf"):
 		toggle_perf()
 	if query.contains("bench"):
@@ -311,7 +320,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_perf()
 		get_viewport().set_input_as_handled()
 	if not world.running:
-		if event.is_action_pressed("confirm") and title.visible:
+		if event.is_action_pressed("confirm") and title.visible and not _begin.disabled:
 			start_game()
 			get_viewport().set_input_as_handled()
 		return
