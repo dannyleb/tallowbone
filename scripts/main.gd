@@ -40,7 +40,7 @@ const GAMEPAD := [
 ## decides how sharp to draw, never what happens.
 const RENDER_MAX := 3.0
 const RENDER_STEPS := [3.0, 2.0, 1.5, 1.0]
-const SLOW_MS := 24.0
+const SLOW_MS := 20.0
 const SLOW_WINDOW := 2.0
 ## Seconds after the night begins before frame times count (shaders compile
 ## on first sight of things, and those hitches shouldn't drop the scale).
@@ -72,6 +72,9 @@ var stage = null
 var ambience
 var _perf: Label
 var _flash_rect: ColorRect
+var _quality_button: Button
+## Saved settings (the graphics quality).
+const SETTINGS := "user://settings.cfg"
 var _clock := 0
 var _slow_t := 0.0
 var _slow_frames := 0
@@ -106,6 +109,9 @@ func _ready() -> void:
 		stage.main = self
 		stage.world = world
 		game.add_child(stage)
+		var cfg := ConfigFile.new()
+		if cfg.load(SETTINGS) == OK:
+			stage.set_quality(int(cfg.get_value("graphics", "quality", 0)))
 	else:
 		ambience.lightning.connect(_flash_2d)
 	get_viewport().size_changed.connect(fit_view)
@@ -235,6 +241,10 @@ func _adapt(frame: float) -> void:
 			fit_view()
 			print("Frames averaging %.1f ms: drawing the world at %.1fx (%dx%d)" % [avg_ms, render_scale, game.size.x, game.size.y])
 			return
+	# Already as small as it goes: draw less instead.
+	if stage and stage.quality < stage.QUALITY.size() - 1:
+		set_quality(stage.quality + 1)
+		print("Frames averaging %.1f ms at the lowest scale: quality %s" % [avg_ms, stage.QUALITY[stage.quality]])
 
 
 func start_game() -> void:
@@ -475,8 +485,30 @@ func _build_pause() -> Control:
 	var keys_button := _button("Controls")
 	keys_button.pressed.connect(func(): open_controls(pause_screen))
 	buttons.add_child(keys_button)
+	if stage:
+		_quality_button = _button("")
+		_quality_button.pressed.connect(func(): set_quality((stage.quality + 1) % stage.QUALITY.size()))
+		buttons.add_child(_quality_button)
+		_quality_label()
 	box.add_child(buttons)
 	return parts[0]
+
+
+## How much of the 3D night is drawn (scripts/stage.gd QUALITY), saved.
+func set_quality(level: int) -> void:
+	if stage == null:
+		return
+	stage.set_quality(level)
+	_quality_label()
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS)
+	cfg.set_value("graphics", "quality", stage.quality)
+	cfg.save(SETTINGS)
+
+
+func _quality_label() -> void:
+	if _quality_button and stage:
+		_quality_button.text = "Quality: " + String(stage.QUALITY[stage.quality])
 
 
 ## The Controls panel: every rebindable action with its key; pick one, press

@@ -197,6 +197,11 @@ func _stage() -> void:
 	_check("mist lies over the streets and the canal", st.counts.mist >= 4, str(st.counts))
 	_check("watchers have rooftops to stand on", st.roofs.size() > 10, str(st.roofs.size()))
 	_check("every material is drawn once at load (no first-sight hitches)", st.counts.prewarmed >= 12, str(st.counts.prewarmed))
+	st.set_quality(2)
+	var fast: bool = not st.env.volumetric_fog_enabled and not st.env.ssao_enabled and not st.env.ssr_enabled
+	st.set_quality(0)
+	_check("quality steps down (Fast drops fog, occlusion, reflections) and back up",
+		fast and st.env.volumetric_fog_enabled and st.env.ssao_enabled and st.quality == 0)
 	_check("the flat 2D tiles and night are off", not world.level.ground.visible and not world.get_node("Night").visible)
 	_check("actors and props draw onto the 3D plane, effects over it",
 		st.plane_vp.world_2d == main.game.world_2d and world.player.visibility_layer == st.ON_PLANE and main.game.canvas_cull_mask == st.OVERLAY)

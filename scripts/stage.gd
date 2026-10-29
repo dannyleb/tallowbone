@@ -68,6 +68,14 @@ var storm
 var roofs := []
 ## What got built, for the playtest.
 var counts := {}
+## How much of the night is drawn (QUALITY): 0 everything, 1 Balanced (no
+## bounce light or screen reflections, no MSAA, street lamps without
+## shadows, two moon-shadow splits), 2 Fast (also no volumetric fog or
+## mist, no ambient occlusion, no lantern shadow). The pause menu sets it;
+## main steps it down when frames stay slow at the lowest render scale.
+const QUALITY := ["High", "Balanced", "Fast"]
+var quality := 0
+var _mist: Array[FogVolume] = []
 
 var _cam_z := 12.0
 var _stone_mat: ShaderMaterial
@@ -1362,6 +1370,7 @@ func _build_mist() -> void:
 			fog.position = Vector3((c0 + c1) * 0.5, -y / PX + tall * 0.5 - 0.2, (FRONT - BACK - 1.5) * 0.5)
 			fog.material = canal if over_water else street
 			add_child(fog)
+			_mist.append(fog)
 			counts.mist += 1
 		c0 = c1
 
@@ -1508,6 +1517,27 @@ func _update_lights() -> void:
 			lit += 1
 	if lit != _moth_count:
 		_build_moths()
+
+
+## Sets how much is drawn (see QUALITY).
+func set_quality(level: int) -> void:
+	quality = clampi(level, 0, QUALITY.size() - 1)
+	var high := quality == 0
+	var fast := quality == 2
+	var game: SubViewport = main.game
+	if RenderingServer.get_current_rendering_method() == "forward_plus":
+		game.msaa_3d = Viewport.MSAA_2X if high else Viewport.MSAA_DISABLED
+		game.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED if high else Viewport.SCREEN_SPACE_AA_FXAA
+	env.ssil_enabled = high and not _lite
+	env.ssr_enabled = high
+	env.ssao_enabled = not fast
+	env.volumetric_fog_enabled = not fast
+	for fog in _mist:
+		fog.visible = not fast
+	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if high and not _lite else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	for e in _lamps:
+		(e.light as OmniLight3D).shadow_enabled = high and not _lite
+	_lantern.shadow_enabled = not fast and not _lite
 
 
 ## Switches a part of the stage on or off (the benchmark measures each).
