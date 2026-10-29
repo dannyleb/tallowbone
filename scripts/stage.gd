@@ -96,6 +96,10 @@ var _splashes: GPUParticles3D
 var _pour: GPUParticles3D
 var _moths: GPUParticles3D
 var _moth_count := -1
+## Splashes under your feet: a few one-shot emitters, used in turn.
+var _steps: Array[GPUParticles3D] = []
+var _next_step := 0
+var _rain_lean := 0.0
 var _shadowed: Array[Light3D] = []
 var _time := 0.0
 ## The browser's lighter renderer: lamps and the lantern throw no shadows,
@@ -198,6 +202,7 @@ func _ready() -> void:
 	_build_pours()
 	_build_moths()
 	_build_mist()
+	_build_step_splashes()
 	_build_probes()
 	storm = Storm.new()
 	storm.stage = self
@@ -205,6 +210,7 @@ func _ready() -> void:
 	_prewarm()
 	if main.ambience:
 		main.ambience.lightning.connect(storm.flash)
+		main.ambience.thundered.connect(func(strength: float): world.fx.add_shake(strength * 2.5))
 	world.level.burnt.connect(func(_cells): _build_veil())
 	fit()
 	counts.build_ms = Time.get_ticks_msec() - started
@@ -273,6 +279,8 @@ func _stone(tint: Color, puddles: float, wall := "stone", top := "cobble") -> Sh
 	m.set_shader_parameter("wet_noise", _wet_noise)
 	m.set_shader_parameter("tint", tint)
 	m.set_shader_parameter("puddles", puddles)
+	if _lite:
+		m.set_shader_parameter("ripple_strength", 0.0)
 	return m
 
 
@@ -433,10 +441,16 @@ func _build_level() -> void:
 	var water_mat := ShaderMaterial.new()
 	water_mat.shader = WATER
 	water_mat.set_shader_parameter("ripples", _noise(9, 0.03, true))
+	if _lite:
+		water_mat.set_shader_parameter("ring_strength", 0.0)
 	var back_mat := _stone(Color(0.62, 0.6, 0.6), 0.0)
 	var wood_mat := _wood()
 	var iron_mat := _iron()
 	var vine_mat := _vine()
+	var wax_mat := _wax()
+	var flame_mat := ShaderMaterial.new()
+	flame_mat.shader = WINDOWS
+	flame_mat.set_shader_parameter("energy", 3.0)
 	var solid := func(c: int, r: int) -> bool: return lv.kind_at(Vector2i(c, r)) == "stone"
 	counts.stone_faces = 0
 	counts.back_faces = 0
@@ -448,6 +462,8 @@ func _build_level() -> void:
 		var water := Builder.new()
 		var iron := Builder.new()
 		var vines := Builder.new()
+		var wax := Builder.new()
+		var flames := Builder.new()
 		for r in h:
 			for c in range(c0, mini(w, c0 + CHUNK)):
 				_build_cell(lv, c, r, h, solid, stone, inner, back, wood, water)
@@ -455,6 +471,7 @@ func _build_level() -> void:
 					_dress_cell(lv, c, r, solid, stone, inner, iron)
 					_overgrow(lv, c, r, solid, stone, vines, iron)
 					_culvert(lv, c, r, solid, stone, water, iron)
+					_candles(lv, c, r, solid, wax, flames)
 		# The stone is open at the back and the back walls are single quads
 		# facing you, and the moon shines from behind: both cast shadows from
 		# either side, or moonlight leaks into the rooms underground.
@@ -466,6 +483,10 @@ func _build_level() -> void:
 		_add_mesh(wood.mesh(), wood_mat)
 		_add_mesh(water.mesh(), water_mat)
 		_add_mesh(vines.mesh(), vine_mat)
+		_add_mesh(wax.mesh(), wax_mat)
+		var lit := _add_mesh(flames.mesh(), flame_mat)
+		if lit:
+			lit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var rails := _add_mesh(iron.mesh(), iron_mat)
 		if rails:
 			rails.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
@@ -639,6 +660,41 @@ func _culvert(lv, c: int, r: int, solid: Callable, stone: Builder, water: Builde
 	counts.culverts = counts.get("culverts", 0) + 1
 
 
+## Tallow candles on the floors of the rooms, against the back wall, in
+## clusters: stubs and tall ones, wax run down them and pooled, each with
+## a flickering flame (the window shader: warm, unlit, blooming).
+func _candles(lv, c: int, r: int, solid: Callable, wax: Builder, flames: Builder) -> void:
+	if lv.back_wall.get_cell_source_id(Vector2i(c, r)) == -1 or lv.kind_at(Vector2i(c, r)) != "":
+		return
+	if not solid.call(c, r + 1) or c % 5 != 2 or _hash(c * 17, r * 3) > 0.55:
+		return
+	var floor_y := -float(r + 1)
+	var z0 := -BACK + 0.35
+	# A pool of old wax under them.
+	wax.box(Vector3(c + 0.05, floor_y, z0 - 0.15), Vector3(c + 0.95, floor_y + 0.02, z0 + 0.35))
+	for i in 3 + int(_hash(c, r * 5) * 5.0):
+		var x := c + 0.12 + _hash(c + i * 7, r) * 0.76
+		var z := z0 + _hash(c, r + i * 3) * 0.4 - 0.1
+		var h := 0.06 + _hash(c + i, r + i) * 0.28
+		var w := 0.025 + _hash(c * 3 + i, r) * 0.02
+		wax.box(Vector3(x - w, floor_y, z - w), Vector3(x + w, floor_y + h, z + w))
+		# A run of wax down one side.
+		wax.box(Vector3(x + w * 0.6, floor_y, z - w * 0.6), Vector3(x + w * 1.3, floor_y + h * 0.7, z + w * 0.2))
+		var f := Vector3(x, floor_y + h + 0.012, z + w + 0.004)
+		var phase := _hash(c + i * 13, r * 7) * 0.9 + 0.05
+		flames.tri(f + Vector3(-0.011, 0, 0), f + Vector3(0.011, 0, 0), f + Vector3(0, 0.045, 0), Vector3.BACK, Color(1.0, phase, 0.0))
+	counts.candles = counts.get("candles", 0) + 1
+
+
+func _wax() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.78, 0.72, 0.58)
+	m.roughness = 0.35
+	m.rim_enabled = true
+	m.rim = 0.3
+	return m
+
+
 func _vine() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = Color(0.11, 0.14, 0.08)
@@ -702,6 +758,14 @@ func _build_city() -> void:
 		"wood": _wood(),
 		"windows": win_mat,
 	}
+	# In the browser everything past the nearest row is plain stone colour:
+	# it's in fog, and the wet-stone shader on every row cost a lot there.
+	var far_mats := mats
+	if _lite:
+		far_mats = mats.duplicate()
+		far_mats.walls = _plain(Color(0.2, 0.19, 0.2))
+		far_mats.roofs = _plain(Color(0.15, 0.16, 0.19))
+		far_mats.trim = far_mats.walls
 	# The ground the city stands on: it only receives shadows.
 	var ground := Builder.new()
 	ground.box(Vector3(-90, -46, -260), Vector3(w + 90, STREET, -BACK - 0.12))
@@ -722,7 +786,7 @@ func _build_city() -> void:
 		var shadows := row_index == 0 and not _lite
 		while x < w + 80.0:
 			if x >= chunk_end:
-				_add_city_chunk(b, mats, shadows)
+				_add_city_chunk(b, mats if row_index == 0 or not _lite else far_mats, shadows)
 				b = _city_builders()
 				chunk_end += CITY_CHUNK
 			var bw := rng.randf_range(4.0, 8.5)
@@ -731,10 +795,10 @@ func _build_city() -> void:
 			_house(b, rng, x, bw, bh, front, depth, row_index)
 			buildings += 1
 			x += bw + (rng.randf_range(1.0, 3.0) if rng.randf() < 0.15 else 0.0)
-		_add_city_chunk(b, mats, shadows)
+		_add_city_chunk(b, mats if row_index == 0 or not _lite else far_mats, shadows)
 		row_index += 1
 	_gas_lamps(rng, w, mats)
-	_far_spires(rng, w, mats)
+	_far_spires(rng, w, far_mats)
 	if not _lite:
 		_street_clutter(rng, w, mats)
 	# The church, a landmark over the plaza: a tower and its spire.
@@ -760,7 +824,7 @@ func _build_city() -> void:
 		church.trim.box(k + Vector3(-0.35, 0.0, -0.35), k + Vector3(0.35, 3.5, 0.35))
 	church.windows.quad(Vector3(cx - 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 21.0, cz + 0.03), Vector3(cx - 0.6, STREET + 21.0, cz + 0.03), Vector3.BACK, Color(0.8, 0.0, 0.0))
 	_church_nave(church, cx + 3.5, cz)
-	_add_city_chunk(church, mats, false)
+	_add_city_chunk(church, far_mats, false)
 	counts.buildings = buildings
 
 
@@ -894,6 +958,8 @@ func _house(b: Dictionary, rng: RandomNumberGenerator, x: float, bw: float, bh: 
 				_window(b, rng, wx, floor_y, front, 0.45, 0.85, near)
 			wx += 1.6
 		floor_y += 3.0
+	if row == 0 and not _lite and top > STREET + 5.5 and rng.randf() < 0.08:
+		_gibbet(b.iron, Vector3(x + rng.randf_range(1.0, bw - 1.0), top - 1.0, front), rng)
 	if row == 0 and not _lite and rng.randf() < 0.3:
 		# A shop sign on an iron bracket, beside the door.
 		var sx := x + rng.randf_range(0.4, bw - 1.2)
@@ -941,6 +1007,33 @@ func _turret(b: Dictionary, base: Vector3, radius: float, top: float, rng: Rando
 		var apex := Vector3(base.x, cone, base.z)
 		b.roofs.tri(Vector3(e0.x, top, e0.z), Vector3(e1.x, top, e1.z), apex, (n + Vector3(0, 0.35, 0)).normalized())
 	b.trim.box(Vector3(base.x - 0.05, cone - 0.1, base.z - 0.05), Vector3(base.x + 0.05, cone + 0.9, base.z + 0.05))
+
+
+## A gibbet: an iron arm out from the wall at `at`, a chain, and a cage
+## hanging from it, empty or not quite.
+func _gibbet(iron: Builder, at: Vector3, rng: RandomNumberGenerator) -> void:
+	var reach := rng.randf_range(1.0, 1.4)
+	iron.box(Vector3(at.x - 0.04, at.y, at.z), Vector3(at.x + 0.04, at.y + 0.08, at.z + reach))
+	iron.box(Vector3(at.x - 0.03, at.y - 0.6, at.z), Vector3(at.x + 0.03, at.y, at.z + 0.06))
+	iron.box(Vector3(at.x - 0.02, at.y - 0.55, at.z + 0.05), Vector3(at.x + 0.02, at.y, at.z + reach * 0.6))
+	var hang := Vector3(at.x, at.y, at.z + reach - 0.1)
+	var drop := rng.randf_range(0.5, 1.0)
+	for i in int(drop / 0.09):
+		var y := hang.y - i * 0.09
+		var wide := i % 2 == 0
+		iron.box(Vector3(hang.x - (0.03 if wide else 0.008), y - 0.1, hang.z - (0.008 if wide else 0.03)), Vector3(hang.x + (0.03 if wide else 0.008), y, hang.z + (0.008 if wide else 0.03)))
+	var top := hang.y - drop
+	var height := 1.5
+	var radius := 0.32
+	iron.box(Vector3(hang.x - radius, top - 0.05, hang.z - radius), Vector3(hang.x + radius, top, hang.z + radius))
+	iron.box(Vector3(hang.x - radius * 0.9, top - height, hang.z - radius * 0.9), Vector3(hang.x + radius * 0.9, top - height + 0.05, hang.z + radius * 0.9))
+	iron.box(Vector3(hang.x - radius, top - height * 0.5, hang.z - radius), Vector3(hang.x + radius, top - height * 0.5 + 0.04, hang.z + radius))
+	for i in 10:
+		var a := TAU * i / 10.0
+		var bx := hang.x + cos(a) * radius
+		var bz := hang.z + sin(a) * radius
+		iron.box(Vector3(bx - 0.015, top - height, bz - 0.015), Vector3(bx + 0.015, top, bz + 0.015))
+	iron.box(Vector3(hang.x - 0.05, top - 0.12, hang.z - 0.05), Vector3(hang.x + 0.05, top + 0.05, hang.z + 0.05))
 
 
 ## A window at (x, y) on a front at z: lit (one in six), or dark glass;
@@ -1127,6 +1220,13 @@ func _add_city_chunk(b: Dictionary, mats: Dictionary, shadows: bool) -> void:
 			mi.cast_shadow = cast if part in ["walls", "roofs"] else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
+func _plain(col: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = col
+	m.roughness = 0.85
+	return m
+
+
 func _glass() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = Color(0.015, 0.018, 0.024)
@@ -1225,6 +1325,14 @@ func _build_plane() -> void:
 
 
 # --- Rain --------------------------------------------------------------------
+
+## The rain's streaks catch the lightning: f is the flash, 0..1.
+func flash_rain(f: float) -> void:
+	for p in [_rain, _splashes]:
+		if p:
+			var m: StandardMaterial3D = (p.draw_pass_1 as QuadMesh).material
+			m.emission_energy_multiplier = 0.12 + f * 4.0
+
 
 func _rain_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -1387,6 +1495,51 @@ func _build_pours() -> void:
 	m.albedo_color = Color(0.75, 0.8, 0.9, 0.5)
 	drop.material = m
 	_pour.draw_pass_1 = drop
+
+
+## Water kicked up from under your boots, a little each step and more when
+## you land. One-shot emitters taken in turn, set off by the player's
+## `stepped` signal.
+func _build_step_splashes() -> void:
+	counts.step_splashes = 0
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = Vector3(0.12, 0.01, 0.15)
+	pm.direction = Vector3(0, 1, 0)
+	pm.spread = 55.0
+	pm.initial_velocity_min = 0.7
+	pm.initial_velocity_max = 1.7
+	pm.gravity = Vector3(0, -9.8, 0)
+	pm.scale_min = 0.6
+	pm.scale_max = 1.2
+	var drop := QuadMesh.new()
+	drop.size = Vector2(0.016, 0.045)
+	drop.material = _rain_material()
+	for i in 4:
+		var p := GPUParticles3D.new()
+		p.amount = 14
+		p.lifetime = 0.45
+		p.one_shot = true
+		p.explosiveness = 1.0
+		p.emitting = false
+		p.local_coords = false
+		p.process_material = pm
+		p.draw_pass_1 = drop
+		p.transform_align = GPUParticles3D.TRANSFORM_ALIGN_Z_BILLBOARD_Y_TO_VELOCITY
+		p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		p.layers = MOVING
+		add_child(p)
+		_steps.append(p)
+	world.player.stepped.connect(_on_step)
+
+
+func _on_step(at: Vector2, strength: float) -> void:
+	var p := _steps[_next_step]
+	_next_step = (_next_step + 1) % _steps.size()
+	p.position = _to_3d(at, 0.0) + Vector3(0, 0.02, 0)
+	p.amount_ratio = 0.35 + 0.65 * strength
+	p.restart()
+	counts.step_splashes += 1
 
 
 ## Moths round the lit lamps (rebuilt as lamps are lit).
@@ -1612,6 +1765,11 @@ func _process(delta: float) -> void:
 	plane.position = Vector3(center.x / PX, -center.y / PX, 0.0)
 	plane_vp.canvas_transform = Transform2D(0.0, -(center - view / 2.0))
 	_rain.position = Vector3(camera.position.x, camera.position.y + view.y / PX * 0.5 + 4.0, FRONT - 6.6)
+	# The rain leans with the wind: the gusts the ambience hears.
+	var lean: float = -0.06 - (main.ambience.gust if main.ambience else 0.5) * 0.32
+	if absf(lean - _rain_lean) > 0.01:
+		_rain_lean = lean
+		(_rain.process_material as ParticleProcessMaterial).direction = Vector3(lean, -1.0, 0.0)
 	_update_lights()
 
 

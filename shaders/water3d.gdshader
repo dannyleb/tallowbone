@@ -52,7 +52,7 @@ void fragment() {
 	vec3 c = texture(ripples, uv * 5.3 + vec2(TIME * 0.11, -TIME * 0.09)).xyz;
 	NORMAL_MAP = normalize((a + b + c * 0.6) * 2.0 - 2.6) * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = 0.35;
-	if (facing_up > 0.5) {
+	if (facing_up > 0.5 && ring_strength > 0.0) {
 		vec2 rip = rings(wpos.xz / ring_cell, TIME) + rings(wpos.xz / ring_cell * 1.41 + 3.7, TIME * 1.17) * 0.6;
 		NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(rip.x, 0.0, rip.y, 0.0)).xyz * ring_strength);
 	}

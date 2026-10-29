@@ -437,8 +437,8 @@ def howl_a():
     r = rng(21)
     dry = np.zeros((2, secs(6)))
     w = wolf(r, [(0, 410), (0.45, 640), (1.8, 670), (2.6, 610), (3.4, 470), (3.9, 380)], 4.0)
-    place(dry, butter(w, "low", 1600), secs(0.1), -0.65, 0.5)
-    return trim_tail(reverb(dry, impulse(4.0, 5.0, r, bright=3000, dark=600), wet=0.75))
+    place(dry, butter(w, "low", 1000), secs(0.1), -0.65, 0.5)
+    return trim_tail(reverb(dry, impulse(4.5, 5.5, r, bright=2200, dark=500), wet=0.86))
 
 
 def howl_b():
@@ -447,9 +447,9 @@ def howl_b():
     dry = np.zeros((2, secs(8)))
     a = wolf(r, [(0, 360), (0.4, 560), (1.6, 590), (2.5, 520), (3.2, 400)], 3.4)
     b = wolf(r, [(0, 520), (0.5, 800), (2.0, 830), (2.8, 760), (3.6, 560)], 3.8)
-    place(dry, butter(a, "low", 1500), secs(0.1), 0.45, 0.45)
-    place(dry, butter(b, "low", 1100), secs(1.7), 0.85, 0.3)
-    return trim_tail(reverb(dry, impulse(4.5, 5.5, r, bright=2800, dark=500), wet=0.8))
+    place(dry, butter(a, "low", 950), secs(0.1), 0.45, 0.45)
+    place(dry, butter(b, "low", 750), secs(1.7), 0.85, 0.3)
+    return trim_tail(reverb(dry, impulse(5.0, 6.0, r, bright=2000, dark=450), wet=0.88))
 
 
 def howl_c():
@@ -470,8 +470,8 @@ def howl_c():
     voice *= 1 + 0.6 * split * np.sin(2 * np.pi * 31 * t)
     voice *= env_adsr(n, 0.3, 0.4, 1.2)
     voice += butter(r.standard_normal(n), "band", [200, 1600]) * 0.05 * split * env_adsr(n, 0.3, 0.4)
-    place(dry, butter(voice, "low", 1400), secs(0.1), -0.25, 0.45)
-    return trim_tail(reverb(dry, impulse(5.5, 7.0, r, bright=2500, dark=400), wet=0.8))
+    place(dry, butter(voice, "low", 1000), secs(0.1), -0.25, 0.45)
+    return trim_tail(reverb(dry, impulse(6.0, 7.5, r, bright=2000, dark=380), wet=0.86))
 
 
 def bell():

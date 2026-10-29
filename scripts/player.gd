@@ -8,6 +8,10 @@
 ## attack timings so what you see matches the hitboxes.
 extends CharacterBody2D
 
+## A foot came down at `at` (strength 0), or you landed hard (1): for the
+## splash under it (scripts/stage.gd).
+signal stepped(at: Vector2, strength: float)
+
 const T = preload("res://scripts/tuning.gd")
 const Combat = preload("res://scripts/combat.gd")
 const Sfx = preload("res://scripts/sfx.gd")
@@ -293,12 +297,14 @@ func step(input: Dictionary, delta: float) -> void:
 		jumping = false
 		if not on_floor and falling > LAND_SOUND:
 			Sfx.play("land")
+			stepped.emit(position, 1.0)
 		if absf(velocity.x) > 20.0:
 			# A footstep each time a foot comes down (twice a stride).
 			var stride := int(run_t * 13.0 / PI)
 			run_t += delta
 			if int(run_t * 13.0 / PI) != stride:
 				Sfx.play(_footing())
+				stepped.emit(position + Vector2(facing * 4.0, 0), 0.0)
 		if _firm_footing():
 			safe = position
 	_check_hazard()

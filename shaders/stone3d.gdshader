@@ -67,6 +67,15 @@ void vertex() {
 	wnrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
+// A tangent-space normal from a two-channel map (z rebuilt: compressed
+// normal maps keep only x and y), its bumps scaled.
+vec3 unpack(vec2 xy) {
+	vec3 t = vec3(xy * 2.0 - 1.0, 0.0);
+	t.z = sqrt(max(0.0, 1.0 - dot(t.xy, t.xy)));
+	t.xy *= bump;
+	return t;
+}
+
 void fragment() {
 	vec3 n = normalize(wnrm);
 	vec3 blend = pow(abs(n), vec3(6.0));
@@ -78,55 +87,83 @@ void fragment() {
 	vec2 uv_x = vec2(-wpos.z * sx, -wpos.y) / tile_m;
 	vec2 uv_y = vec2(wpos.x, wpos.z) / tile_m;
 	vec2 uv_z = vec2(wpos.x * sz, -wpos.y) / tile_m;
+	// Gradients taken here, outside the branches below, so mipmapping stays
+	// right where faces meet.
+	vec2 dx_x = dFdx(uv_x);
+	vec2 dy_x = dFdy(uv_x);
+	vec2 dx_y = dFdx(uv_y);
+	vec2 dy_y = dFdy(uv_y);
+	vec2 dx_z = dFdx(uv_z);
+	vec2 dy_z = dFdy(uv_z);
 	bool up = n.y > 0.0;
 
-	vec4 alb_x = texture(wall_albedo, uv_x);
-	vec4 alb_z = texture(wall_albedo, uv_z);
-	vec4 alb_y = up ? texture(top_albedo, uv_y) : texture(wall_albedo, uv_y);
-	vec3 albedo = alb_x.rgb * blend.x + alb_y.rgb * blend.y + alb_z.rgb * blend.z;
-	float height = alb_x.a * blend.x + alb_y.a * blend.y + alb_z.a * blend.z;
-
-	float r_x = texture(wall_rough, uv_x).r;
-	float r_z = texture(wall_rough, uv_z).r;
-	float r_y = up ? texture(top_rough, uv_y).r : texture(wall_rough, uv_y).r;
-	float rough = r_x * blend.x + r_y * blend.y + r_z * blend.z;
-
-	// Tangent-space normals per projection, blended in world space
-	// ("whiteout" blend), then into view space.
-	// (z rebuilt from x and y: compressed normal maps keep only those.)
-	vec3 t_x = vec3(texture(wall_normal, uv_x).xy * 2.0 - 1.0, 0.0);
-	vec3 t_z = vec3(texture(wall_normal, uv_z).xy * 2.0 - 1.0, 0.0);
-	vec3 t_y = vec3((up ? texture(top_normal, uv_y).xy : texture(wall_normal, uv_y).xy) * 2.0 - 1.0, 0.0);
-	t_x.z = sqrt(max(0.0, 1.0 - dot(t_x.xy, t_x.xy)));
-	t_y.z = sqrt(max(0.0, 1.0 - dot(t_y.xy, t_y.xy)));
-	t_z.z = sqrt(max(0.0, 1.0 - dot(t_z.xy, t_z.xy)));
-	t_x.xy *= bump;
-	t_y.xy *= bump;
-	t_z.xy *= bump;
-	// Side faces: texture x runs along -z*sx, texture up is +y.
-	vec3 w_x = vec3(abs(t_x.z) * n.x, t_x.y + n.y, -t_x.x * sx + n.z);
-	// Tops: texture x along +x, texture up is -z.
-	vec3 w_y = vec3(t_y.x + n.x, abs(t_y.z) * n.y, -t_y.y + n.z);
-	// Fronts: texture x along +x*sz, texture up is +y.
-	vec3 w_z = vec3(t_z.x * sz + n.x, t_z.y + n.y, abs(t_z.z) * n.z);
-	vec3 wn = normalize(w_x * blend.x + w_y * blend.y + w_z * blend.z);
+	// Each projection only where it shows: on the level's square faces
+	// that is one of the three, a third of the texture reads.
+	vec3 albedo = vec3(0.0);
+	float height = 0.0;
+	float rough = 0.0;
+	vec3 wsum = vec3(0.0);
+	float used = 0.0;
+	if (blend.x > 0.02) {
+		vec4 a = textureGrad(wall_albedo, uv_x, dx_x, dy_x);
+		vec3 t = unpack(textureGrad(wall_normal, uv_x, dx_x, dy_x).xy);
+		albedo += a.rgb * blend.x;
+		height += a.a * blend.x;
+		rough += textureGrad(wall_rough, uv_x, dx_x, dy_x).r * blend.x;
+		// Side faces: texture x runs along -z*sx, texture up is +y.
+		wsum += vec3(abs(t.z) * n.x, t.y + n.y, -t.x * sx + n.z) * blend.x;
+		used += blend.x;
+	}
+	if (blend.y > 0.02) {
+		vec4 a = up ? textureGrad(top_albedo, uv_y, dx_y, dy_y) : textureGrad(wall_albedo, uv_y, dx_y, dy_y);
+		vec3 t = unpack(up ? textureGrad(top_normal, uv_y, dx_y, dy_y).xy : textureGrad(wall_normal, uv_y, dx_y, dy_y).xy);
+		albedo += a.rgb * blend.y;
+		height += a.a * blend.y;
+		rough += (up ? textureGrad(top_rough, uv_y, dx_y, dy_y).r : textureGrad(wall_rough, uv_y, dx_y, dy_y).r) * blend.y;
+		// Tops: texture x along +x, texture up is -z.
+		wsum += vec3(t.x + n.x, abs(t.z) * n.y, -t.y + n.z) * blend.y;
+		used += blend.y;
+	}
+	if (blend.z > 0.02) {
+		vec4 a = textureGrad(wall_albedo, uv_z, dx_z, dy_z);
+		vec3 t = unpack(textureGrad(wall_normal, uv_z, dx_z, dy_z).xy);
+		albedo += a.rgb * blend.z;
+		height += a.a * blend.z;
+		rough += textureGrad(wall_rough, uv_z, dx_z, dy_z).r * blend.z;
+		// Fronts: texture x along +x*sz, texture up is +y.
+		wsum += vec3(t.x * sz + n.x, t.y + n.y, abs(t.z) * n.z) * blend.z;
+		used += blend.z;
+	}
+	albedo /= used;
+	height /= used;
+	rough /= used;
+	vec3 wn = normalize(wsum);
 
 	// Water on anything facing up: always in the joints, and where the
 	// ground dips (the noise), filling from the lowest parts up.
 	float flatness = smoothstep(0.75, 0.95, n.y);
-	float noise_top = texture(wet_noise, wpos.xz * 0.23).r;
-	float level = clamp((noise_top - (1.0 - puddles)) * 6.0, 0.0, 1.0);
-	float pool = smoothstep(level - 0.08, level, 1.0 - height) * step(0.01, level);
-	float joints = smoothstep(0.34, 0.22, height) * wetness;
-	float puddle = max(pool, joints) * flatness;
+	float pool = 0.0;
+	float puddle = 0.0;
+	if (flatness > 0.0) {
+		float noise_top = texture(wet_noise, wpos.xz * 0.23).r;
+		float level = clamp((noise_top - (1.0 - puddles)) * 6.0, 0.0, 1.0);
+		pool = smoothstep(level - 0.08, level, 1.0 - height) * step(0.01, level) * flatness;
+		float joints = smoothstep(0.34, 0.22, height) * wetness;
+		puddle = max(pool, joints * flatness);
+	}
 	// Running water down the walls: thin streaks that slide downward.
-	float across = texture(wet_noise, vec2(wpos.x * 1.7 + wpos.z * 1.7, 0.37)).r;
-	float flow = texture(wet_noise, vec2(wpos.x * 3.1 + wpos.z * 3.1, wpos.y * 0.35 + TIME * 0.18)).r;
-	float sheet = smoothstep(0.62, 0.8, across) * smoothstep(0.45, 0.7, flow) * (1.0 - abs(n.y));
+	float sheet = 0.0;
+	if (abs(n.y) < 0.6) {
+		float across = texture(wet_noise, vec2(wpos.x * 1.7 + wpos.z * 1.7, 0.37)).r;
+		float flow = texture(wet_noise, vec2(wpos.x * 3.1 + wpos.z * 3.1, wpos.y * 0.35 + TIME * 0.18)).r;
+		sheet = smoothstep(0.62, 0.8, across) * smoothstep(0.45, 0.7, flow) * (1.0 - abs(n.y));
+	}
 
-	float wet = wetness * (0.65 + 0.35 * texture(wet_noise, wpos.xy * 0.11 + wpos.zz * 0.11).r);
-	// Over the whole city, some walls dirtier, some cleaner.
-	float macro = texture(wet_noise, wpos.xy * 0.021 + wpos.zx * 0.017).r;
+	// How wet, and over the whole city some walls dirtier, some cleaner
+	// (one noise read for both).
+	vec2 slow = texture(wet_noise, wpos.xy * 0.021 + wpos.zx * 0.017).rg;
+	float wet = wetness * (0.65 + 0.35 * slow.g);
+	float macro = slow.r;
 	albedo *= tint * (0.8 + 0.4 * macro);
 	rough *= 0.9 + 0.2 * macro;
 	albedo *= mix(1.0, 0.68, wet);              // wet stone darkens
@@ -134,12 +171,12 @@ void fragment() {
 	rough = mix(rough, rough * 0.35, wet);
 	// Not quite mirrors: rain pocks the puddles, so reflections blur a little.
 	rough = mix(rough, 0.09, max(puddle, sheet * 0.8));
-	// Standing water is flat but for the rings; running water smooths the
-	// bumps a little.
+	// Standing water is flat but for the rings (in the pools; the joints
+	// are too narrow to see them); running water smooths the bumps a little.
 	wn = normalize(mix(wn, n, max(puddle, sheet * 0.5)));
-	if (puddle > 0.01) {
+	if (pool > 0.01 && ripple_strength > 0.0) {
 		vec2 rip = ripples(wpos.xz / ripple_cell, TIME) + ripples(wpos.xz / ripple_cell * 1.37 + 7.3, TIME * 1.13) * 0.7;
-		wn = normalize(wn + vec3(rip.x, 0.0, rip.y) * ripple_strength * puddle);
+		wn = normalize(wn + vec3(rip.x, 0.0, rip.y) * ripple_strength * pool);
 	}
 
 	ALBEDO = albedo;

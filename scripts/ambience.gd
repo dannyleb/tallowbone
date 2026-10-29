@@ -17,6 +17,9 @@ extends Node
 ## strength 0..1 (1 is overhead); reveal: the flash shows the thing in the
 ## fog (scripts/stage.gd draws it).
 signal lightning(strength: float, reveal: bool)
+## A thunderclap is heard now: 1 overhead, less further off (the stage
+## shakes the view for the near ones).
+signal thundered(strength: float)
 
 const DIR := "res://assets/ambience/"
 
@@ -265,6 +268,8 @@ func strike(strength: float) -> void:
 
 
 func _play(sound: String, db: float, pitch: float) -> void:
+	if sound.begins_with("thunder"):
+		thundered.emit({"thunder_near": 1.0, "thunder_mid": 0.5}.get(sound, 0.15) * (1.0 - inside * 0.7))
 	if not _streams.has(sound):
 		_streams[sound] = load(DIR + sound + ".ogg")
 	var v := _voices[_next_voice]

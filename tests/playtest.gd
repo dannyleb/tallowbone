@@ -839,6 +839,8 @@ func _footsteps() -> void:
 	await _hold("move_right", 60)
 	var walked: int = sfx.counts.get("step_stone", 0) + sfx.counts.get("step_wood", 0) - steps
 	_check("sfx: a second's walk is about four footsteps", walked >= 3 and walked <= 6, "%d steps" % walked)
+	if main.stage:
+		_check("each footstep kicks up a splash", main.stage.counts.step_splashes >= walked, str(main.stage.counts.step_splashes))
 	var landings: int = sfx.counts.get("land", 0)
 	await _tp(start.x, start.y - 200.0, 1.0, 30.0)
 	await _frames(60)

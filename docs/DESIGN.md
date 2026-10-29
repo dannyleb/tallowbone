@@ -293,8 +293,14 @@ The Metroidvania-native mechanic.
   skyline is gothic: steep gables with finials, turrets under slate
   cones, the church's nave with buttresses, lancets and a rose window,
   spires far off in the fog; the near houses have shutters, iron
-  balconies, barred windows, shop signs, and the street behind them is
-  cluttered with barrels, crates and carts. Figures are painted with a
+  balconies, barred windows, shop signs, now and then a gibbet cage, and
+  the street behind them is cluttered with barrels, crates and carts.
+  Drain mouths open in the big embankment walls, grilled, water pouring
+  from them; creepers hang over the ledges; rooms have clusters of
+  guttering tallow candles. The street lamps are Victorian gas lamps, the
+  signs church noticeboards. Every step kicks up water; the rain leans
+  with the gusts the wind sound makes, its streaks flare in the
+  lightning, and near thunder shakes the view. Figures are painted with a
   woven grain, folds and a wet hem until the illustrated frames arrive.
   The frame is graded (cool shadows, warm lamplight, a little less
   colour) and shown with film grain.

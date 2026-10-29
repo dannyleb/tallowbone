@@ -258,6 +258,8 @@ func _process(delta: float) -> void:
 	f *= lerpf(0.35, 1.0, _strength)
 	if _t > 2.0:
 		_pulses.clear()
+	if absf(f - level) > 0.01 or (f == 0.0 and level != 0.0):
+		stage.flash_rain(f)
 	level = f
 	light.visible = f > 0.01
 	light.light_energy = f * LIGHT_ENERGY
