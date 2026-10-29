@@ -417,9 +417,10 @@ The Metroidvania-native mechanic.
   scaled; menus and text stay at the window's resolution. Frames averaging
   over 20 ms drop the render scale a step (2x, 1.5x, 1x); still slow at
   the smallest, the **quality** steps down (High, Balanced, Fast; also in
-  the pause menu, saved). Every material is drawn once at load so shaders
-  compile then, behind the title, not as a hitch at first sight; the
-  title's Begin waits for it ("Lighting the lamps…", the first time on a
+  the pause menu, saved). Every material is drawn once at load, lit,
+  shadowed and inside a reflection probe, so shaders compile then, behind
+  the title, not as a hitch at first sight; the title's Begin waits until
+  frames come steadily ("Lighting the lamps…", the first time on a
   machine). The far rows of the city use a cheaper stone (no running
   water or puddles), bounce light runs at low quality. Firefox pays far
   more per draw call than Chrome, so the backdrop's skyline is painted once
