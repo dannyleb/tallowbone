@@ -38,9 +38,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/godot
-          key: godot-${{ env.GODOT_VERSION }}-web-macos
+          key: godot-${{ env.GODOT_VERSION }}-web-macos-windows
 
-      - name: Download Godot and the web and Mac export templates
+      - name: Download Godot and the web, Mac and Windows export templates
         if: steps.cache-godot.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/godot/templates && cd ~/godot
@@ -48,7 +48,7 @@ jobs:
           curl -sSfL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           unzip -q godot.zip && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot && rm godot.zip
           curl -sSfL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          unzip -q -j templates.tpz 'templates/web*' 'templates/macos.zip' 'templates/version.txt' -d templates && rm templates.tpz
+          unzip -q -j templates.tpz 'templates/web*' 'templates/macos.zip' 'templates/windows_release_x86_64.exe' 'templates/windows_debug_x86_64.exe' 'templates/version.txt' -d templates && rm templates.tpz
 
       - name: Install Godot
         run: |
@@ -109,6 +109,18 @@ jobs:
           ls -la build/mac | tee -a ci-out/export-mac.log
           test -f build/mac/Tallowbone-mac.zip
 
+      - name: Export the Windows app
+        # One 64-bit exe with the game packed inside (unsigned; no custom
+        # icon yet: setting that from Linux needs rcedit and Wine).
+        timeout-minutes: 5
+        run: |
+          set -o pipefail
+          mkdir -p build/windows
+          timeout -k 10 240 godot --headless --audio-driver Dummy --path . --export-release "Windows Desktop" build/windows/Tallowbone.exe 2>&1 | head -c 20000000 | tee ci-out/export-windows.log
+          ls -la build/windows | tee -a ci-out/export-windows.log
+          test -f build/windows/Tallowbone.exe
+          file build/windows/Tallowbone.exe | tee -a ci-out/export-windows.log
+
       - name: Flag script errors
         if: always()
         run: |
@@ -152,6 +164,14 @@ jobs:
         with:
           name: Tallowbone-mac
           path: build/mac/Tallowbone-mac.zip
+          retention-days: 14
+
+      - name: Keep the Windows app
+        # Beside the Mac app: Tallowbone.exe, zipped once by GitHub.
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tallowbone-windows
+          path: build/windows/Tallowbone.exe
           retention-days: 14
 
   deploy:

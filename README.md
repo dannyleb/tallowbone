@@ -13,6 +13,10 @@ Intel). Open the latest green run under
 **Tallowbone-mac** under Artifacts, unzip it twice and drag Tallowbone into
 Applications. It isn't notarized by Apple yet, so macOS blocks the first
 open: System Settings > Privacy & Security, scroll down, **Open Anyway**.
+**Windows app:** built beside it (64-bit Windows 10/11, a graphics card
+with Vulkan or Direct3D 12): download **Tallowbone-windows** from the same
+run, unzip it and run `Tallowbone.exe`. It isn't signed yet, so Windows
+warns on the first run: **More info**, then **Run anyway**.
 **Design:** [docs/DESIGN.md](docs/DESIGN.md).
 
 The current build is the **first playable slice** (greybox: shapes stand in
@@ -102,7 +106,7 @@ Actions with Godot 4.7.2:
    Gorged → reclaim, levelling, rebinding keys, the soundscape's mix and
    timing, the storm).
 3. **Screenshots:** `tests/screenshots.gd` renders key moments.
-4. **Export** the web build and the Mac app (kept two weeks as a run
+4. **Export** the web build and the Mac and Windows apps (kept two weeks as run
    artifact).
 5. **Deploy** to GitHub Pages (pushes to `main` only).
 6. **Benchmark:** `tools/bench_web.py` runs the build's `?bench` in Firefox

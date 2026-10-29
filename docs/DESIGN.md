@@ -372,7 +372,7 @@ The Metroidvania-native mechanic.
   Moved from the JavaScript prototype (kept on the `js-prototype` branch)
   for the editor: painting levels, placing things, animation (Skeleton2D /
   AnimationPlayer for cut-out characters), particles, shaders and real 2D
-  lights. Mac builds now (CI); Windows / Linux / Steam Deck builds later.
+  lights. Mac and Windows builds now (CI); Linux / Steam Deck builds later.
 - Fixed 60 Hz simulation: the World steps the player, enemies and systems
   itself, so hit-stop freezes it cleanly.
 - **The 3D stage** (`scripts/stage.gd`, in the game viewport): built at
@@ -470,6 +470,7 @@ The Metroidvania-native mechanic.
 | — | Easier start: canal of short hops, ledge assist, five starting keys with the rest found along the way, hold strike to transform, pause-screen map, shortcut gates, Climbing Irons | **done** |
 | — | Atmosphere: soundscape, storm and the thing in the fog, a dressed and wetter city (rain rings, splashes, mist, drainpipes), characters drawn in depth, key rebinding and Ctrl-click | **done (greybox)** |
 | — | Weathered: generated materials with history (soot, moss, wear, water in the joints), gothic skyline and masonry, textured figures, grade and grain, quality levels | **done (generated)** |
+| — | Windows app built by CI (64-bit, one exe with the game inside; unsigned, Godot's icon for now) | **done** |
 | — | Film light and real props: AgX tonemapping (texture in the dark), lamps, noticeboards and gates in 3D, coffins and clutter behind the play, hanging things out of focus in front, haze, rain stains and damp, amber windows, canal light; cheaper far city, shaders compiled behind the title | **done** |
 
 ## 14. Open questions
