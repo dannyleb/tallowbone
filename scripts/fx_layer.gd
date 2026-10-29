@@ -109,11 +109,13 @@ func _swoosh(sw: Dictionary) -> void:
 func _glow() -> void:
 	# Lit lamp glass and your own flame burn through the dark.
 	for l in world.lamps:
-		if l.lit:
+		# (In 3D the lantern stands behind the plane, so a halo drawn here
+		# would sit off its glass; the glass glows there and the haze and
+		# bloom make the halo.)
+		if l.lit and not l.in_3d:
 			var g: Vector2 = l.position + Vector2(0, -68)
 			Glow.draw(self, g, 22.0, Color(1.0, 0.72, 0.38, 0.35))
-			if not l.in_3d:
-				draw_colored_polygon(PackedVector2Array([g + Vector2(-5, 8), g + Vector2(5, 8), g + Vector2(7, -7), g + Vector2(-7, -7)]), Color(1.0, 0.78, 0.45, 0.55))
+			draw_colored_polygon(PackedVector2Array([g + Vector2(-5, 8), g + Vector2(5, 8), g + Vector2(7, -7), g + Vector2(-7, -7)]), Color(1.0, 0.78, 0.45, 0.55))
 	for it in world.pickups:
 		if not it.taken:
 			Glow.draw(self, it.position + Vector2(0, -14), 22.0, Color(1.0, 0.85, 0.8, 0.28))

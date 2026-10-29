@@ -325,8 +325,8 @@ The Metroidvania-native mechanic.
   toward white. The canal throws a faint cold light up the walls of its
   cut (desktop), so it isn't a black pit; lit windows glow deep amber,
   hottest where the lamp inside stands. The frame is graded (cool shadows, warm lamplight) and
-  shown with film grain. Walls seen edge-on don't mirror the sky (their
-  grazing reflection is held back); the puddles keep theirs.
+  shown with film grain. The moon gives little direct glint, so a flat wet
+  wall turned to it doesn't burn white; the puddles still mirror the sky.
 - **The flat look (`?2d`).** Lit like 3D, drawn in 2D: surfaces have normal maps (bumps) and
   specular maps (wet gloss), so lamps, your lantern and the moon light them
   like real stone, wood and water: raking light across brick, glints on wet
@@ -436,6 +436,11 @@ The Metroidvania-native mechanic.
   desktop renderer (`-- --bench --bench-quit`, Vulkan drawn by the CPU) and
   adds it to `bench/bench.md`. CI runs `?bench` in
   Firefox and Chrome (`tools/bench_web.py`, CPU-drawn, so compare rows).
+  CI machines differ by about a third from run to run, so numbers from
+  different pushes don't compare: to compare commits, run the **Benchmark
+  A/B** workflow (`gh workflow run bench-ab.yml -f refs="<old> main"`,
+  `tools/bench_ab.py`), which times them one after another on one machine
+  with the same measuring script.
 - Levels are scenes with TileMapLayers (`Ground`, `BackWall`) and placed
   entities. The first was generated from ASCII by `tools/build_level.py`.
 - CI (GitHub Actions) imports the project, runs a headless scripted

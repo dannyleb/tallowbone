@@ -197,11 +197,6 @@ void fragment() {
 
 	ALBEDO = albedo;
 	ROUGHNESS = clamp(rough, 0.02, 1.0);
-	// Walls seen edge-on would mirror the bright sky over the rooftops,
-	// a sheet of white down the side of a house; the houses around them
-	// hide most of that sky. (Low SPECULAR also scales Godot's grazing
-	// reflection.) The puddles keep theirs: that's the wet street.
-	float ndv = abs(dot(n, normalize(CAMERA_POSITION_WORLD - wpos)));
-	SPECULAR = abs(n.y) < 0.6 ? mix(0.1, 0.5, smoothstep(0.08, 0.45, ndv)) : 0.5;
+	SPECULAR = 0.5;
 	NORMAL = normalize((VIEW_MATRIX * vec4(wn, 0.0)).xyz);
 }

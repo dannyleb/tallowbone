@@ -95,6 +95,10 @@ var _lamp_dark: StandardMaterial3D
 ## Lamplighter).
 var _fore: MeshInstance3D
 var _fore_mat: ShaderMaterial
+## The clutter's meshes, and the lights off the canal water (the benchmark
+## switches each off).
+var _clutter: Array[MeshInstance3D] = []
+var _water_lights: Array[OmniLight3D] = []
 ## The gates' moving parts, {gate, bars, lock}.
 var _gates := []
 ## The noticeboards' papers, {sign, paper}, brighter while you're near.
@@ -651,7 +655,7 @@ func _dress_cell(lv, c: int, r: int, solid: Callable, stone: Builder, inner: Bui
 				stone.box(Vector3(sx, sy, FRONT), Vector3(minf(sx + sw, x1), minf(sy + sh, yt - 0.02), FRONT + 0.015 + _hash(c + i * 7, r + 11) * 0.035), Color.WHITE, true)
 	if lv.back_wall.get_cell_source_id(Vector2i(c, r)) != -1 and k == "":
 		var zb := -BACK
-		if c % 4 == 0:
+		if _pilaster_at(c):
 			inner.box(Vector3(x0 + 0.1, yb - 0.02, zb), Vector3(x0 + 0.65, yt + 0.02, zb + 0.28))
 		# Chains hanging from the vault here and there.
 		if solid.call(c, r - 1) and c % 7 == 2:
@@ -756,9 +760,7 @@ func _culvert(lv, c: int, r: int, solid: Callable, stone: Builder, water: Builde
 ## clusters: stubs and tall ones, wax run down them and pooled, each with
 ## a flickering flame (the window shader: warm, unlit, blooming).
 func _candles(lv, c: int, r: int, solid: Callable, wax: Builder, flames: Builder) -> void:
-	if lv.back_wall.get_cell_source_id(Vector2i(c, r)) == -1 or lv.kind_at(Vector2i(c, r)) != "":
-		return
-	if not solid.call(c, r + 1) or c % 5 != 2 or _hash(c * 17, r * 3) > 0.55:
+	if not _candles_at(lv, c, r, solid):
 		return
 	var floor_y := -float(r + 1)
 	var z0 := -BACK + 0.35
@@ -780,6 +782,19 @@ func _candles(lv, c: int, r: int, solid: Callable, wax: Builder, flames: Builder
 		flames.tri(f + Vector3(-0.02, 0, 0), f + Vector3(0.02, 0, 0), f + Vector3(0, 0.085, 0), Vector3.BACK, Color(1.0, phase, 0.0))
 		flames.tri(f + Vector3(-0.009, 0.004, 0.002), f + Vector3(0.009, 0.004, 0.002), f + Vector3(0, 0.04, 0.002), Vector3.BACK, Color(1.0, phase, 0.0))
 	counts.candles = counts.get("candles", 0) + 1
+
+
+## Is there a pilaster against the back wall in this column (_dress_cell)?
+static func _pilaster_at(c: int) -> bool:
+	return c % 4 == 0
+
+
+## Does this cell (open, a back wall behind, a floor under it) have a
+## cluster of candles at the back (_candles)?
+func _candles_at(lv, c: int, r: int, solid: Callable) -> bool:
+	if lv.back_wall.get_cell_source_id(Vector2i(c, r)) == -1 or lv.kind_at(Vector2i(c, r)) != "":
+		return false
+	return solid.call(c, r + 1) and c % 5 == 2 and _hash(c * 17, r * 3) <= 0.55
 
 
 func _wax() -> StandardMaterial3D:
@@ -1263,16 +1278,24 @@ func _build_clutter() -> void:
 			var floor_y := -float(r)
 			var x := c + rng.randf_range(0.1, 0.5)
 			var walled: bool = lv.back_wall.get_cell_source_id(Vector2i(c, r - 1)) != -1
+			# Where the back wall is dressed (pilasters, candles; desktop
+			# only), keep out in front of it, and nothing against it.
+			var busy := false
+			if walled and not _lite:
+				for k in 3:
+					busy = busy or _pilaster_at(c + k) or _candles_at(lv, c + k, r - 1, solid)
+			# How far back anything may reach (the wall is at -BACK).
+			var back := -2.15 if busy else -2.85
 			var wall_z := -BACK + 0.05
-			match rng.randi() % (5 if walled else 3):
+			match rng.randi() % (5 if walled and not busy else 3):
 				0:
-					_coffin(wood, iron, Vector3(x + 0.6, floor_y + 0.02, -rng.randf_range(1.4, 2.2)), false)
+					_coffin(wood, iron, Vector3(x + 0.6, floor_y + 0.02, rng.randf_range(back + 0.3, -1.4)), false)
 				1:
 					for i in rng.randi_range(1, 3):
-						_barrel(wood, iron, Vector3(x + i * 0.62, floor_y, -rng.randf_range(1.5, 2.4)), rng.randf_range(0.24, 0.3))
+						_barrel(wood, iron, Vector3(x + i * 0.62, floor_y, rng.randf_range(back + 0.32, -1.5)), rng.randf_range(0.24, 0.3))
 				2:
 					var s := rng.randf_range(0.5, 0.7)
-					var z := -rng.randf_range(1.6, 2.4)
+					var z := rng.randf_range(back + s, -1.3)
 					wood.box(Vector3(x, floor_y, z - s), Vector3(x + s, floor_y + s, z), Color(0.8, 0.74, 0.62))
 					if rng.randf() < 0.6:
 						var t := s * 0.72
@@ -1289,7 +1312,10 @@ func _build_clutter() -> void:
 	var mi := _add_mesh(wood.mesh(), mat)
 	if mi:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	_add_mesh(iron.mesh(), _iron())
+		_clutter.append(mi)
+	var nails := _add_mesh(iron.mesh(), _iron())
+	if nails:
+		_clutter.append(nails)
 	counts.clutter_level = placed
 
 
@@ -1739,6 +1765,7 @@ func _build_water_light() -> void:
 		l.position = Vector3(c + 0.5, -surface + 0.5, -0.6)
 		l.light_volumetric_fog_energy = 0.4
 		l.light_specular = 0.2
+		_water_lights.append(l)
 		counts.water_lights += 1
 
 
@@ -2357,15 +2384,23 @@ func _update_lights() -> void:
 		var light: OmniLight3D = e.light
 		var glass: MeshInstance3D = e.glass
 		light.visible = lamp.lit
-		glass.material_override = _lamp_lit if lamp.lit else _lamp_dark
+		var want: Material = _lamp_lit if lamp.lit else _lamp_dark
+		if glass.material_override != want:
+			glass.material_override = want
 		var x: float = lamp.position.x
 		light.light_energy = 5.0 * (1.0 + sin(_time * 11.0 + x) * sin(_time * 6.7 + x * 2.0) * 0.05)
 	for e in _signs:
-		(e.paper as MeshInstance3D).material_override = _paper_near if e.sign.near else _paper
+		var paper: MeshInstance3D = e.paper
+		var want: Material = _paper_near if e.sign.near else _paper
+		if paper.material_override != want:
+			paper.material_override = want
 	for e in _gates:
 		var gate = e.gate
+		var bars: MeshInstance3D = e.bars
 		var rise: float = gate.lift() * (Gate.HEIGHT - 8.0) / Gate.HEIGHT
-		(e.bars as MeshInstance3D).scale.y = maxf(0.02, 1.0 - rise)
+		var length := maxf(0.02, 1.0 - rise)
+		if bars.scale.y != length:
+			bars.scale.y = length
 		(e.lock as MeshInstance3D).visible = not gate.open
 	var p = world.player
 	var flame: Vector2 = p.flame_at()
@@ -2438,6 +2473,16 @@ func set_feature(feature: String, on: bool) -> void:
 			_city.visible = on
 		"far city":
 			_far_city.visible = on
+		"foreground":
+			if _fore:
+				_fore.visible = on
+				(camera.attributes as CameraAttributesPractical).dof_blur_near_enabled = on
+		"clutter":
+			for mi in _clutter:
+				mi.visible = on
+		"water light":
+			for l in _water_lights:
+				l.visible = on
 		"plane":
 			plane.visible = on
 			plane_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED

@@ -19,6 +19,13 @@ from lark import Token, Tree
 # Statements that open a block of their own.
 BLOCKS = {"for_stmt", "for_stmt_typed", "while_stmt", "if_branch", "elif_branch", "else_branch", "match_branch", "lambda"}
 VARS = {"func_var_assigned", "func_var_inf", "func_var_typed_assgnd", "func_var_typed", "func_var_empty"}
+# Properties scripts inherit from Godot's nodes: a bare `scale` may be the
+# node's own, not a local that has gone out of scope.
+INHERITED = {
+    "position", "global_position", "rotation", "scale", "transform", "global_transform", "basis",
+    "visible", "modulate", "self_modulate", "name", "owner", "material", "texture", "mesh", "size",
+    "offset", "text", "layers", "z_index", "visibility_layer", "process_mode", "theme",
+}
 
 
 def _names(node):
@@ -76,7 +83,7 @@ def _walk(node, scopes, locals_, members, found):
 
 def check_scopes(path):
     tree = parser.parse(open(path).read(), gather_metadata=True)
-    members = set()
+    members = set(INHERITED)
     for t in tree.children:
         if isinstance(t, Tree) and t.data in ("class_var_stmt", "const_stmt"):
             members.add(t.children[0].children[0].value)

@@ -49,6 +49,13 @@ const SLOW_WINDOW := 2.0
 ## Seconds after the night begins before frame times count (shaders compile
 ## on first sight of things, and those hitches shouldn't drop the scale).
 const SETTLE := 3.0
+## The title's Begin opens once frames come steadily after the stage's
+## prewarm (WARM_FRAMES in a row, none over twice the quickest, or within
+## WARM_SLACK_MS of it): the shaders have finished compiling. Or after
+## WARM_MAX seconds, whatever happens.
+const WARM_FRAMES := 8
+const WARM_SLACK_MS := 8.0
+const WARM_MAX := 15.0
 
 var title: Control
 var pause_screen: Control
@@ -84,6 +91,10 @@ var _slow_t := 0.0
 var _slow_frames := 0
 var _fast_windows := 0
 var _settle := SETTLE
+## Seconds since the prewarm while Begin waits (-1: not waiting), and the
+## last few frame times.
+var _warm_t := -1.0
+var _warm_recent: Array[float] = []
 
 @onready var view: TextureRect = $View
 @onready var game: SubViewport = $View/Game
@@ -138,10 +149,7 @@ func _ready() -> void:
 		# (the stage's prewarm); start before that and it's a hitch in play.
 		_begin.disabled = true
 		_begin.text = "Lighting the lamps…"
-		stage.warmed.connect(func():
-			_begin.disabled = false
-			_begin.text = "Begin the night"
-			_begin.grab_focus())
+		stage.warmed.connect(func(): _warm_t = 0.0)
 	if query.contains("perf"):
 		toggle_perf()
 	if query.contains("bench"):
@@ -228,7 +236,30 @@ func _process(_delta: float) -> void:
 	_clock = now
 	if _perf and Engine.get_process_frames() % 20 == 0:
 		_perf.text = "%.0f fps   %.1f ms   %dx%d" % [Engine.get_frames_per_second(), frame * 1000.0, game.size.x, game.size.y]
+	if _warm_t >= 0.0 and frame > 0.0:
+		_settle_title(frame)
 	_adapt(frame)
+
+
+## Opens Begin once the frames are steady (see WARM_FRAMES).
+func _settle_title(frame: float) -> void:
+	_warm_t += frame
+	_warm_recent.append(frame * 1000.0)
+	if _warm_recent.size() > WARM_FRAMES:
+		_warm_recent.pop_front()
+	var steady := false
+	if _warm_recent.size() == WARM_FRAMES:
+		var quickest: float = _warm_recent.min()
+		var slowest: float = _warm_recent.max()
+		steady = slowest <= maxf(quickest * 2.0, quickest + WARM_SLACK_MS)
+	if not steady and _warm_t < WARM_MAX:
+		return
+	_warm_t = -1.0
+	_begin.disabled = false
+	_begin.text = "Begin the night"
+	# Not if the Controls panel is open over the title.
+	if title.visible:
+		_begin.grab_focus()
 
 
 ## Drops the render scale a step when frames run slow (see RENDER_STEPS).

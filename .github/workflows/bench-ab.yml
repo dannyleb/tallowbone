@@ -1,0 +1,52 @@
+name: Benchmark A/B
+
+# Benchmarks two or more commits one after another on one machine with the
+# desktop renderer, all measured by the same script (tools/bench_ab.py).
+# CI machines differ by a third from run to run, so only numbers from one
+# machine compare. Start it from the Actions tab, or:
+#   gh workflow run bench-ab.yml -f refs="8a90084 main"
+on:
+  workflow_dispatch:
+    inputs:
+      refs:
+        description: Commits to compare, space-separated; the first is the baseline
+        required: true
+        default: 8a90084 main
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: 4.7.2
+
+jobs:
+  ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Godot and Vulkan drawn by the CPU
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb mesa-vulkan-drivers libgl1-mesa-dri > /dev/null
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -sSfL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$HOME/godot-bin" && rm godot.zip
+
+      - name: Benchmark each commit
+        env:
+          REFS: ${{ inputs.refs }}
+        run: |
+          python3 tools/bench_ab.py "$HOME/godot-bin" ab-out $REFS
+          cat ab-out/ab.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-ab
+          path: ab-out
+          retention-days: 14

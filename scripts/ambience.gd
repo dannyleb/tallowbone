@@ -30,7 +30,7 @@ const BEDS := {"rain_out": -15.0, "rain_in": -12.0, "wind": -12.0, "water": -12.
 ## first: before the first one; db: level; inside_db: added under a roof;
 ## pitch: random pitch range. A sound listed twice comes twice as often.
 const EVENTS := {
-	"howl": {"sounds": ["howl_a", "howl_b", "howl_a", "howl_b", "howl_c"], "every": [30.0, 75.0], "first": [12.0, 20.0], "db": -18.0, "inside_db": -8.0, "pitch": [0.9, 1.06]},
+	"howl": {"sounds": ["howl_a", "howl_b", "howl_a", "howl_b", "howl_c"], "every": [30.0, 75.0], "first": [12.0, 20.0], "db": -23.0, "inside_db": -8.0, "pitch": [0.9, 1.06]},
 	"bell": {"sounds": ["bell"], "every": [80.0, 160.0], "first": [35.0, 55.0], "db": -14.0, "inside_db": -6.0, "pitch": [0.97, 1.0]},
 	"creak": {"sounds": ["creak_a", "creak_b"], "every": [10.0, 26.0], "first": [5.0, 12.0], "db": -17.0, "inside_db": -60.0, "pitch": [0.85, 1.15]},
 	"whisper": {"sounds": ["whisper_a", "whisper_b", "whisper_c"], "every": [35.0, 80.0], "first": [40.0, 70.0], "db": -15.0, "inside_db": 0.0, "pitch": [0.9, 1.05]},

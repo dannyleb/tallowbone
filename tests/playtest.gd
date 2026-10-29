@@ -204,8 +204,11 @@ func _stage() -> void:
 	_check("the canal's water throws a cold light up its walls", st.counts.water_lights >= 2, str(st.counts))
 	_check("watchers have rooftops to stand on", st.roofs.size() > 10, str(st.roofs.size()))
 	_check("every material is drawn once at load (no first-sight hitches)", st.counts.prewarmed >= 12, str(st.counts.prewarmed))
-	if main._begin.disabled:
-		await st.warmed
+	# (Once the frames after the prewarm are steady; a few frames here.)
+	for i in 600:
+		if not main._begin.disabled:
+			break
+		await _frames(1)
 	_check("Begin opens on the title once they're compiled", not main._begin.disabled and main._begin.text == "Begin the night", main._begin.text)
 	st.set_quality(2)
 	var fast: bool = not st.env.volumetric_fog_enabled and not st.env.ssao_enabled and not st.env.ssr_enabled
