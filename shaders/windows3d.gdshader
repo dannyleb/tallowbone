@@ -8,8 +8,11 @@
 shader_type spatial;
 render_mode unshaded, cull_back;
 
-uniform vec3 warm : source_color = vec3(1.0, 0.62, 0.28);
-uniform float energy = 1.6;
+// Deep amber: the film tonemapping bleaches anything brighter toward a
+// flat peach, so the glow stays low and saturated and only the lamp's
+// own spot runs hot.
+uniform vec3 warm : source_color = vec3(1.0, 0.32, 0.05);
+uniform float energy = 0.9;
 
 float bar(float x, float at, float w) {
 	return 1.0 - smoothstep(w, w * 1.8, abs(x - at));
@@ -26,8 +29,8 @@ void fragment() {
 		bars = max(bars, bar(uv.x, 0.75, 0.012) * step(0.38, uv.y));
 		float open = 0.12 + COLOR.b * 0.25;
 		float curtain = smoothstep(open, open - 0.08, uv.x) + smoothstep(1.0 - open, 1.0 - open + 0.08, uv.x);
-		float lamp = 0.55 + 0.6 * clamp(1.0 - length((uv - vec2(0.5, 0.9)) * vec2(1.3, 1.0)), 0.0, 1.0);
-		col *= lamp * (1.0 - 0.7 * clamp(curtain, 0.0, 1.0));
+		float lamp = 0.3 + 1.1 * clamp(1.0 - length((uv - vec2(0.5, 0.9)) * vec2(1.3, 1.0)), 0.0, 1.0);
+		col *= lamp * (1.0 - 0.8 * clamp(curtain, 0.0, 1.0));
 		col *= vec3(1.0) - max(frame, bars) * 0.94;
 	}
 	ALBEDO = col;
