@@ -27,10 +27,20 @@ static func keys(action: String) -> Array[int]:
 	return out
 
 
-## The name of a key as printed on it ("J", "Space", "Shift").
+## The name of a key as printed on it ("J", "Space", "Shift"): on desktops,
+## as the keyboard's layout labels it; elsewhere (the web, headless runs,
+## which can't ask), by its US position.
 static func key_name(physical: int) -> String:
-	var shown := DisplayServer.keyboard_get_keycode_from_physical(physical as Key)
+	var shown := KEY_NONE
+	if _can_map_layout():
+		shown = DisplayServer.keyboard_get_keycode_from_physical(physical as Key)
 	return OS.get_keycode_string(shown if shown != KEY_NONE else physical as Key)
+
+
+static func _can_map_layout() -> bool:
+	if DisplayServer.get_name() == "headless":
+		return false
+	return OS.has_feature("macos") or OS.has_feature("windows") or OS.has_feature("linuxbsd")
 
 
 ## Binds `physical` as the action's only keyboard key (see the header).

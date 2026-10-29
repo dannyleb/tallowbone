@@ -11,6 +11,7 @@ const MapView = preload("res://scripts/map_view.gd")
 const Bench = preload("res://scripts/bench.gd")
 const Stage = preload("res://scripts/stage.gd")
 const Controls = preload("res://scripts/controls.gd")
+const Ambience = preload("res://scripts/ambience.gd")
 
 const INK := Color("07080d")
 const BONE := Color("e8dfcf")
@@ -66,6 +67,8 @@ var _bench = null
 ## The 3D stage (scripts/stage.gd); null with ?2d, which shows the flat
 ## lit-2D look instead.
 var stage = null
+## The night's sound (scripts/ambience.gd).
+var ambience
 var _perf: Label
 var _clock := 0
 var _slow_t := 0.0
@@ -79,6 +82,9 @@ var _settle := SETTLE
 
 func _ready() -> void:
 	Controls.load_saved()
+	ambience = Ambience.new()
+	ambience.world = world
+	add_child(ambience)
 	$HudLayer/Hud.world = world
 	$View/Game/BackdropLayer/Backdrop.world = world
 	view.texture = game.get_texture()
@@ -301,6 +307,30 @@ func _button(text: String) -> Button:
 	return b
 
 
+## A key cap for the Controls panel: dark, framed, lit when chosen.
+func _key_button() -> Button:
+	var b := Button.new()
+	b.add_theme_font_override("font", FELL_SC)
+	b.add_theme_font_size_override("font_size", 9)
+	b.add_theme_color_override("font_color", BONE)
+	b.add_theme_color_override("font_hover_color", INK)
+	b.add_theme_color_override("font_focus_color", INK)
+	b.add_theme_color_override("font_pressed_color", INK)
+	for state in ["normal", "hover", "focus", "pressed"]:
+		var s := StyleBoxFlat.new()
+		s.bg_color = Color(0.07, 0.07, 0.09) if state == "normal" else LAMP
+		s.border_color = Color(0.91, 0.87, 0.81, 0.35)
+		s.set_border_width_all(1)
+		s.set_corner_radius_all(2)
+		s.content_margin_left = 8
+		s.content_margin_right = 8
+		s.content_margin_top = 1
+		s.content_margin_bottom = 1
+		b.add_theme_stylebox_override(state, s)
+	b.custom_minimum_size = Vector2(76, 0)
+	return b
+
+
 ## A full-screen dimmer with a framed card in the middle; returns
 ## [screen, the card's VBox].
 func _card(width: float) -> Array:
@@ -421,24 +451,28 @@ func _build_pause() -> Control:
 ## The Controls panel: every rebindable action with its key; pick one, press
 ## the new key.
 func _build_controls() -> Control:
-	var parts := _card(330.0)
+	var parts := _card(400.0)
 	var box: VBoxContainer = parts[1]
 	box.add_child(_label("Controls", FELL_SC, 18, BONE))
 	box.add_child(_label("Choose an action, then press its new key.  Esc cancels.", FELL_ITALIC, 8, BONE_DIM))
+	# Two columns of [action, key]; the key buttons are quiet key caps.
 	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 14)
-	grid.add_theme_constant_override("v_separation", 2)
-	for entry in Controls.REBINDABLE:
-		var action: String = entry[0]
-		grid.add_child(_label(entry[1], FELL, 9, BONE, HORIZONTAL_ALIGNMENT_RIGHT))
-		var b := _button("")
-		b.add_theme_font_size_override("font_size", 9)
-		b.custom_minimum_size = Vector2(110, 0)
-		b.size_flags_horizontal = Control.SIZE_FILL
-		b.pressed.connect(func(): _start_rebind(action))
-		_bind_buttons[action] = b
-		grid.add_child(b)
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 3)
+	var half := ceili(Controls.REBINDABLE.size() / 2.0)
+	for i in half:
+		for entry in [Controls.REBINDABLE[i], Controls.REBINDABLE[i + half] if i + half < Controls.REBINDABLE.size() else null]:
+			if entry == null:
+				grid.add_child(Control.new())
+				grid.add_child(Control.new())
+				continue
+			var action: String = entry[0]
+			grid.add_child(_label(entry[1], FELL, 9, BONE, HORIZONTAL_ALIGNMENT_RIGHT))
+			var b := _key_button()
+			b.pressed.connect(func(): _start_rebind(action))
+			_bind_buttons[action] = b
+			grid.add_child(b)
 	var center := CenterContainer.new()
 	center.add_child(grid)
 	box.add_child(center)

@@ -65,6 +65,7 @@ func _run() -> void:
 	await _scenario("_death_pile_and_gorge", _death_pile_and_gorge)
 	await _scenario("_levelling", _levelling)
 	await _scenario("_controls", _controls)
+	await _scenario("_ambience", _ambience)
 	await _scenario("_render_scale", _render_scale)
 	await _scenario("_art", _art)
 	await _scenario("_lessons", _lessons)
@@ -693,3 +694,88 @@ func _lessons() -> void:
 	var done: bool = await _wait_until(func(): return world.learned.visceral, 200)
 	_check("finishing it ends the lessons and time runs normally", done and world.lesson.is_empty() and Engine.time_scale == 1.0,
 		"time scale %s" % Engine.time_scale)
+
+
+## The soundscape: beds that loop, mixed by where you are; far-off sounds
+## at random; whispers only in the dark; thunder after lightning, and the
+## call after a reveal.
+func _ambience() -> void:
+	var amb = main.ambience
+	_check("ambience: there is a soundscape", amb != null)
+	if amb == null:
+		return
+	amb.auto = false
+	var bad := []
+	for name in amb.BEDS:
+		var p: AudioStreamPlayer = amb.bed(name)
+		var s: AudioStreamOggVorbis = p.stream as AudioStreamOggVorbis if p else null
+		if s == null or not s.loop or s.get_length() < 10.0 or not p.playing:
+			bad.append(name)
+	_check("ambience: every bed loads, loops and plays", bad.is_empty(), str(bad))
+
+	var start: Vector2 = world.level.player_start.position
+	await _tp(start.x, start.y, 1.0, 30.0)
+	for i in 60:
+		amb.step(0.1)
+	var open_air: Dictionary = amb.presence()
+	var roofed := _roofed_spot()
+	await _tp(roofed.x, roofed.y, 1.0, 30.0)
+	for i in 60:
+		amb.step(0.1)
+	var under: Dictionary = amb.presence()
+	_check("ambience: rain in the open, muffled under a roof",
+		open_air.rain_out > 0.9 and under.rain_in > 0.9 and under.rain_out < 0.1, "%s / %s at %s" % [open_air, under, roofed])
+	_check("ambience: the wind drops under a roof", under.wind <= amb.gust * 0.2 + 0.01, str(under))
+
+	await _tp(start.x, start.y, 1.0, 30.0)
+	amb.reseed(7)
+	amb.heard.clear()
+	var flashes := []
+	var on_flash := func(strength: float, reveal: bool): flashes.append([strength, reveal])
+	amb.lightning.connect(on_flash)
+	for i in 6000:
+		amb.step(0.1)
+	var count := func(prefix: String) -> int:
+		return amb.heard.filter(func(h): return h.begins_with(prefix)).size()
+	_check("ambience: ten minutes of night bring howls, the bell, creaks and storms",
+		count.call("howl") >= 5 and count.call("bell") >= 2 and count.call("creak") >= 3 and count.call("thunder") >= 6,
+		str(amb.heard))
+	_check("ambience: every flash has its thunder", count.call("thunder") == flashes.size() or count.call("thunder") == flashes.size() - 1,
+		"%d flashes, %d thunders" % [flashes.size(), count.call("thunder")])
+
+	amb.heard.clear()
+	amb.dread = 0.1
+	amb._fire("whisper")
+	var calm: int = count.call("whisper")
+	amb.dread = 0.9
+	amb._fire("whisper")
+	_check("ambience: whispers only in the dark", calm == 0 and count.call("whisper") == 1, str(amb.heard))
+
+	amb.heard.clear()
+	flashes.clear()
+	for i in 30:
+		amb._last_reveal = -1000.0
+		amb.strike(1.0)
+		if not flashes.is_empty() and flashes[-1][1]:
+			break
+	for i in 60:
+		amb.step(0.1)
+	var revealed: bool = not flashes.is_empty() and flashes[-1][1]
+	_check("ambience: an overhead strike thunders at once; a reveal brings the call",
+		revealed and amb.heard.has("thunder_near") and amb.heard.has("call") and amb.dread > 0.6,
+		"%s %s dread %.2f" % [flashes, amb.heard, amb.dread])
+	amb.lightning.disconnect(on_flash)
+	amb.auto = true
+	await _tp(start.x, start.y)
+
+
+## Somewhere to stand under a roof.
+func _roofed_spot() -> Vector2:
+	var lv = world.level
+	for r in range(1, lv.size_tiles.y):
+		for c in lv.size_tiles.x:
+			var feet := Vector2((c + 0.5) * T.TILE, r * T.TILE)
+			if lv.standable_at(feet + Vector2(0, 4)) and not lv.solid_at(feet + Vector2(0, -8)) \
+					and not lv.solid_at(feet + Vector2(0, -40)) and lv.roofed_at(feet + Vector2(0, -24)):
+				return feet
+	return Vector2.ZERO
