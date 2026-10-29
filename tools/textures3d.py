@@ -234,7 +234,7 @@ def stone():
 
     # Colour: limestone greys, each block its own; soot streaks run down
     # from the top of the image (rain carries it), grime in every recess.
-    base = rgb("#6b6a68")
+    base = rgb("#8d8b86")
     block = per_id(ids, 112, -1, 1)
     warmth = per_id(ids, 113, -1, 1)
     col = base * (0.82 + 0.1 * block[..., None]) + np.array([0.02, 0.01, -0.01], np.float32) * warmth[..., None]
@@ -242,7 +242,7 @@ def stone():
     streak = fbm(114, (32, 64, 128), stretch=8)
     soot = np.clip((streak - 0.42) * 2.4, 0, 1) * (0.5 + 0.5 * vnoise(6, 2, 115))
     sooty_blocks = np.clip(per_id(ids, 116, -0.6, 1.0), 0, 1)
-    col = col * (1 - 0.55 * np.clip(soot + sooty_blocks * 0.45, 0, 1)[..., None])
+    col = col * (1 - 0.4 * np.clip(soot + sooty_blocks * 0.3, 0, 1)[..., None])
     # Salt bloom: pale tide marks near the joints.
     bloom = np.clip((fbm(117, (16, 32, 64)) - 0.6) * 4, 0, 1) * (1 - bevel * 0.7)
     col = mix(col, rgb("#a9a79d"), bloom * 0.35)
@@ -273,7 +273,7 @@ def cobble():
     h = np.clip(0.15 + edge ** 0.5 * (0.45 + 0.35 * crown + sink + (fine - 0.5) * 0.08), 0, 1)
     cav = cavity(h, 4.0)
     # Granite: grey with flecks; a few setts browner or bluer.
-    base = rgb("#5d5c5d")
+    base = rgb("#767475")
     tone = per_id(ids, 206, -1, 1)
     col = base * (0.8 + 0.14 * tone[..., None]) + np.array([0.03, 0.015, -0.01], np.float32) * per_id(ids, 207, -1, 1)[..., None]
     flecks = (np.random.default_rng(208).random((N, N)) > 0.985).astype(np.float32)
@@ -318,7 +318,7 @@ def wood():
                 nail = np.maximum(nail, np.clip(1 - np.hypot(((xx - cx + N / 2) % N) - N / 2, yy - cy) / 5.0, 0, 1))
     h = np.clip(h + nail * 0.15, 0, 1)
     cav = cavity(h, 3.0)
-    base = rgb("#5b4632")
+    base = rgb("#6f573f")
     tone = per_id(ids, 307, -1, 1)
     col = base * (0.7 + 0.12 * tone[..., None] + 0.3 * grain[..., None])
     ends = np.clip(1 - np.minimum(fx, length - fx) / (0.25 * PX_M), 0, 1)
@@ -351,13 +351,13 @@ def brick():
     h = np.clip(0.3 + face * (0.55 + per_id(ids, 404, -0.05, 0.05) + (fine - 0.5) * 0.1) - spall * 0.12 * face, 0, 1)
     cav = cavity(h, 3.0)
     tone = per_id(ids, 405, -1, 1)
-    base = rgb("#4a3a33")
+    base = rgb("#6a5246")
     col = base * (0.75 + 0.18 * tone[..., None]) * (0.85 + 0.3 * (fine[..., None] - 0.5))
     replaced = per_id(ids, 406, 0, 1) > 0.975
     col = np.where(replaced[..., None], rgb("#5a4337") * (0.85 + 0.3 * fine[..., None]), col)
     soot = np.clip((fbm(407, (16, 32, 64), stretch=6) - 0.35) * 2, 0, 1)
-    col *= (1 - 0.6 * soot)[..., None]
-    col = mix(rgb("#2e2c29") * (0.8 + 0.4 * fine[..., None]), col, face)
+    col *= (1 - 0.4 * soot)[..., None]
+    col = mix(rgb("#3e3b37") * (0.8 + 0.4 * fine[..., None]), col, face)
     col *= (1 - 0.55 * cav)[..., None]
     rough = 0.8 + 0.1 * (fine - 0.5) + 0.1 * (1 - face)
     write("brick", col, h, 7.0, rough)
@@ -385,7 +385,7 @@ def slate():
     h = np.where(missing, 0.1 + 0.05 * fine, h)
     cav = cavity(h, 3.0)
     tone = per_id(ids, 504, -1, 1)
-    col = rgb("#3a3d44") * (0.8 + 0.15 * tone[..., None]) * (0.85 + 0.3 * (fine[..., None] - 0.5))
+    col = rgb("#4c5059") * (0.8 + 0.15 * tone[..., None]) * (0.85 + 0.3 * (fine[..., None] - 0.5))
     lichen = np.clip((fbm(505, (8, 16, 32)) - 0.58) * 4, 0, 1) * (1 - slope * 0.5)
     col = mix(col, rgb("#4b5236"), lichen * 0.6)
     col = np.where(missing[..., None], rgb("#17140f"), col)

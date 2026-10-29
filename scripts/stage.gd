@@ -309,7 +309,7 @@ func _environment() -> void:
 	# rather than black.
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.16, 0.19, 0.27)
-	env.ambient_light_energy = 0.9
+	env.ambient_light_energy = 1.3
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.tonemap_exposure = 1.25
@@ -381,7 +381,7 @@ func _environment() -> void:
 	# your shoulder, so the fronts of things read instead of going black.
 	var fill := DirectionalLight3D.new()
 	fill.light_color = Color(0.45, 0.52, 0.75)
-	fill.light_energy = 0.22
+	fill.light_energy = 0.45
 	fill.light_volumetric_fog_energy = 0.0
 	fill.basis = Basis.looking_at(Vector3(0.35, -0.45, -1.0).normalized(), Vector3.UP)
 	add_child(fill)
@@ -392,7 +392,7 @@ func _grade() -> GradientTexture1D:
 	var g := Gradient.new()
 	g.offsets = PackedFloat32Array([0.0, 0.12, 0.5, 0.85, 1.0])
 	g.colors = PackedColorArray([
-		Color(0.0, 0.0, 0.004), Color(0.104, 0.118, 0.14), Color(0.49, 0.5, 0.505),
+		Color(0.012, 0.014, 0.022), Color(0.125, 0.135, 0.158), Color(0.5, 0.505, 0.51),
 		Color(0.87, 0.85, 0.8), Color(1.0, 0.98, 0.94),
 	])
 	var t := GradientTexture1D.new()
@@ -517,6 +517,14 @@ func _dress_cell(lv, c: int, r: int, solid: Callable, stone: Builder, inner: Bui
 		if c % 6 == 3 and solid.call(c, r + 1):
 			var top := yt - (0.24 if open_above else 0.0)
 			stone.box(Vector3(x0 + 0.15, yb, FRONT), Vector3(x0 + 0.8, top, FRONT + 0.1))
+		elif _hash(c * 3, r * 5) < 0.45:
+			# A stone or two sitting proud of the face, for the light to catch.
+			for i in 1 + int(_hash(c, r * 7) * 2.0):
+				var sx := x0 + _hash(c + i * 13, r) * 0.6
+				var sy := yb + 0.08 + _hash(c, r + i * 17) * 0.62
+				var sw := 0.22 + _hash(c + i, r + 3) * 0.3
+				var sh := 0.12 + _hash(c + 5, r + i) * 0.12
+				stone.box(Vector3(sx, sy, FRONT), Vector3(minf(sx + sw, x1), minf(sy + sh, yt - 0.02), FRONT + 0.015 + _hash(c + i * 7, r + 11) * 0.035))
 	if lv.back_wall.get_cell_source_id(Vector2i(c, r)) != -1 and k == "":
 		var zb := -BACK
 		if c % 4 == 0:
@@ -791,6 +799,13 @@ func _house(b: Dictionary, rng: RandomNumberGenerator, x: float, bw: float, bh: 
 				_window(b, rng, wx, floor_y, front, 0.45, 0.85, near)
 			wx += 1.6
 		floor_y += 3.0
+	if row == 0 and not _lite and rng.randf() < 0.3:
+		# A shop sign on an iron bracket, beside the door.
+		var sx := x + rng.randf_range(0.4, bw - 1.2)
+		var sy := STREET + rng.randf_range(2.6, 3.2)
+		b.iron.box(Vector3(sx, sy, front), Vector3(sx + 0.04, sy + 0.04, front + 1.0))
+		b.iron.box(Vector3(sx, sy - 0.3, front), Vector3(sx + 0.04, sy, front + 0.04))
+		b.wood.box(Vector3(sx - 0.01, sy - 0.6, front + 0.25), Vector3(sx + 0.05, sy - 0.04, front + 0.95))
 	if row == 0 and not _lite:
 		# A door, recessed in its frame, a step before it.
 		b.wood.box(Vector3(door_x, STREET, front - 0.12), Vector3(door_x + 1.1, STREET + 2.3, front - 0.02))
@@ -843,6 +858,22 @@ func _window(b: Dictionary, rng: RandomNumberGenerator, x: float, y: float, fron
 		b.windows.quad(Vector3(x, y + wh, z), Vector3(x + ww, y + wh, z), Vector3(x + ww, y, z), Vector3(x, y, z), Vector3.BACK, col)
 	elif framed:
 		b.glass.quad(Vector3(x, y + wh, z), Vector3(x + ww, y + wh, z), Vector3(x + ww, y, z), Vector3(x, y, z), Vector3.BACK)
+	if framed and ww < 0.48 and rng.randf() < 0.35:
+		# Shutters folded back, one a little ajar.
+		b.wood.box(Vector3(x - 0.09 - ww * 0.5, y - 0.02, front + 0.04), Vector3(x - 0.1, y + wh, front + 0.08))
+		b.wood.box(Vector3(x + ww + 0.1, y - 0.02, front + 0.04), Vector3(x + ww + 0.09 + ww * 0.5, y + wh, front + 0.14))
+	if framed and y < STREET + 2.5 and rng.randf() < 0.6:
+		# Bars on a ground-floor window.
+		for i in 4:
+			var bx := x + ww * (i + 0.5) / 4.0
+			b.iron.box(Vector3(bx - 0.015, y, front + 0.07), Vector3(bx + 0.015, y + wh, front + 0.1))
+	elif framed and ww < 0.48 and y > STREET + 3.0 and rng.randf() < 0.18:
+		# A small iron balcony.
+		b.trim.box(Vector3(x - 0.3, y - 0.22, front), Vector3(x + ww + 0.3, y - 0.12, front + 0.55))
+		b.iron.box(Vector3(x - 0.3, y + 0.55, front + 0.5), Vector3(x + ww + 0.3, y + 0.59, front + 0.55))
+		for i in 7:
+			var px := x - 0.28 + (ww + 0.56) * i / 6.0
+			b.iron.box(Vector3(px - 0.012, y - 0.12, front + 0.5), Vector3(px + 0.012, y + 0.57, front + 0.53))
 	if framed:
 		b.trim.box(Vector3(x - 0.09, y - 0.08, front), Vector3(x + ww + 0.09, y + wh + 0.1, front + 0.04))
 		b.trim.box(Vector3(x - 0.14, y - 0.17, front), Vector3(x + ww + 0.14, y - 0.07, front + 0.16))

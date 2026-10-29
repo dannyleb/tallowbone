@@ -280,6 +280,24 @@ The Metroidvania-native mechanic.
   and lit by the 3D lights. Full quality is the desktop app; the browser
   gets a reduced version (no volumetric fog or mist, no screen-space
   reflections, fewer details).
+- **Weathered, not clean [slice, generated].** The target is old stone
+  that has had a century of coal smoke and rain: every surface carries
+  its history. Ashlar of uneven courses with chipped, worn arrises, pits,
+  spalls and cracks, soot run down from above, salt bloom, moss low in the
+  joints; granite setts worn smooth on top with mud and water in the
+  joints; old planks rotting at the ends round rusting nails; soot-black
+  brick and slate on the houses. Water settles in the low parts first.
+  The masonry around the play has coping stones along every ledge,
+  pilasters, stones sitting proud of the face to catch the light, vaulted
+  ribs and hanging chains in the rooms, railings behind the walkways. The
+  skyline is gothic: steep gables with finials, turrets under slate
+  cones, the church's nave with buttresses, lancets and a rose window,
+  spires far off in the fog; the near houses have shutters, iron
+  balconies, barred windows, shop signs, and the street behind them is
+  cluttered with barrels, crates and carts. Figures are painted with a
+  woven grain, folds and a wet hem until the illustrated frames arrive.
+  The frame is graded (cool shadows, warm lamplight, a little less
+  colour) and shown with film grain.
 - **The flat look (`?2d`).** Lit like 3D, drawn in 2D: surfaces have normal maps (bumps) and
   specular maps (wet gloss), so lamps, your lantern and the moon light them
   like real stone, wood and water: raking light across brick, glints on wet
@@ -368,7 +386,10 @@ The Metroidvania-native mechanic.
 - **Web performance [slice]:** the world (and backdrop) draw into their own
   viewport at no more than 3 render px per world px (1920x1080), shown
   scaled; menus and text stay at the window's resolution. Frames averaging
-  over 24 ms drop the render scale a step (2x, 1.5x, 1x). Firefox pays far
+  over 20 ms drop the render scale a step (2x, 1.5x, 1x); still slow at
+  the smallest, the **quality** steps down (High, Balanced, Fast; also in
+  the pause menu, saved). Every material is drawn once at load so shaders
+  compile then, not as a hitch at first sight. Firefox pays far
   more per draw call than Chrome, so the backdrop's skyline is painted once
   into textures and scrolled, rain is one batch of lines, and pickups glow
   with drawn halos instead of lights. Physics catches up at most 3 ticks a
@@ -408,6 +429,7 @@ The Metroidvania-native mechanic.
 | — | 2.5D: 3D stage around the 2D game (geometry from tiles, moon and lamp shadows, volumetric fog, wet stone, rain and drips, city) | **done (greybox)** |
 | — | Easier start: canal of short hops, ledge assist, five starting keys with the rest found along the way, hold strike to transform, pause-screen map, shortcut gates, Climbing Irons | **done** |
 | — | Atmosphere: soundscape, storm and the thing in the fog, a dressed and wetter city (rain rings, splashes, mist, drainpipes), characters drawn in depth, key rebinding and Ctrl-click | **done (greybox)** |
+| — | Weathered: generated materials with history (soot, moss, wear, water in the joints), gothic skyline and masonry, textured figures, grade and grain, quality levels | **done (generated)** |
 
 ## 14. Open questions
 - Lore: who is the Medium, and what is the church actually burning?

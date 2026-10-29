@@ -127,9 +127,9 @@ void fragment() {
 	float wet = wetness * (0.65 + 0.35 * texture(wet_noise, wpos.xy * 0.11 + wpos.zz * 0.11).r);
 	// Over the whole city, some walls dirtier, some cleaner.
 	float macro = texture(wet_noise, wpos.xy * 0.021 + wpos.zx * 0.017).r;
-	albedo *= tint * (0.72 + 0.56 * macro);
+	albedo *= tint * (0.8 + 0.4 * macro);
 	rough *= 0.9 + 0.2 * macro;
-	albedo *= mix(1.0, 0.55, wet);              // wet stone darkens
+	albedo *= mix(1.0, 0.68, wet);              // wet stone darkens
 	albedo = mix(albedo, albedo * 0.45, puddle);
 	rough = mix(rough, rough * 0.35, wet);
 	// Not quite mirrors: rain pocks the puddles, so reflections blur a little.

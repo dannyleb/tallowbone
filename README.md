@@ -51,10 +51,15 @@ Where things are:
   them, and the templates to paint over, are in [docs/ART.md](docs/ART.md).
 - **Hitboxes:** press **H** while playing from the editor. On the web build,
   add `?debug` to the address.
-- **Performance:** press **F3** (or add `?perf` to the address) for fps and the render size,
-  `?scale=1.5` to fix how sharp the world is drawn (it otherwise starts at
-  up to 3x and steps down when frames run slow), or `?bench` to run the
-  frame-time benchmark and get a table of what each system costs.
+- **Performance:** **Quality** in the pause menu (High, Balanced, Fast;
+  it also steps down by itself if frames stay slow). Press **F3** (or add
+  `?perf` to the address) for fps and the render size, `?scale=1.5` to fix
+  how sharp the world is drawn (it otherwise starts at up to 3x and steps
+  down when frames run slow), or `?bench` to run the frame-time benchmark
+  and get a table of what each system costs.
+- **Before pushing:** `gdparse` on changed scripts, then
+  `python3 tools/check_gd.py` and `python3 tools/check_shaders.py` (they
+  catch what would otherwise fail to compile in CI).
 
 ## Controls
 
@@ -153,7 +158,8 @@ assets/              fonts (OFL), placeholder sounds, the ambience (Ogg),
                      greybox tiles (colour, normal and gloss atlases)
 tiles/               the TileSet
 tools/               Python generators: lit greybox tiles, 3D surface
-                     textures (textures3d.py), sounds, the ambience
+                     textures (textures3d.py: weathered stone, setts,
+                     planks, brick, slate), sounds, the ambience
                      (make_ambience.py: numpy, scipy, ffmpeg), the
                      ASCII level (tools/levels/*.txt), the input map;
                      bench_web.py runs ?bench in browsers (CI)
