@@ -1552,8 +1552,8 @@ func _build_lights() -> void:
 ## A soft warm glow, always facing the camera, added over what's behind.
 func _halo_material() -> StandardMaterial3D:
 	var g := Gradient.new()
-	g.offsets = PackedFloat32Array([0.0, 0.2, 0.55, 1.0])
-	g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.45), Color(1, 1, 1, 0.1), Color(1, 1, 1, 0)])
+	g.offsets = PackedFloat32Array([0.0, 0.35, 0.7, 1.0])
+	g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.5), Color(1, 1, 1, 0.15), Color(1, 1, 1, 0)])
 	var t := GradientTexture2D.new()
 	t.gradient = g
 	t.fill = GradientTexture2D.FILL_RADIAL
@@ -1567,7 +1567,7 @@ func _halo_material() -> StandardMaterial3D:
 	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	m.albedo_texture = t
-	m.albedo_color = Color(1.0, 0.62, 0.32, 0.4)
+	m.albedo_color = Color(1.0, 0.62, 0.32, 0.75)
 	return m
 
 
