@@ -171,6 +171,7 @@ func _ready() -> void:
 	# The plane viewport draws the figures; they must repaint whenever they
 	# change, whether or not the 2D view "sees" them.
 	Figure.always = true
+	var started := Time.get_ticks_msec()
 	_lite = RenderingServer.get_current_rendering_method() == "gl_compatibility"
 	var game: SubViewport = main.game
 	game.positional_shadow_atlas_size = 4096
@@ -203,6 +204,8 @@ func _ready() -> void:
 		main.ambience.lightning.connect(storm.flash)
 	world.level.burnt.connect(func(_cells): _build_veil())
 	fit()
+	counts.build_ms = Time.get_ticks_msec() - started
+	print("3D stage built in %d ms" % counts.build_ms)
 
 
 # --- Setup -------------------------------------------------------------------
@@ -1076,9 +1079,9 @@ func _far_spires(rng: RandomNumberGenerator, w: float, mats: Dictionary) -> void
 	var b := _city_builders()
 	var x := -60.0
 	while x < w + 60.0:
-		var z := rng.randf_range(-75.0, -62.0)
-		var s := rng.randf_range(4.0, 7.0)
-		var h := rng.randf_range(18.0, 34.0)
+		var z := rng.randf_range(-95.0, -78.0)
+		var s := rng.randf_range(3.0, 5.0)
+		var h := rng.randf_range(10.0, 20.0)
 		b.walls.box(Vector3(x, STREET - 2.0, z - s), Vector3(x + s, STREET + h, z))
 		var apex := Vector3(x + s * 0.5, STREET + h + s * rng.randf_range(1.8, 3.2), z - s * 0.5)
 		var c := [Vector3(x, STREET + h, z), Vector3(x + s, STREET + h, z), Vector3(x + s, STREET + h, z - s), Vector3(x, STREET + h, z - s)]
@@ -1092,7 +1095,7 @@ func _far_spires(rng: RandomNumberGenerator, w: float, mats: Dictionary) -> void
 		if rng.randf() < 0.4:
 			var wy := STREET + h * rng.randf_range(0.5, 0.85)
 			b.windows.quad(Vector3(x + s * 0.4, wy + 1.2, z + 0.05), Vector3(x + s * 0.6, wy + 1.2, z + 0.05), Vector3(x + s * 0.6, wy, z + 0.05), Vector3(x + s * 0.4, wy, z + 0.05), Vector3.BACK, Color(0.6, 0.0, 0.0))
-		x += rng.randf_range(14.0, 30.0)
+		x += rng.randf_range(28.0, 55.0)
 	_add_city_chunk(b, mats, false)
 
 

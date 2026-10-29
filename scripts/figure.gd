@@ -8,8 +8,11 @@
 ## changed: off-screen actors cost nothing to draw.
 extends Sprite2D
 
-## Render resolution: viewport pixels per world pixel.
+## Render resolution: viewport pixels per world pixel. The desktop draws
+## the world at up to 3 render px per world px, so figures match it there;
+## the browser keeps 2.
 const RES := 2.0
+const RES_DESKTOP := 3.0
 const VOLUME := preload("res://shaders/volume.gdshader")
 ## The painter's shader: turns the drawing white for a hit flash (painted
 ## frames can't be recoloured the way the greybox is), and gives the greybox
@@ -33,15 +36,16 @@ var _active := true
 ## inside them. paint: called with the CanvasItem to draw on, in the actor's
 ## own coordinates (feet at 0, 0).
 func setup(size: Vector2, origin: Vector2, paint: Callable) -> void:
+	var res := RES_DESKTOP if RenderingServer.get_current_rendering_method() == "forward_plus" else RES
 	_viewport = SubViewport.new()
 	_viewport.transparent_bg = true
 	_viewport.disable_3d = true
-	_viewport.size = Vector2i(size * RES)
+	_viewport.size = Vector2i(size * res)
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	add_child(_viewport)
 	_painter = Node2D.new()
-	_painter.position = origin * RES
-	_painter.scale = Vector2(RES, RES)
+	_painter.position = origin * res
+	_painter.scale = Vector2(res, res)
 	_painter.draw.connect(func(): paint.call(_painter))
 	# Painted frames (scripts/art.gd) are drawn smaller than they're painted.
 	_painter.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -51,14 +55,14 @@ func setup(size: Vector2, origin: Vector2, paint: Callable) -> void:
 	_viewport.add_child(_painter)
 	texture = _viewport.get_texture()
 	centered = false
-	offset = -origin * RES
-	scale = Vector2.ONE / RES
+	offset = -origin * res
+	scale = Vector2.ONE / res
 	var m := ShaderMaterial.new()
 	m.shader = VOLUME
 	material = m
 	# In this sprite's own (scaled) coordinates, like the texture.
 	_seen = VisibleOnScreenNotifier2D.new()
-	_seen.rect = Rect2(-origin * RES, size * RES)
+	_seen.rect = Rect2(-origin * res, size * res)
 	_seen.screen_entered.connect(_render)
 	add_child(_seen)
 

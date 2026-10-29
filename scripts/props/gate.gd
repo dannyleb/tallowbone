@@ -41,6 +41,10 @@ func _draw() -> void:
 	for i in 4:
 		var x := -5.0 + i * 3.4
 		draw_rect(Rect2(x, top, 1.6, HEIGHT - rise), IRON)
+		# A spear point standing above the lintel.
+		draw_colored_polygon(PackedVector2Array([Vector2(x - 0.6, top - 4), Vector2(x + 2.2, top - 4), Vector2(x + 0.8, top - 8.5)]), IRON)
+	for x in [-7.5, 7.5]:
+		draw_circle(Vector2(x, top - 1.5), 0.7, IRON.lightened(0.15))
 	for y in [-30.0, -66.0]:
 		var cy: float = y - rise
 		if cy > top:
