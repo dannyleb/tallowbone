@@ -201,6 +201,7 @@ func _stage() -> void:
 	_check("mist lies over the streets and the canal", st.counts.mist >= 4, str(st.counts))
 	_check("chains, hooks and cages hang out of focus between you and the play", st.counts.foreground >= 4, str(st.counts))
 	_check("coffins, barrels and crates are left about the streets and rooms", st.counts.clutter_level >= 6, str(st.counts))
+	_check("the canal's water throws a cold light up its walls", st.counts.water_lights >= 2, str(st.counts))
 	_check("watchers have rooftops to stand on", st.roofs.size() > 10, str(st.roofs.size()))
 	_check("every material is drawn once at load (no first-sight hitches)", st.counts.prewarmed >= 12, str(st.counts.prewarmed))
 	if main._begin.disabled:

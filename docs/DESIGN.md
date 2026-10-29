@@ -322,7 +322,9 @@ The Metroidvania-native mechanic.
   a hit blanches them rather than turning them white, and blood flies in
   drawn-out drops. The light is tonemapped like film (AgX): the toe keeps
   texture in what the lamps barely reach, the brightest lights burn
-  toward white. The frame is graded (cool shadows, warm lamplight) and
+  toward white. The canal throws a faint cold light up the walls of its
+  cut (desktop), so it isn't a black pit; lit windows glow deep amber,
+  hottest where the lamp inside stands. The frame is graded (cool shadows, warm lamplight) and
   shown with film grain. Walls seen edge-on don't mirror the sky (their
   grazing reflection is held back); the puddles keep theirs.
 - **The flat look (`?2d`).** Lit like 3D, drawn in 2D: surfaces have normal maps (bumps) and

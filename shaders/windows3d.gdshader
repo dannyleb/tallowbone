@@ -8,10 +8,10 @@
 shader_type spatial;
 render_mode unshaded, cull_back;
 
-// Deep amber: the film tonemapping bleaches anything brighter toward a
-// flat peach, so the glow stays low and saturated and only the lamp's
-// own spot runs hot.
-uniform vec3 warm : source_color = vec3(1.0, 0.32, 0.05);
+// Deep amber (sRGB here; linear 1, 0.32, 0.05): the film tonemapping
+// bleaches anything brighter toward a flat peach, so the glow stays low
+// and saturated and only the lamp's own spot runs hot.
+uniform vec3 warm : source_color = vec3(1.0, 0.6, 0.25);
 uniform float energy = 0.9;
 
 float bar(float x, float at, float w) {

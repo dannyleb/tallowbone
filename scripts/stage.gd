@@ -1498,6 +1498,7 @@ func _build_lights() -> void:
 	var posts := _add_mesh(iron.mesh(), _iron())
 	if posts:
 		posts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_build_water_light()
 	_lantern = _omni(Color(1.0, 0.74, 0.46), 2.0, 5.0, true)
 	# A faint cold fill so you can always read the Lamplighter.
 	_fill = _omni(Color(0.7, 0.78, 1.0), 0.75, 4.5, false)
@@ -1708,6 +1709,37 @@ func _build_foreground() -> void:
 	var attrs: CameraAttributesPractical = camera.attributes
 	attrs.dof_blur_near_enabled = true
 	attrs.dof_blur_near_transition = 2.0
+
+
+## The water throws back what little sky there is: a faint cold light just
+## over each stretch of it, onto the walls of the cut it runs in, so the
+## canal isn't a black pit. No shadows; desktop only.
+func _build_water_light() -> void:
+	counts.water_lights = 0
+	if _lite:
+		return
+	var lv = world.level
+	var w: int = lv.size_tiles.x
+	var h: int = lv.size_tiles.y
+	var since := 99
+	for c in w:
+		var surface := -1
+		for r in h:
+			if lv.kind_at(Vector2i(c, r)) == "water":
+				surface = r
+				break
+		if surface < 0:
+			since = 99
+			continue
+		since += 1
+		if since < 4:
+			continue
+		since = 0
+		var l := _omni(Color(0.55, 0.68, 0.95), 0.7, 4.5, false)
+		l.position = Vector3(c + 0.5, -surface + 0.5, -0.6)
+		l.light_volumetric_fog_energy = 0.4
+		l.light_specular = 0.2
+		counts.water_lights += 1
 
 
 ## A point in the 2D world (px, y down) at depth z (m) in the 3D stage.
