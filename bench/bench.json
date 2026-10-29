@@ -1,0 +1,1699 @@
+{
+ "Firefox, 1280x720": {
+  "first_visit": [
+   {
+    "avg_ms": 537.4,
+    "draw_calls": 401.2,
+    "fps": 1.86081131373279,
+    "frames": 5,
+    "hitches": 5,
+    "max_ms": 1573.0,
+    "physics_ms": 3.2,
+    "process_ms": 1316.8,
+    "spot": "street"
+   },
+   {
+    "avg_ms": 255.8,
+    "draw_calls": 475.0,
+    "fps": 3.90930414386239,
+    "frames": 5,
+    "hitches": 5,
+    "max_ms": 259.0,
+    "physics_ms": 5.0,
+    "process_ms": 258.6,
+    "spot": "canal"
+   },
+   {
+    "avg_ms": 1698.4,
+    "draw_calls": 500.0,
+    "fps": 0.588789448893076,
+    "frames": 5,
+    "hitches": 5,
+    "max_ms": 4958.0,
+    "physics_ms": 9.6,
+    "process_ms": 1677.2,
+    "spot": "undercroft"
+   }
+  ],
+  "info": {
+   "adapter": "Mozilla / llvmpipe, or similar, gl_compatibility",
+   "agent": "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0 / dpr 1",
+   "render": "1280x720 (2.0x)",
+   "view": "(640.0, 360.0)",
+   "window": "(1280, 720)"
+  },
+  "rows": [
+   {
+    "config": "everything on",
+    "spots": [
+     {
+      "avg_ms": 269.833333333333,
+      "draw_calls": 481.0,
+      "fps": 3.70599135268684,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 272.0,
+      "physics_ms": 5.83333333333333,
+      "process_ms": 250.5,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 258.666666666667,
+      "draw_calls": 475.0,
+      "fps": 3.8659793814433,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 262.0,
+      "physics_ms": 5.0,
+      "process_ms": 240.0,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 324.4,
+      "draw_calls": 500.0,
+      "fps": 3.0826140567201,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 325.0,
+      "physics_ms": 5.8,
+      "process_ms": 304.6,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no shadows",
+    "spots": [
+     {
+      "avg_ms": 256.166666666667,
+      "draw_calls": 466.0,
+      "fps": 3.90370852309694,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 260.0,
+      "physics_ms": 5.83333333333333,
+      "process_ms": 236.666666666667,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 254.833333333333,
+      "draw_calls": 462.0,
+      "fps": 3.9241334205363,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 273.0,
+      "physics_ms": 5.16666666666667,
+      "process_ms": 224.666666666667,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 309.0,
+      "draw_calls": 474.0,
+      "fps": 3.23624595469256,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 310.0,
+      "physics_ms": 5.8,
+      "process_ms": 320.0,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no fog",
+    "spots": [
+     {
+      "avg_ms": 265.166666666667,
+      "draw_calls": 481.0,
+      "fps": 3.77121307353865,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 276.0,
+      "physics_ms": 9.5,
+      "process_ms": 250.5,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 255.166666666667,
+      "draw_calls": 475.666666666667,
+      "fps": 3.91900718484651,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 264.0,
+      "physics_ms": 8.0,
+      "process_ms": 233.0,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 319.4,
+      "draw_calls": 500.0,
+      "fps": 3.13087038196619,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 325.0,
+      "physics_ms": 5.8,
+      "process_ms": 297.4,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no reflections",
+    "spots": [
+     {
+      "avg_ms": 255.666666666667,
+      "draw_calls": 481.0,
+      "fps": 3.91134289439374,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 268.0,
+      "physics_ms": 6.0,
+      "process_ms": 231.0,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 239.428571428571,
+      "draw_calls": 475.0,
+      "fps": 4.17661097852029,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 249.0,
+      "physics_ms": 6.42857142857143,
+      "process_ms": 220.571428571429,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 303.6,
+      "draw_calls": 500.2,
+      "fps": 3.29380764163373,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 306.0,
+      "physics_ms": 5.2,
+      "process_ms": 284.2,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no bounce",
+    "spots": [
+     {
+      "avg_ms": 278.666666666667,
+      "draw_calls": 481.0,
+      "fps": 3.58851674641148,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 294.0,
+      "physics_ms": 8.5,
+      "process_ms": 252.0,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 263.166666666667,
+      "draw_calls": 475.166666666667,
+      "fps": 3.79987333755541,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 276.0,
+      "physics_ms": 6.16666666666667,
+      "process_ms": 244.0,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 322.0,
+      "draw_calls": 500.0,
+      "fps": 3.1055900621118,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 324.0,
+      "physics_ms": 5.0,
+      "process_ms": 303.8,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no glow",
+    "spots": [
+     {
+      "avg_ms": 264.5,
+      "draw_calls": 481.0,
+      "fps": 3.78071833648393,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 281.0,
+      "physics_ms": 6.0,
+      "process_ms": 244.0,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 245.142857142857,
+      "draw_calls": 475.0,
+      "fps": 4.07925407925408,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 261.0,
+      "physics_ms": 5.28571428571429,
+      "process_ms": 222.142857142857,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 306.8,
+      "draw_calls": 500.0,
+      "fps": 3.25945241199478,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 314.0,
+      "physics_ms": 7.6,
+      "process_ms": 287.6,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no rain",
+    "spots": [
+     {
+      "avg_ms": 277.833333333333,
+      "draw_calls": 478.0,
+      "fps": 3.59928014397121,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 298.0,
+      "physics_ms": 5.0,
+      "process_ms": 247.333333333333,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 254.333333333333,
+      "draw_calls": 472.0,
+      "fps": 3.93184796854522,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 257.0,
+      "physics_ms": 10.0,
+      "process_ms": 234.333333333333,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 320.0,
+      "draw_calls": 497.0,
+      "fps": 3.125,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 324.0,
+      "physics_ms": 5.0,
+      "process_ms": 300.2,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no far city",
+    "spots": [
+     {
+      "avg_ms": 273.333333333333,
+      "draw_calls": 459.0,
+      "fps": 3.65853658536585,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 285.0,
+      "physics_ms": 5.0,
+      "process_ms": 251.0,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 259.0,
+      "draw_calls": 455.0,
+      "fps": 3.86100386100386,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 266.0,
+      "physics_ms": 10.0,
+      "process_ms": 237.166666666667,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 321.0,
+      "draw_calls": 478.0,
+      "fps": 3.11526479750779,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 323.0,
+      "physics_ms": 5.2,
+      "process_ms": 301.4,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no city",
+    "spots": [
+     {
+      "avg_ms": 208.375,
+      "draw_calls": 452.0,
+      "fps": 4.79904019196161,
+      "frames": 8,
+      "hitches": 8,
+      "max_ms": 213.0,
+      "physics_ms": 6.0,
+      "process_ms": 203.875,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 182.888888888889,
+      "draw_calls": 447.222222222222,
+      "fps": 5.4678007290401,
+      "frames": 9,
+      "hitches": 9,
+      "max_ms": 202.0,
+      "physics_ms": 9.44444444444444,
+      "process_ms": 161.777777777778,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 330.0,
+      "draw_calls": 472.0,
+      "fps": 3.03030303030303,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 343.0,
+      "physics_ms": 5.0,
+      "process_ms": 293.8,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no foreground",
+    "spots": [
+     {
+      "avg_ms": 270.0,
+      "draw_calls": 481.0,
+      "fps": 3.7037037037037,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 272.0,
+      "physics_ms": 4.5,
+      "process_ms": 250.5,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 265.833333333333,
+      "draw_calls": 475.0,
+      "fps": 3.76175548589342,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 282.0,
+      "physics_ms": 15.3333333333333,
+      "process_ms": 255.5,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 332.0,
+      "draw_calls": 500.2,
+      "fps": 3.01204819277108,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 345.0,
+      "physics_ms": 5.6,
+      "process_ms": 306.8,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no clutter",
+    "spots": [
+     {
+      "avg_ms": 274.666666666667,
+      "draw_calls": 475.0,
+      "fps": 3.64077669902913,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 282.0,
+      "physics_ms": 10.0,
+      "process_ms": 253.5,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 278.166666666667,
+      "draw_calls": 469.333333333333,
+      "fps": 3.59496704613541,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 298.0,
+      "physics_ms": 5.5,
+      "process_ms": 243.0,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 322.6,
+      "draw_calls": 494.0,
+      "fps": 3.09981401115933,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 329.0,
+      "physics_ms": 6.2,
+      "process_ms": 304.0,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no water light",
+    "spots": [
+     {
+      "avg_ms": 270.833333333333,
+      "draw_calls": 481.0,
+      "fps": 3.69230769230769,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 273.0,
+      "physics_ms": 5.33333333333333,
+      "process_ms": 253.666666666667,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 262.333333333333,
+      "draw_calls": 475.0,
+      "fps": 3.81194409148666,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 270.0,
+      "physics_ms": 5.66666666666667,
+      "process_ms": 244.0,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 323.6,
+      "draw_calls": 500.2,
+      "fps": 3.0902348578492,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 326.0,
+      "physics_ms": 5.0,
+      "process_ms": 305.0,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no plane",
+    "spots": [
+     {
+      "avg_ms": 269.5,
+      "draw_calls": 477.0,
+      "fps": 3.71057513914657,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 288.0,
+      "physics_ms": 5.5,
+      "process_ms": 241.5,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 256.666666666667,
+      "draw_calls": 470.333333333333,
+      "fps": 3.8961038961039,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 266.0,
+      "physics_ms": 6.33333333333333,
+      "process_ms": 229.0,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 316.4,
+      "draw_calls": 494.0,
+      "fps": 3.16055625790139,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 318.0,
+      "physics_ms": 6.6,
+      "process_ms": 295.2,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no fx",
+    "spots": [
+     {
+      "avg_ms": 281.833333333333,
+      "draw_calls": 480.0,
+      "fps": 3.54819633353046,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 301.0,
+      "physics_ms": 5.0,
+      "process_ms": 250.5,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 261.166666666667,
+      "draw_calls": 474.0,
+      "fps": 3.82897255902999,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 268.0,
+      "physics_ms": 5.5,
+      "process_ms": 246.5,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 324.4,
+      "draw_calls": 499.2,
+      "fps": 3.0826140567201,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 326.0,
+      "physics_ms": 5.6,
+      "process_ms": 303.0,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no hud",
+    "spots": [
+     {
+      "avg_ms": 276.833333333333,
+      "draw_calls": 466.0,
+      "fps": 3.61228175797712,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 287.0,
+      "physics_ms": 5.33333333333333,
+      "process_ms": 253.0,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 257.333333333333,
+      "draw_calls": 460.333333333333,
+      "fps": 3.8860103626943,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 260.0,
+      "physics_ms": 6.33333333333333,
+      "process_ms": 241.333333333333,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 326.0,
+      "draw_calls": 485.0,
+      "fps": 3.06748466257669,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 334.0,
+      "physics_ms": 5.0,
+      "process_ms": 308.8,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no everything",
+    "spots": [
+     {
+      "avg_ms": 135.75,
+      "draw_calls": 413.0,
+      "fps": 7.36648250460405,
+      "frames": 12,
+      "hitches": 12,
+      "max_ms": 140.0,
+      "physics_ms": 5.0,
+      "process_ms": 118.333333333333,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 117.923076923077,
+      "draw_calls": 410.0,
+      "fps": 8.48010437051533,
+      "frames": 13,
+      "hitches": 13,
+      "max_ms": 133.0,
+      "physics_ms": 7.23076923076923,
+      "process_ms": 123.846153846154,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 256.0,
+      "draw_calls": 420.0,
+      "fps": 3.90625,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 309.0,
+      "physics_ms": 5.0,
+      "process_ms": 231.833333333333,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "drawn at 1.5x (960x540)",
+    "spots": [
+     {
+      "avg_ms": 184.333333333333,
+      "draw_calls": 481.0,
+      "fps": 5.4249547920434,
+      "frames": 9,
+      "hitches": 9,
+      "max_ms": 192.0,
+      "physics_ms": 5.66666666666667,
+      "process_ms": 161.444444444444,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 170.444444444444,
+      "draw_calls": 475.0,
+      "fps": 5.86701434159061,
+      "frames": 9,
+      "hitches": 9,
+      "max_ms": 172.0,
+      "physics_ms": 5.0,
+      "process_ms": 152.444444444444,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 207.375,
+      "draw_calls": 500.0,
+      "fps": 4.82218203737191,
+      "frames": 8,
+      "hitches": 8,
+      "max_ms": 212.0,
+      "physics_ms": 5.625,
+      "process_ms": 195.875,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "drawn at 1.0x (640x360)",
+    "spots": [
+     {
+      "avg_ms": 117.615384615385,
+      "draw_calls": 481.0,
+      "fps": 8.50228907782865,
+      "frames": 13,
+      "hitches": 13,
+      "max_ms": 144.0,
+      "physics_ms": 5.92307692307692,
+      "process_ms": 100.384615384615,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 107.857142857143,
+      "draw_calls": 475.0,
+      "fps": 9.27152317880795,
+      "frames": 14,
+      "hitches": 14,
+      "max_ms": 116.0,
+      "physics_ms": 5.78571428571429,
+      "process_ms": 90.2142857142857,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 130.333333333333,
+      "draw_calls": 500.083333333333,
+      "fps": 7.67263427109974,
+      "frames": 12,
+      "hitches": 12,
+      "max_ms": 132.0,
+      "physics_ms": 7.83333333333333,
+      "process_ms": 110.5,
+      "spot": "undercroft"
+     }
+    ]
+   }
+  ],
+  "summary": "BENCHMARK  Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0 / dpr 1\nMozilla / llvmpipe, or similar, gl_compatibility   window (1280, 720)   view (640.0, 360.0)   world drawn at 1280x720 (2.0x)\ntitle screen: 285.4 ms, steady after 41.7 s (shaders compiling behind it)\nfirst visits: street worst 1573 ms (5 hitches), canal worst 259 ms (5 hitches), undercroft worst 4958 ms (5 hitches)\n\nconfig                             avg ms      fps    worst   script  physics\neverything on                       284.3        4      325    265.0      5.5\nno shadows                          273.3        4      310    260.4      5.6   saves 11.0 ms\nno fog                              279.9        4      325    260.3      7.8   saves 4.4 ms\nno reflections                      266.2        4      306    245.3      5.9   saves 18.1 ms\nno bounce                           287.9        3      324    266.6      6.6   saves -3.6 ms\nno glow                             272.1        4      314    251.2      6.3   saves 12.2 ms\nno rain                             284.1        4      324    260.6      6.7   saves 0.2 ms\nno far city                         284.4        4      323    263.2      6.7   saves -0.1 ms\nno city                             240.4        4      343    219.8      6.8   saves 43.9 ms\nno foreground                       289.3        3      345    270.9      8.5   saves -5.0 ms\nno clutter                          291.8        3      329    266.8      7.2   saves -7.5 ms\nno water light                      285.6        4      326    267.6      5.3   saves -1.3 ms\nno plane                            280.9        4      318    255.2      6.1   saves 3.4 ms\nno fx                               289.1        3      326    266.7      5.4   saves -4.8 ms\nno hud                              286.7        3      334    267.7      5.6   saves -2.4 ms\nno everything                       169.9        6      309    158.0      5.7   saves 114.4 ms\ndrawn at 1.5x (960x540)             187.4        5      212    169.9      5.4   saves 96.9 ms\ndrawn at 1.0x (640x360)             118.6        8      144    100.4      6.5   saves 165.7 ms",
+  "title": {
+   "avg_ms": 285.4,
+   "draw_calls": 111.6,
+   "fps": 3.50385423966363,
+   "frames": 5,
+   "hitches": 5,
+   "max_ms": 368.0,
+   "physics_ms": 0.8,
+   "process_ms": 291.0,
+   "settled_s": 41.705
+  },
+  "seconds": 367.1
+ },
+ "Chrome, 1280x720": {
+  "first_visit": [
+   {
+    "avg_ms": 538.919995117187,
+    "draw_calls": 403.2,
+    "fps": 1.85556299461955,
+    "frames": 5,
+    "hitches": 5,
+    "max_ms": 1613.69995117188,
+    "physics_ms": 6.42,
+    "process_ms": 513.62,
+    "spot": "street"
+   },
+   {
+    "avg_ms": 258.080001831055,
+    "draw_calls": 475.0,
+    "fps": 3.87476748645803,
+    "frames": 5,
+    "hitches": 5,
+    "max_ms": 265.899993896484,
+    "physics_ms": 8.7,
+    "process_ms": 246.24,
+    "spot": "canal"
+   },
+   {
+    "avg_ms": 2129.3999710083,
+    "draw_calls": 502.0,
+    "fps": 0.469615860625041,
+    "frames": 4,
+    "hitches": 4,
+    "max_ms": 5234.5,
+    "physics_ms": 7.45,
+    "process_ms": 1499.575,
+    "spot": "undercroft"
+   }
+  ],
+  "info": {
+   "adapter": "WebKit / WebKit WebGL, gl_compatibility",
+   "agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 / dpr 1",
+   "render": "1279x663 (1.8x)",
+   "view": "(694.0, 360.0)",
+   "window": "(1279, 663)"
+  },
+  "rows": [
+   {
+    "config": "everything on",
+    "spots": [
+     {
+      "avg_ms": 270.616663614909,
+      "draw_calls": 482.0,
+      "fps": 3.69526394510211,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 287.100006103516,
+      "physics_ms": 8.0,
+      "process_ms": 248.266666666667,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 252.550000508626,
+      "draw_calls": 475.0,
+      "fps": 3.9596119500536,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 257.700012207031,
+      "physics_ms": 6.63333333333333,
+      "process_ms": 233.3,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 309.2,
+      "draw_calls": 502.0,
+      "fps": 3.23415265200517,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 314.299987792969,
+      "physics_ms": 6.52,
+      "process_ms": 293.3,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no shadows",
+    "spots": [
+     {
+      "avg_ms": 252.166669209798,
+      "draw_calls": 467.0,
+      "fps": 3.96563115630487,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 257.399993896484,
+      "physics_ms": 7.01666666666667,
+      "process_ms": 229.8,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 236.928571428571,
+      "draw_calls": 462.0,
+      "fps": 4.22068133855894,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 241.0,
+      "physics_ms": 6.87142857142857,
+      "process_ms": 218.042857142857,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 293.41667175293,
+      "draw_calls": 475.5,
+      "fps": 3.40812263333846,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 297.200012207031,
+      "physics_ms": 7.45,
+      "process_ms": 276.05,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no fog",
+    "spots": [
+     {
+      "avg_ms": 310.059997558594,
+      "draw_calls": 482.0,
+      "fps": 3.22518224819061,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 324.399993896484,
+      "physics_ms": 7.32,
+      "process_ms": 252.16,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 244.75,
+      "draw_calls": 475.666666666667,
+      "fps": 4.08580183861083,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 249.399993896484,
+      "physics_ms": 5.83333333333333,
+      "process_ms": 228.766666666667,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 302.259997558594,
+      "draw_calls": 502.0,
+      "fps": 3.30841000488709,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 308.799987792969,
+      "physics_ms": 7.04,
+      "process_ms": 281.3,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no reflections",
+    "spots": [
+     {
+      "avg_ms": 245.371429443359,
+      "draw_calls": 482.0,
+      "fps": 4.07545410754856,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 253.5,
+      "physics_ms": 6.44285714285714,
+      "process_ms": 227.957142857143,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 234.900000435965,
+      "draw_calls": 475.0,
+      "fps": 4.25713068601123,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 238.600006103516,
+      "physics_ms": 6.41428571428571,
+      "process_ms": 215.685714285714,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 294.116663614909,
+      "draw_calls": 502.5,
+      "fps": 3.40001136864967,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 298.799987792969,
+      "physics_ms": 8.56666666666666,
+      "process_ms": 271.733333333333,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no bounce",
+    "spots": [
+     {
+      "avg_ms": 263.866668701172,
+      "draw_calls": 482.0,
+      "fps": 3.78979279543828,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 267.100006103516,
+      "physics_ms": 6.46666666666667,
+      "process_ms": 246.7,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 253.75,
+      "draw_calls": 475.5,
+      "fps": 3.94088669950739,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 257.399993896484,
+      "physics_ms": 6.06666666666667,
+      "process_ms": 233.666666666667,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 308.3,
+      "draw_calls": 503.0,
+      "fps": 3.24359390204346,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 311.5,
+      "physics_ms": 6.42,
+      "process_ms": 291.26,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no glow",
+    "spots": [
+     {
+      "avg_ms": 250.15000406901,
+      "draw_calls": 482.0,
+      "fps": 3.99760137411041,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 257.200012207031,
+      "physics_ms": 6.88333333333333,
+      "process_ms": 228.45,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 243.371433803013,
+      "draw_calls": 475.0,
+      "fps": 4.10894567358882,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 272.200012207031,
+      "physics_ms": 16.9285714285714,
+      "process_ms": 216.442857142857,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 293.75,
+      "draw_calls": 502.166666666667,
+      "fps": 3.40425531914894,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 298.0,
+      "physics_ms": 5.41666666666667,
+      "process_ms": 276.033333333333,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no rain",
+    "spots": [
+     {
+      "avg_ms": 257.866668701172,
+      "draw_calls": 479.0,
+      "fps": 3.87797308212349,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 262.600006103516,
+      "physics_ms": 6.4,
+      "process_ms": 238.8,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 248.5,
+      "draw_calls": 472.285714285714,
+      "fps": 4.02414486921529,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 257.5,
+      "physics_ms": 6.64285714285714,
+      "process_ms": 228.685714285714,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 304.520007324219,
+      "draw_calls": 499.0,
+      "fps": 3.28385648216313,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 306.899993896484,
+      "physics_ms": 6.32,
+      "process_ms": 297.96,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no far city",
+    "spots": [
+     {
+      "avg_ms": 259.483332316081,
+      "draw_calls": 460.0,
+      "fps": 3.85381207753986,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 262.399993896484,
+      "physics_ms": 5.5,
+      "process_ms": 241.866666666667,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 248.428573608398,
+      "draw_calls": 455.0,
+      "fps": 4.02530186232247,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 265.100006103516,
+      "physics_ms": 6.78571428571429,
+      "process_ms": 228.871428571429,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 308.320001220703,
+      "draw_calls": 480.0,
+      "fps": 3.24338348482353,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 313.799987792969,
+      "physics_ms": 7.42,
+      "process_ms": 286.04,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no city",
+    "spots": [
+     {
+      "avg_ms": 199.499998092651,
+      "draw_calls": 451.0,
+      "fps": 5.01253137624383,
+      "frames": 8,
+      "hitches": 8,
+      "max_ms": 204.699996948242,
+      "physics_ms": 7.9,
+      "process_ms": 182.2,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 174.399998982747,
+      "draw_calls": 447.222222222222,
+      "fps": 5.7339449875738,
+      "frames": 9,
+      "hitches": 9,
+      "max_ms": 178.5,
+      "physics_ms": 6.48888888888889,
+      "process_ms": 157.811111111111,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 297.299997965495,
+      "draw_calls": 472.0,
+      "fps": 3.36360580842003,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 297.899993896484,
+      "physics_ms": 6.86666666666667,
+      "process_ms": 279.15,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no foreground",
+    "spots": [
+     {
+      "avg_ms": 263.933334350586,
+      "draw_calls": 482.0,
+      "fps": 3.78883554993356,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 268.399993896484,
+      "physics_ms": 7.85,
+      "process_ms": 244.5,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 249.914284842355,
+      "draw_calls": 475.0,
+      "fps": 4.00137191289724,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 250.899993896484,
+      "physics_ms": 6.51428571428571,
+      "process_ms": 232.6,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 309.359991455078,
+      "draw_calls": 502.2,
+      "fps": 3.23248004790952,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 313.799987792969,
+      "physics_ms": 6.46,
+      "process_ms": 289.62,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no clutter",
+    "spots": [
+     {
+      "avg_ms": 271.433339436849,
+      "draw_calls": 476.0,
+      "fps": 3.68414580933474,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 306.200012207031,
+      "physics_ms": 7.1,
+      "process_ms": 255.466666666667,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 250.642857142857,
+      "draw_calls": 469.428571428571,
+      "fps": 3.98974066685665,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 254.699996948242,
+      "physics_ms": 6.32857142857143,
+      "process_ms": 232.442857142857,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 306.340002441406,
+      "draw_calls": 496.0,
+      "fps": 3.26434677818895,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 310.399993896484,
+      "physics_ms": 6.68,
+      "process_ms": 287.98,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no water light",
+    "spots": [
+     {
+      "avg_ms": 261.933334350586,
+      "draw_calls": 482.0,
+      "fps": 3.81776531986397,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 265.0,
+      "physics_ms": 6.46666666666667,
+      "process_ms": 252.633333333333,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 252.333330790202,
+      "draw_calls": 475.0,
+      "fps": 3.96301192897673,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 259.5,
+      "physics_ms": 6.23333333333333,
+      "process_ms": 232.966666666667,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 319.979992675781,
+      "draw_calls": 502.4,
+      "fps": 3.12519539624231,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 348.0,
+      "physics_ms": 6.0,
+      "process_ms": 290.12,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no plane",
+    "spots": [
+     {
+      "avg_ms": 254.066665649414,
+      "draw_calls": 478.333333333333,
+      "fps": 3.93597482552039,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 256.899993896484,
+      "physics_ms": 7.68333333333333,
+      "process_ms": 236.416666666667,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 241.01428440639,
+      "draw_calls": 470.571428571429,
+      "fps": 4.14913166853561,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 244.5,
+      "physics_ms": 7.0,
+      "process_ms": 223.042857142857,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 305.540002441406,
+      "draw_calls": 497.0,
+      "fps": 3.27289386662806,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 321.100006103516,
+      "physics_ms": 5.66,
+      "process_ms": 281.52,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no fx",
+    "spots": [
+     {
+      "avg_ms": 266.116668701172,
+      "draw_calls": 481.0,
+      "fps": 3.75775033138913,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 271.600006103516,
+      "physics_ms": 5.26666666666667,
+      "process_ms": 244.833333333333,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 252.766665140788,
+      "draw_calls": 474.0,
+      "fps": 3.95621787961246,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 260.899993896484,
+      "physics_ms": 6.98333333333333,
+      "process_ms": 232.3,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 306.779998779297,
+      "draw_calls": 502.0,
+      "fps": 3.25966491941809,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 308.600006103516,
+      "physics_ms": 5.68,
+      "process_ms": 290.14,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no hud",
+    "spots": [
+     {
+      "avg_ms": 260.983342488607,
+      "draw_calls": 467.0,
+      "fps": 3.83166216841466,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 265.0,
+      "physics_ms": 6.2,
+      "process_ms": 244.0,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 268.333330790202,
+      "draw_calls": 460.666666666667,
+      "fps": 3.72670810985407,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 302.899993896484,
+      "physics_ms": 23.1666666666667,
+      "process_ms": 266.8,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 307.9,
+      "draw_calls": 487.0,
+      "fps": 3.2478077297824,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 311.0,
+      "physics_ms": 5.88,
+      "process_ms": 290.56,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "no everything",
+    "spots": [
+     {
+      "avg_ms": 134.775001525879,
+      "draw_calls": 413.25,
+      "fps": 7.41977361289797,
+      "frames": 12,
+      "hitches": 12,
+      "max_ms": 139.300003051758,
+      "physics_ms": 8.85,
+      "process_ms": 124.15,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 111.485715048654,
+      "draw_calls": 410.0,
+      "fps": 8.96975903651501,
+      "frames": 14,
+      "hitches": 14,
+      "max_ms": 128.600006103516,
+      "physics_ms": 8.87142857142857,
+      "process_ms": 95.1285714285714,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 228.414284842355,
+      "draw_calls": 420.142857142857,
+      "fps": 4.37800989850601,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 230.899993896484,
+      "physics_ms": 6.27142857142857,
+      "process_ms": 211.814285714286,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "drawn at 1.5x (1041x540)",
+    "spots": [
+     {
+      "avg_ms": 196.262498855591,
+      "draw_calls": 482.625,
+      "fps": 5.0952168948781,
+      "frames": 8,
+      "hitches": 8,
+      "max_ms": 202.100006103516,
+      "physics_ms": 7.9,
+      "process_ms": 178.9,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 187.111111111111,
+      "draw_calls": 475.111111111111,
+      "fps": 5.34441805225653,
+      "frames": 9,
+      "hitches": 9,
+      "max_ms": 199.199996948242,
+      "physics_ms": 6.58888888888889,
+      "process_ms": 169.277777777778,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 229.95714024135,
+      "draw_calls": 503.0,
+      "fps": 4.34863644134057,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 244.399993896484,
+      "physics_ms": 6.77142857142857,
+      "process_ms": 209.085714285714,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "drawn at 1.0x (694x360)",
+    "spots": [
+     {
+      "avg_ms": 119.299999530499,
+      "draw_calls": 482.0,
+      "fps": 8.38222970608103,
+      "frames": 13,
+      "hitches": 13,
+      "max_ms": 123.599998474121,
+      "physics_ms": 6.64615384615385,
+      "process_ms": 111.653846153846,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 116.476923429049,
+      "draw_calls": 475.0,
+      "fps": 8.58539159998626,
+      "frames": 13,
+      "hitches": 13,
+      "max_ms": 122.800003051758,
+      "physics_ms": 8.9,
+      "process_ms": 100.423076923077,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 144.800000277433,
+      "draw_calls": 502.181818181818,
+      "fps": 6.90607733483446,
+      "frames": 11,
+      "hitches": 11,
+      "max_ms": 176.0,
+      "physics_ms": 6.55454545454546,
+      "process_ms": 145.027272727273,
+      "spot": "undercroft"
+     }
+    ]
+   }
+  ],
+  "summary": "BENCHMARK  Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 / dpr 1\nWebKit / WebKit WebGL, gl_compatibility   window (1279, 663)   view (694.0, 360.0)   world drawn at 1279x663 (1.8x)\ntitle screen: 255.8 ms, steady after 41.9 s (shaders compiling behind it)\nfirst visits: street worst 1614 ms (5 hitches), canal worst 266 ms (5 hitches), undercroft worst 5234 ms (4 hitches)\n\nconfig                             avg ms      fps    worst   script  physics\neverything on                       277.5        4      314    258.3      7.1\nno shadows                          260.8        4      297    241.3      7.1   saves 16.6 ms\nno fog                              285.7        4      324    254.1      6.7   saves -8.2 ms\nno reflections                      258.1        4      299    238.5      7.1   saves 19.3 ms\nno bounce                           275.3        4      312    257.2      6.3   saves 2.1 ms\nno glow                             262.4        4      298    240.3      9.7   saves 15.0 ms\nno rain                             270.3        4      307    255.1      6.5   saves 7.2 ms\nno far city                         272.1        4      314    252.3      6.6   saves 5.4 ms\nno city                             223.7        4      298    206.4      7.1   saves 53.7 ms\nno foreground                       274.4        4      314    255.6      6.9   saves 3.1 ms\nno clutter                          276.1        4      310    258.6      6.7   saves 1.3 ms\nno water light                      278.1        4      348    258.6      6.2   saves -0.6 ms\nno plane                            266.9        4      321    247.0      6.8   saves 10.6 ms\nno fx                               275.2        4      309    255.8      6.0   saves 2.2 ms\nno hud                              279.1        4      311    267.1     11.7   saves -1.6 ms\nno everything                       158.2        6      231    143.7      8.0   saves 119.2 ms\ndrawn at 1.5x (1041x540)            204.4        5      244    185.8      7.1   saves 73.0 ms\ndrawn at 1.0x (694x360)             126.9        8      176    119.0      7.4   saves 150.6 ms",
+  "title": {
+   "avg_ms": 255.840002441406,
+   "draw_calls": 111.6,
+   "fps": 3.90869289578366,
+   "frames": 5,
+   "hitches": 5,
+   "max_ms": 264.700012207031,
+   "physics_ms": 0.28,
+   "process_ms": 260.52,
+   "settled_s": 41.8579
+  },
+  "seconds": 347.1
+ },
+ "Firefox, 1280x720 at 2x (2560x1440 pixels, like a Retina screen)": {
+  "first_visit": [
+   {
+    "avg_ms": 671.8,
+    "draw_calls": 401.2,
+    "fps": 1.48853825543316,
+    "frames": 5,
+    "hitches": 5,
+    "max_ms": 743.0,
+    "physics_ms": 6.6,
+    "process_ms": 628.6,
+    "spot": "street"
+   },
+   {
+    "avg_ms": 538.0,
+    "draw_calls": 475.0,
+    "fps": 1.85873605947955,
+    "frames": 5,
+    "hitches": 5,
+    "max_ms": 566.0,
+    "physics_ms": 6.4,
+    "process_ms": 508.0,
+    "spot": "canal"
+   },
+   {
+    "avg_ms": 962.6,
+    "draw_calls": 500.0,
+    "fps": 1.03885310617079,
+    "frames": 5,
+    "hitches": 5,
+    "max_ms": 2001.0,
+    "physics_ms": 5.8,
+    "process_ms": 861.0,
+    "spot": "undercroft"
+   }
+  ],
+  "info": {
+   "adapter": "Mozilla / llvmpipe, or similar, gl_compatibility",
+   "agent": "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0 / dpr 2",
+   "render": "1920x1080 (3.0x)",
+   "view": "(640.0, 360.0)",
+   "window": "(2560, 1440)"
+  },
+  "rows": [
+   {
+    "config": "everything on",
+    "spots": [
+     {
+      "avg_ms": 559.2,
+      "draw_calls": 481.0,
+      "fps": 1.78826895565093,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 564.0,
+      "physics_ms": 7.0,
+      "process_ms": 522.0,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 534.4,
+      "draw_calls": 475.0,
+      "fps": 1.87125748502994,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 539.0,
+      "physics_ms": 5.4,
+      "process_ms": 493.2,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 653.4,
+      "draw_calls": 500.0,
+      "fps": 1.53045607591062,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 657.0,
+      "physics_ms": 5.0,
+      "process_ms": 615.8,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "drawn at 2.0x (1280x720)",
+    "spots": [
+     {
+      "avg_ms": 305.8,
+      "draw_calls": 481.0,
+      "fps": 3.27011118378025,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 308.0,
+      "physics_ms": 5.0,
+      "process_ms": 271.8,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 294.833333333333,
+      "draw_calls": 475.0,
+      "fps": 3.39174674957603,
+      "frames": 6,
+      "hitches": 6,
+      "max_ms": 303.0,
+      "physics_ms": 8.0,
+      "process_ms": 258.0,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 371.2,
+      "draw_calls": 500.0,
+      "fps": 2.69396551724138,
+      "frames": 5,
+      "hitches": 5,
+      "max_ms": 384.0,
+      "physics_ms": 5.6,
+      "process_ms": 324.4,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "drawn at 1.5x (960x540)",
+    "spots": [
+     {
+      "avg_ms": 221.285714285714,
+      "draw_calls": 481.0,
+      "fps": 4.51904454486766,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 229.0,
+      "physics_ms": 6.0,
+      "process_ms": 181.142857142857,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 208.875,
+      "draw_calls": 475.25,
+      "fps": 4.78755236385398,
+      "frames": 8,
+      "hitches": 8,
+      "max_ms": 212.0,
+      "physics_ms": 9.375,
+      "process_ms": 171.75,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 245.285714285714,
+      "draw_calls": 500.0,
+      "fps": 4.0768782760629,
+      "frames": 7,
+      "hitches": 7,
+      "max_ms": 247.0,
+      "physics_ms": 8.14285714285714,
+      "process_ms": 207.142857142857,
+      "spot": "undercroft"
+     }
+    ]
+   },
+   {
+    "config": "drawn at 1.0x (640x360)",
+    "spots": [
+     {
+      "avg_ms": 158.2,
+      "draw_calls": 481.0,
+      "fps": 6.32111251580278,
+      "frames": 10,
+      "hitches": 10,
+      "max_ms": 177.0,
+      "physics_ms": 5.8,
+      "process_ms": 114.4,
+      "spot": "street"
+     },
+     {
+      "avg_ms": 147.272727272727,
+      "draw_calls": 475.0,
+      "fps": 6.79012345679012,
+      "frames": 11,
+      "hitches": 11,
+      "max_ms": 161.0,
+      "physics_ms": 5.63636363636364,
+      "process_ms": 107.363636363636,
+      "spot": "canal"
+     },
+     {
+      "avg_ms": 166.9,
+      "draw_calls": 500.2,
+      "fps": 5.99161174355902,
+      "frames": 10,
+      "hitches": 10,
+      "max_ms": 179.0,
+      "physics_ms": 11.9,
+      "process_ms": 142.6,
+      "spot": "undercroft"
+     }
+    ]
+   }
+  ],
+  "summary": "BENCHMARK  Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0 / dpr 2\nMozilla / llvmpipe, or similar, gl_compatibility   window (2560, 1440)   view (640.0, 360.0)   world drawn at 1920x1080 (3.0x)\ntitle screen: 721.0 ms, steady after 23.9 s (shaders compiling behind it)\nfirst visits: street worst 743 ms (5 hitches), canal worst 566 ms (5 hitches), undercroft worst 2001 ms (5 hitches)\n\nconfig                             avg ms      fps    worst   script  physics\neverything on                       582.3        2      657    543.7      5.8\ndrawn at 2.0x (1280x720)            323.9        3      384    284.7      6.2   saves 258.4 ms\ndrawn at 1.5x (960x540)             225.1        4      247    186.7      7.8   saves 357.2 ms\ndrawn at 1.0x (640x360)             157.5        6      179    121.5      7.8   saves 424.9 ms",
+  "title": {
+   "avg_ms": 721.0,
+   "draw_calls": 111.6,
+   "fps": 1.3869625520111,
+   "frames": 5,
+   "hitches": 5,
+   "max_ms": 767.0,
+   "physics_ms": 1.2,
+   "process_ms": 704.4,
+   "settled_s": 23.864
+  },
+  "seconds": 124.0
+ }
+}
