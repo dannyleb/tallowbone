@@ -5,11 +5,16 @@ extends Node2D
 @export_multiline var text := ""
 
 var near := false
+## The 3D stage builds this board in wood (scripts/stage.gd); then only the
+## reading is this node's.
+var in_3d := false
 
 
 ## A church noticeboard: two weathered planks on a post under a little
 ## gabled cap, nailed, a paper notice pinned to it.
 func _draw() -> void:
+	if in_3d:
+		return
 	var wood := Color("6d5440") if near else Color("4a372a")
 	var dark := Color("2a1e16")
 	draw_rect(Rect2(-3, -3, 6, 3), dark)

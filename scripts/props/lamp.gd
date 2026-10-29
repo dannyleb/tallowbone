@@ -10,6 +10,9 @@ const GLASS_DARK := Color("26252a")
 const GLASS_LIT := Color("ffcf7a")
 
 @export var lit := false
+## The 3D stage builds this lamp in iron (scripts/stage.gd); then only its
+## light and logic are this node's.
+var in_3d := false
 
 var _lit_t := 0.0
 var _time := 0.0
@@ -44,6 +47,8 @@ func _process(delta: float) -> void:
 ## lamplighter's ladder bar, scrolled brackets, and the lantern: a glass
 ## cage widening upward under a peaked cap and finial.
 func _draw() -> void:
+	if in_3d:
+		return
 	var dark := IRON.darkened(0.35)
 	draw_rect(Rect2(-8, -5, 16, 5), IRON)
 	draw_rect(Rect2(-6, -9, 12, 4), IRON)

@@ -41,6 +41,10 @@ func setup(size: Vector2, origin: Vector2, paint: Callable) -> void:
 	_viewport.transparent_bg = true
 	_viewport.disable_3d = true
 	_viewport.size = Vector2i(size * res)
+	# Smooth edges on the desktop (the drawing is polygons; without it every
+	# outline is a staircase). The viewports are small, so it costs little.
+	if res == RES_DESKTOP:
+		_viewport.msaa_2d = Viewport.MSAA_4X
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	add_child(_viewport)
 	_painter = Node2D.new()

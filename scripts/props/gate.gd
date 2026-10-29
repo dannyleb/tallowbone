@@ -12,11 +12,19 @@ const HEIGHT := 96.0
 
 var open := false
 var _lift := 0.0
+## The 3D stage builds this gate in iron (scripts/stage.gd) and lifts its
+## bars by lift(); then only the collision and logic are this node's.
+var in_3d := false
 
 
 ## Is x on the side the gate opens from?
 func reachable_from(x: float) -> bool:
 	return (x > position.x) == (opens_from == "east")
+
+
+## How far the bars have risen, 0 shut .. 1 open.
+func lift() -> float:
+	return _lift
 
 
 func open_gate() -> void:
@@ -31,6 +39,8 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	if in_3d:
+		return
 	var top := -HEIGHT
 	# Posts and lintel.
 	draw_rect(Rect2(-9, top - 4, 18, 5), IRON)

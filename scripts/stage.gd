@@ -19,6 +19,8 @@ extends Node3D
 
 const Figure = preload("res://scripts/figure.gd")
 const Storm = preload("res://scripts/storm.gd")
+const Gate = preload("res://scripts/props/gate.gd")
+const FOREGROUND := preload("res://shaders/foreground3d.gdshader")
 const STONE := preload("res://shaders/stone3d.gdshader")
 const WATER := preload("res://shaders/water3d.gdshader")
 const VEIL := preload("res://shaders/veil3d.gdshader")
@@ -38,6 +40,9 @@ const FOV := 50.0
 const MOON_DIR := Vector3(0.3, 0.2, -1.0)
 ## The district's street level (the top of tile row 20), in metres.
 const STREET := -20.0
+## Street lamps stand this far behind the gameplay plane (m), so the
+## figures pass in front of them.
+const LAMP_Z := -0.3
 ## Level geometry is built in chunks this many tiles wide (see _build_level).
 const CHUNK := 16
 ## The city is built in chunks this many metres wide.
@@ -81,6 +86,18 @@ var _cam_z := 12.0
 var _stone_mat: ShaderMaterial
 var _wet_noise: NoiseTexture2D
 var _lamps := []
+var _lamp_lit: StandardMaterial3D
+var _lamp_dark: StandardMaterial3D
+## The foreground silhouettes, and their material (it clears round the
+## Lamplighter).
+var _fore: MeshInstance3D
+var _fore_mat: ShaderMaterial
+## The gates' moving parts, {gate, bars, lock}.
+var _gates := []
+## The noticeboards' papers, {sign, paper}, brighter while you're near.
+var _signs := []
+var _paper: StandardMaterial3D
+var _paper_near: StandardMaterial3D
 var _finds := []
 var _lantern: OmniLight3D
 var _fill: OmniLight3D
@@ -179,6 +196,31 @@ class Builder:
 		quad(Vector3(x0, y0, z0), Vector3(x0, y1, z0), Vector3(x0, y1, z1), Vector3(x0, y0, z1), Vector3.LEFT, col)
 		quad(Vector3(x1, y0, z0), Vector3(x1, y1, z0), Vector3(x1, y1, z1), Vector3(x1, y0, z1), Vector3.RIGHT, col)
 
+	## A post round a vertical axis: `sides` faces from radius r0 at base.y
+	## to r1 at base.y + h, capped on top (radius to the corners; 4 sides
+	## stand square to x and z).
+	func frustum(base: Vector3, r0: float, r1: float, h: float, sides := 8, col := Color.WHITE) -> void:
+		var top := base + Vector3(0, h, 0)
+		var start := PI / sides if sides == 4 else 0.0
+		var slope := (r0 - r1) * cos(PI / sides)
+		for i in sides:
+			var d0 := Vector3(cos(start + TAU * i / sides), 0, sin(start + TAU * i / sides))
+			var d1 := Vector3(cos(start + TAU * (i + 1) / sides), 0, sin(start + TAU * (i + 1) / sides))
+			var n := ((d0 + d1).normalized() * h + Vector3(0, slope, 0)).normalized()
+			quad(base + d0 * r0, base + d1 * r0, top + d1 * r1, top + d0 * r1, n, col)
+			if r1 > 0.001:
+				tri(top, top + d0 * r1, top + d1 * r1, Vector3.UP, col)
+
+	## A square bar of width w from a to b, any slant.
+	func strut(a: Vector3, b: Vector3, w: float, col := Color.WHITE) -> void:
+		var axis := (b - a).normalized()
+		var u := axis.cross(Vector3.UP if absf(axis.y) < 0.9 else Vector3.RIGHT).normalized() * w * 0.5
+		var v := axis.cross(u).normalized() * w * 0.5
+		for s in [[u, v], [v, -u], [-u, -v], [-v, u]]:
+			var p: Vector3 = s[0]
+			var q: Vector3 = s[1]
+			quad(a + p - q, a + p + q, b + p + q, b + p - q, p.normalized(), col)
+
 	func faces() -> int:
 		return indices.size() / 3
 
@@ -219,6 +261,9 @@ func _ready() -> void:
 	_build_veil()
 	_build_city()
 	_build_lights()
+	_build_signs()
+	_build_gates()
+	_build_foreground()
 	_build_plane()
 	_build_rain()
 	_build_drips()
@@ -1320,23 +1365,26 @@ func _omni(color: Color, energy: float, radius: float, shadow: bool) -> OmniLigh
 
 
 func _build_lights() -> void:
-	var glass := StandardMaterial3D.new()
-	glass.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	glass.albedo_color = Color(1.0, 0.72, 0.4) * 4.0
+	_lamp_lit = StandardMaterial3D.new()
+	_lamp_lit.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_lamp_lit.albedo_color = Color(1.0, 0.72, 0.4) * 4.0
+	_lamp_dark = _glass()
+	var iron := Builder.new()
 	for lamp in world.lamps:
 		var at := _to_3d(lamp.position + Vector2(0, -68), 0.5)
 		var light := _omni(Color(1.0, 0.7, 0.4), 5.0, 9.0, true)
 		light.position = at
-		var bulb := MeshInstance3D.new()
-		var sphere := SphereMesh.new()
-		sphere.radius = 0.14
-		sphere.height = 0.28
-		bulb.mesh = sphere
-		bulb.material_override = glass
-		bulb.position = _to_3d(lamp.position + Vector2(0, -68), 0.05)
-		bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(bulb)
-		_lamps.append({"lamp": lamp, "light": light, "bulb": bulb})
+		var glass := MeshInstance3D.new()
+		glass.mesh = _lamp_post(iron, _to_3d(lamp.position, LAMP_Z))
+		glass.material_override = _lamp_dark
+		glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(glass)
+		lamp.in_3d = true
+		lamp.queue_redraw()
+		_lamps.append({"lamp": lamp, "light": light, "glass": glass})
+	var posts := _add_mesh(iron.mesh(), _iron())
+	if posts:
+		posts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	_lantern = _omni(Color(1.0, 0.74, 0.46), 2.0, 5.0, true)
 	# A faint cold fill so you can always read the Lamplighter.
 	_fill = _omni(Color(0.7, 0.78, 1.0), 0.75, 4.5, false)
@@ -1347,6 +1395,205 @@ func _build_lights() -> void:
 		l.position = _to_3d(it.position + Vector2(0, -14), 0.4)
 		_finds.append({"find": it, "light": l})
 	counts.lamp_lights = _lamps.size()
+
+
+## A street lamp in iron, its feet at `foot`, matching the 2D drawing
+## (scripts/props/lamp.gd, 32 px to the metre): a stepped plinth, a fluted
+## post tapering up between collars, the ladder bar, a flared bracket, and
+## the lantern, its glass widening upward in an iron frame under a peaked
+## cap and finial. The iron goes into `iron`; returns the glass.
+func _lamp_post(iron: Builder, foot: Vector3) -> ArrayMesh:
+	var up := Vector3.UP
+	iron.frustum(foot, 0.35, 0.33, 0.16, 4)
+	iron.frustum(foot + up * 0.16, 0.27, 0.25, 0.12, 4)
+	iron.frustum(foot + up * 0.28, 0.12, 0.1, 0.16, 8)
+	iron.frustum(foot + up * 0.44, 0.08, 0.055, 1.36, 12)
+	iron.frustum(foot + up * 0.94, 0.105, 0.105, 0.07, 12)
+	iron.frustum(foot + up * 1.74, 0.095, 0.095, 0.07, 12)
+	var bar := foot + up * 1.56
+	iron.strut(bar + Vector3(-0.31, 0, 0), bar + Vector3(0.31, 0, 0), 0.05)
+	for side in [-1.0, 1.0]:
+		var s: float = side
+		iron.frustum(bar + Vector3(0.31 * s, -0.04, 0), 0.045, 0.045, 0.08, 6)
+		# The scrolls up to the lantern's base.
+		iron.strut(foot + Vector3(0.05 * s, 1.62, 0), foot + Vector3(0.15 * s, 1.86, 0), 0.03)
+	iron.frustum(foot + up * 1.81, 0.07, 0.2, 0.07, 8)
+	iron.frustum(foot + up * 1.875, 0.27, 0.27, 0.03, 4)
+	# The lantern: corner posts of its frame, a band at the top, the cap.
+	var lo := 0.15
+	var hi := 0.215
+	var y0 := 1.905
+	var y1 := 2.34
+	for corner in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+		var c: Vector2 = corner
+		iron.strut(foot + Vector3(c.x * lo, y0, c.y * lo), foot + Vector3(c.x * hi, y1, c.y * hi), 0.028)
+	iron.frustum(foot + up * y1, 0.34, 0.36, 0.045, 4)
+	iron.frustum(foot + up * (y1 + 0.045), 0.38, 0.07, 0.19, 4)
+	iron.frustum(foot + up * (y1 + 0.235), 0.035, 0.03, 0.2, 6)
+	iron.frustum(foot + up * (y1 + 0.27), 0.055, 0.02, 0.06, 6)
+	var glass := Builder.new()
+	glass.frustum(foot + up * y0, lo * sqrt(2.0) - 0.01, hi * sqrt(2.0) - 0.01, y1 - y0, 4)
+	return glass.mesh()
+
+
+## The noticeboards in wood (scripts/props/sign.gd): a post on a foot, two
+## planks in a dark frame under a little gabled cap, a paper notice pinned
+## to them, printed, its corner curling. Beside the lamps, behind the plane.
+func _build_signs() -> void:
+	_paper = StandardMaterial3D.new()
+	_paper.albedo_color = Color(0.62, 0.58, 0.5)
+	_paper.roughness = 0.9
+	_paper_near = _paper.duplicate()
+	_paper_near.emission_enabled = true
+	_paper_near.emission = Color(0.85, 0.78, 0.62)
+	_paper_near.emission_energy_multiplier = 0.35
+	var wood := Builder.new()
+	var iron := Builder.new()
+	var dark := Color(0.45, 0.42, 0.4)
+	for board in world.signs:
+		var f := _to_3d(board.position, LAMP_Z)
+		wood.box(f + Vector3(-0.1, 0.0, -0.1), f + Vector3(0.1, 0.09, 0.1), dark)
+		wood.box(f + Vector3(-0.05, 0.06, -0.05), f + Vector3(0.05, 0.82, 0.05))
+		# The frame behind, the two planks proud of it.
+		wood.box(f + Vector3(-0.39, 0.6, -0.04), f + Vector3(0.39, 1.11, 0.0), dark)
+		wood.box(f + Vector3(-0.36, 0.86, 0.0), f + Vector3(0.36, 1.08, 0.03))
+		wood.box(f + Vector3(-0.36, 0.63, 0.0), f + Vector3(0.36, 0.85, 0.028), Color(0.85, 0.85, 0.85))
+		# The cap: a ridge running back, eaves over the front and back.
+		var ridge := f + Vector3(0, 1.27, 0)
+		for s in [-1.0, 1.0]:
+			var side: float = s
+			var eave := f + Vector3(0.45 * side, 1.1, 0)
+			wood.quad(eave + Vector3(0, 0, 0.1), ridge + Vector3(0, 0, 0.1), ridge + Vector3(0, 0, -0.12), eave + Vector3(0, 0, -0.12), Vector3(0.17 * side, 0.45, 0).normalized(), dark)
+		wood.tri(f + Vector3(-0.45, 1.1, 0.1), f + Vector3(0.45, 1.1, 0.1), ridge + Vector3(0, 0, 0.1), Vector3.BACK, dark)
+		# Nails, and the notice's lines of print.
+		for p in [Vector2(-0.32, 1.04), Vector2(0.32, 1.04), Vector2(-0.32, 0.69), Vector2(0.32, 0.69)]:
+			var n: Vector2 = p
+			iron.box(f + Vector3(n.x - 0.012, n.y - 0.012, 0.03), f + Vector3(n.x + 0.012, n.y + 0.012, 0.04))
+		var paper := Builder.new()
+		paper.quad(f + Vector3(-0.25, 1.045, 0.036), f + Vector3(0.125, 1.056, 0.036), f + Vector3(0.134, 0.735, 0.036), f + Vector3(-0.2, 0.725, 0.036), Vector3.BACK)
+		paper.tri(f + Vector3(-0.2, 0.725, 0.036), f + Vector3(-0.256, 0.77, 0.05), f + Vector3(-0.25, 0.8, 0.036), Vector3(0.3, 0.2, 1.0).normalized())
+		for i in 4:
+			var y := 0.98 - i * 0.0625
+			iron.box(f + Vector3(-0.2, y, 0.037), f + Vector3(-0.2 + 0.3 - (i % 2) * 0.08, y + 0.018, 0.039))
+		var mi := _add_mesh(paper.mesh(), _paper)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		board.in_3d = true
+		board.queue_redraw()
+		_signs.append({"sign": board, "paper": mi})
+	var wood_mat := _wood()
+	wood_mat.vertex_color_use_as_albedo = true
+	var boards := _add_mesh(wood.mesh(), wood_mat)
+	if boards:
+		boards.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_add_mesh(iron.mesh(), _iron())
+
+
+## The barred gates in iron (scripts/props/gate.gd): posts and a lintel,
+## spear points standing over it, and the bars, which shorten up into the
+## lintel as the gate opens (the mesh hangs from the top and is scaled).
+## A rusted bar across it on the side it opens from, until it does.
+func _build_gates() -> void:
+	var iron := Builder.new()
+	var rust := StandardMaterial3D.new()
+	rust.albedo_color = Color(0.2, 0.09, 0.05)
+	rust.roughness = 0.75
+	rust.metallic = 0.4
+	var iron_mat := _iron()
+	for gate in world.gates:
+		var f := _to_3d(gate.position, -0.12)
+		var h := Gate.HEIGHT / PX
+		for s in [-1.0, 1.0]:
+			var side: float = s
+			iron.box(f + Vector3(0.234 * side - 0.047, 0, -0.06), f + Vector3(0.234 * side + 0.047, h, 0.06))
+			iron.box(f + Vector3(0.234 * side - 0.025, h + 0.04, 0.08), f + Vector3(0.234 * side + 0.025, h + 0.09, 0.095))
+		iron.box(f + Vector3(-0.29, h, -0.08), f + Vector3(0.29, h + 0.15, 0.08))
+		# The bars' guides, top and bottom.
+		iron.box(f + Vector3(-0.19, h - 0.05, -0.05), f + Vector3(0.19, h, 0.05))
+		var bars := Builder.new()
+		for i in 4:
+			var x := (-5.0 + i * 3.4 + 0.8) / PX
+			iron.frustum(f + Vector3(x, h + 0.15, 0), 0.035, 0.0, 0.13, 4)
+			bars.frustum(Vector3(x, -h, 0), 0.026, 0.026, h, 8)
+		for y in [30.0, 66.0]:
+			var cy: float = y / PX
+			bars.box(Vector3(-0.19, cy - h - 0.03, -0.03), Vector3(0.19, cy - h + 0.03, 0.03))
+		var mi := _add_mesh(bars.mesh(), iron_mat)
+		mi.position = f + Vector3(0, h, 0)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		var lock := Builder.new()
+		var east: bool = gate.opens_from == "east"
+		var dir := 1.0 if east else -1.0
+		lock.box(f + Vector3((-2.0 if east else -12.0) / PX, 1.5, 0.07), f + Vector3((12.0 if east else 2.0) / PX, 1.625, 0.12))
+		lock.box(f + Vector3(dir * 0.28 - 0.05, 1.38, 0.06), f + Vector3(dir * 0.28 + 0.05, 1.75, 0.13))
+		var bar := _add_mesh(lock.mesh(), rust)
+		gate.in_3d = true
+		gate.queue_redraw()
+		_gates.append({"gate": gate, "bars": mi, "lock": bar})
+	var frames := _add_mesh(iron.mesh(), iron_mat)
+	if frames:
+		frames.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+
+## Between you and the play, close to the camera and out of focus: now and
+## then a pillar of an arcade you're looking through, or a chain hanging
+## from something overhead. They slide past faster than the play (they're
+## nearer), which is most of what makes the view feel deep. They clear
+## round the Lamplighter (shaders/foreground3d.gdshader). Desktop only:
+## the browser's renderer has no depth of field to soften them.
+func _build_foreground() -> void:
+	counts.foreground = 0
+	if _lite:
+		return
+	var lv = world.level
+	var w: int = lv.size_tiles.x
+	var h: int = lv.size_tiles.y
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var b := Builder.new()
+	var x := rng.randf_range(10.0, 18.0)
+	var pillar := true
+	while x < w - 8.0:
+		# The ground here: the first stone from the top.
+		var ground := -float(h)
+		for r in h:
+			if lv.kind_at(Vector2i(int(x), r)) == "stone":
+				ground = -float(r)
+				break
+		if pillar:
+			var z := rng.randf_range(5.0, 6.2)
+			var foot := Vector3(x, ground - 14.0, z)
+			b.frustum(foot, 0.5, 0.5, 13.0, 4)
+			b.frustum(foot + Vector3(0, 13.0, 0), 0.62, 0.58, 0.35, 4)
+			b.frustum(foot + Vector3(0, 13.35, 0), 0.42, 0.42, 6.0, 8)
+			b.frustum(foot + Vector3(0, 19.35, 0), 0.5, 0.62, 0.4, 8)
+			b.frustum(foot + Vector3(0, 19.75, 0), 0.7, 0.7, 12.0, 4)
+		else:
+			var z := rng.randf_range(5.2, 6.4)
+			var bottom := ground + rng.randf_range(4.0, 5.5)
+			var y := ground + 14.0
+			var flip := false
+			while y > bottom:
+				if flip:
+					b.box(Vector3(x - 0.012, y - 0.17, z - 0.05), Vector3(x + 0.012, y, z + 0.05))
+				else:
+					b.box(Vector3(x - 0.05, y - 0.17, z - 0.012), Vector3(x + 0.05, y, z + 0.012))
+				flip = not flip
+				y -= 0.13
+			# A meat hook at the end.
+			b.strut(Vector3(x, y, z), Vector3(x, y - 0.35, z), 0.04)
+			b.strut(Vector3(x, y - 0.35, z), Vector3(x + 0.16, y - 0.3, z), 0.035)
+			b.strut(Vector3(x + 0.16, y - 0.3, z), Vector3(x + 0.18, y - 0.14, z), 0.03)
+		counts.foreground += 1
+		pillar = not pillar
+		x += rng.randf_range(16.0, 26.0)
+	_fore_mat = ShaderMaterial.new()
+	_fore_mat.shader = FOREGROUND
+	_fore = _add_mesh(b.mesh(), _fore_mat)
+	if _fore:
+		_fore.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var attrs: CameraAttributesPractical = camera.attributes
+	attrs.dof_blur_near_enabled = true
+	attrs.dof_blur_near_transition = 2.0
 
 
 ## A point in the 2D world (px, y down) at depth z (m) in the 3D stage.
@@ -1835,16 +2082,24 @@ func _prewarm() -> void:
 	lamp.omni_range = 2.0
 	lamp.shadow_enabled = not _lite
 	holder.add_child(lamp)
+	# [mesh, material, shadow casting]: every mesh's, and the lamp glass lit.
+	var uses := []
 	for node in find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
-		var m := mi.material_override
+		uses.append([mi.mesh, mi.material_override, mi.cast_shadow])
+	if not _lamps.is_empty():
+		uses.append([(_lamps[0].glass as MeshInstance3D).mesh, _lamp_lit, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF])
+	if not _signs.is_empty():
+		uses.append([(_signs[0].paper as MeshInstance3D).mesh, _paper_near, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF])
+	for use in uses:
+		var m: Material = use[1]
 		if m == null or seen.has(m):
 			continue
 		seen[m] = true
 		var copy := MeshInstance3D.new()
-		copy.mesh = mi.mesh if mi.mesh else QuadMesh.new()
+		copy.mesh = use[0] if use[0] else QuadMesh.new()
 		copy.material_override = m
-		copy.cast_shadow = mi.cast_shadow
+		copy.cast_shadow = use[2]
 		var box := copy.mesh.get_aabb()
 		copy.scale = Vector3.ONE * (0.02 / maxf(box.size.length(), 0.001))
 		copy.position = Vector3((seen.size() % 8) * 0.03 - 0.1, (seen.size() / 8) * 0.03 - 0.1, -1.0) - box.get_center() * copy.scale.x
@@ -1869,6 +2124,8 @@ func fit() -> void:
 	m.set_shader_parameter("reach", 3.0 * float(main.render_scale))
 	var attrs: CameraAttributesPractical = camera.attributes
 	attrs.dof_blur_far_distance = _cam_z + 12.0
+	# Anything more than 3 m nearer than the play is out of focus.
+	attrs.dof_blur_near_distance = _cam_z - 3.0
 
 
 func _process(delta: float) -> void:
@@ -1887,6 +2144,10 @@ func _process(delta: float) -> void:
 		(_rain.process_material as ParticleProcessMaterial).direction = Vector3(lean, -1.0, 0.0)
 	_update_lights()
 	_update_stains(delta)
+	if _fore_mat:
+		var size := get_viewport().get_visible_rect().size
+		var at := camera.unproject_position(_to_3d(world.player.position + Vector2(0, -24), 0.0))
+		_fore_mat.set_shader_parameter("player_uv", at / size)
 
 
 ## New blood from the World's effects (FxState.stains) becomes a decal on
@@ -1946,9 +2207,16 @@ func _update_lights() -> void:
 	for e in _lamps:
 		var lamp = e.lamp
 		var light: OmniLight3D = e.light
-		var bulb: MeshInstance3D = e.bulb
+		var glass: MeshInstance3D = e.glass
 		light.visible = lamp.lit
-		bulb.visible = lamp.lit
+		glass.material_override = _lamp_lit if lamp.lit else _lamp_dark
+	for e in _signs:
+		(e.paper as MeshInstance3D).material_override = _paper_near if e.sign.near else _paper
+	for e in _gates:
+		var gate = e.gate
+		var rise: float = gate.lift() * (Gate.HEIGHT - 8.0) / Gate.HEIGHT
+		(e.bars as MeshInstance3D).scale.y = maxf(0.02, 1.0 - rise)
+		(e.lock as MeshInstance3D).visible = not gate.open
 		var x: float = lamp.position.x
 		light.light_energy = 5.0 * (1.0 + sin(_time * 11.0 + x) * sin(_time * 6.7 + x * 2.0) * 0.05)
 	var p = world.player
@@ -1989,6 +2257,9 @@ func set_quality(level: int) -> void:
 	env.volumetric_fog_enabled = not fast
 	for fog in _mist:
 		fog.visible = not fast
+	if _fore:
+		_fore.visible = not fast
+		(camera.attributes as CameraAttributesPractical).dof_blur_near_enabled = not fast
 	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if high and not _lite else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	for e in _lamps:
 		(e.light as OmniLight3D).shadow_enabled = high and not _lite

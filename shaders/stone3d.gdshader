@@ -154,12 +154,17 @@ void fragment() {
 		float joints = smoothstep(0.34, 0.22, height) * wetness;
 		puddle = max(pool, joints * flatness);
 	}
-	// Running water down the walls: thin streaks that slide downward.
+	// Running water down the walls: thin streaks that slide downward. And
+	// the stains it has left over the years: long dark runs, a little
+	// green, under every ledge.
 	float sheet = 0.0;
+	float grime = 0.0;
 	if (abs(n.y) < 0.6 && !distant) {
 		float across = texture(wet_noise, vec2(wpos.x * 1.7 + wpos.z * 1.7, 0.37)).r;
 		float flow = texture(wet_noise, vec2(wpos.x * 3.1 + wpos.z * 3.1, wpos.y * 0.35 + TIME * 0.18)).r;
 		sheet = smoothstep(0.62, 0.8, across) * smoothstep(0.45, 0.7, flow) * (1.0 - abs(n.y));
+		float runs = texture(wet_noise, vec2((wpos.x + wpos.z) * 0.9, wpos.y * 0.05 + 0.5)).r;
+		grime = smoothstep(0.48, 0.72, runs) * (1.0 - abs(n.y));
 	}
 
 	// How wet, and over the whole city some walls dirtier, some cleaner
@@ -170,6 +175,7 @@ void fragment() {
 	albedo *= tint * (0.8 + 0.4 * macro);
 	rough *= 0.9 + 0.2 * macro;
 	albedo *= mix(1.0, 0.68, wet);              // wet stone darkens
+	albedo *= mix(vec3(1.0), vec3(0.6, 0.66, 0.58), grime);
 	albedo = mix(albedo, albedo * 0.45, puddle);
 	rough = mix(rough, rough * 0.35, wet);
 	// Not quite mirrors: rain pocks the puddles, so reflections blur a little.
@@ -184,6 +190,11 @@ void fragment() {
 
 	ALBEDO = albedo;
 	ROUGHNESS = clamp(rough, 0.02, 1.0);
-	SPECULAR = 0.5;
+	// Walls seen edge-on would mirror the bright sky over the rooftops,
+	// a sheet of white down the side of a house; the houses around them
+	// hide most of that sky. (Low SPECULAR also scales Godot's grazing
+	// reflection.) The puddles keep theirs: that's the wet street.
+	float ndv = abs(dot(n, normalize(CAMERA_POSITION_WORLD - wpos)));
+	SPECULAR = abs(n.y) < 0.6 ? mix(0.1, 0.5, smoothstep(0.08, 0.45, ndv)) : 0.5;
 	NORMAL = normalize((VIEW_MATRIX * vec4(wn, 0.0)).xyz);
 }

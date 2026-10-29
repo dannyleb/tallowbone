@@ -284,7 +284,7 @@ The Metroidvania-native mechanic.
   that has had a century of coal smoke and rain: every surface carries
   its history. Ashlar of uneven courses with chipped, worn arrises, pits,
   spalls and cracks, soot run down from above, salt bloom, moss low in the
-  joints; granite setts worn smooth on top with mud and water in the
+  joints, long dark rain stains run down the walls under every ledge; granite setts worn smooth on top with mud and water in the
   joints; old planks rotting at the ends round rusting nails; soot-black
   brick and slate on the houses. Water settles in the low parts first.
   The masonry around the play has coping stones along every ledge,
@@ -299,17 +299,26 @@ The Metroidvania-native mechanic.
   from them; creepers hang over the ledges; rooms have clusters of
   guttering tallow candles. Lit windows show their sashes, glazing bars
   and half-drawn curtains, a lamp low inside; some chimneys smoke, the
-  smoke leaning with the wind. The street lamps are Victorian gas lamps,
-  the signs church noticeboards. The swing's trail is a fading blur, not
+  smoke leaning with the wind. The street lamps are Victorian gas lamps
+  and the signs church noticeboards, built in 3D just behind the
+  gameplay plane (iron post, glass lantern that glows when lit; planks
+  under a gabled cap, the notice brightening as you come near), and the
+  shortcut gates are iron whose bars lift into the lintel; only the
+  figures are drawn on the plane, smoothed (multisampled). The swing's
+  trail is a fading blur, not
   a painted band; the health bar sits in an iron frame. Blood stays on
   the stone where things are struck and the rain washes it away over
   most of a minute (desktop); enemies' eyes catch what light there is,
   and burn when they've Gorged. Every step kicks up water; the rain leans
   with the gusts the wind sound makes, its streaks flare in the
   lightning, and near thunder shakes the view. Figures are painted with a
-  woven grain, folds and a wet hem until the illustrated frames arrive.
-  The frame is graded (cool shadows, warm lamplight, a little less
-  colour) and shown with film grain.
+  woven grain, folds and a wet hem until the illustrated frames arrive;
+  a hit blanches them rather than turning them white, and blood flies in
+  drawn-out drops. The light is tonemapped like film (AgX): the toe keeps
+  texture in what the lamps barely reach, the brightest lights burn
+  toward white. The frame is graded (cool shadows, warm lamplight) and
+  shown with film grain. Walls seen edge-on don't mirror the sky (their
+  grazing reflection is held back); the puddles keep theirs.
 - **The flat look (`?2d`).** Lit like 3D, drawn in 2D: surfaces have normal maps (bumps) and
   specular maps (wet gloss), so lamps, your lantern and the moon light them
   like real stone, wood and water: raking light across brick, glints on wet

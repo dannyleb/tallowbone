@@ -46,7 +46,17 @@ func _particles(glow: bool) -> void:
 			continue
 		var c: Color = p.color
 		c.a = clampf(p.life / p.max, 0.0, 1.0)
-		draw_rect(Rect2(p.pos - Vector2(p.size, p.size) / 2.0, Vector2(p.size, p.size)), c)
+		# A drop drawn out along its flight (a frame and a half of it): a
+		# round head, a tail thinning behind.
+		var v: Vector2 = p.vel
+		var at: Vector2 = p.pos
+		var size: float = p.size
+		var speed := v.length()
+		var along := v / speed if speed > 1.0 else Vector2.DOWN
+		var across := along.orthogonal() * size * 0.42
+		var head := at + along * size * 0.45
+		var tail := at - along * (size * 0.5 + minf(speed * 0.025, size * 3.0))
+		draw_colored_polygon(PackedVector2Array([head + along * size * 0.15, head + across * 0.8, at + across, tail, at - across, head - across * 0.8]), c)
 
 
 func _overlay() -> void:
@@ -102,7 +112,8 @@ func _glow() -> void:
 		if l.lit:
 			var g: Vector2 = l.position + Vector2(0, -68)
 			Glow.draw(self, g, 22.0, Color(1.0, 0.72, 0.38, 0.35))
-			draw_colored_polygon(PackedVector2Array([g + Vector2(-5, 8), g + Vector2(5, 8), g + Vector2(7, -7), g + Vector2(-7, -7)]), Color(1.0, 0.78, 0.45, 0.55))
+			if not l.in_3d:
+				draw_colored_polygon(PackedVector2Array([g + Vector2(-5, 8), g + Vector2(5, 8), g + Vector2(7, -7), g + Vector2(-7, -7)]), Color(1.0, 0.78, 0.45, 0.55))
 	for it in world.pickups:
 		if not it.taken:
 			Glow.draw(self, it.position + Vector2(0, -14), 22.0, Color(1.0, 0.85, 0.8, 0.28))

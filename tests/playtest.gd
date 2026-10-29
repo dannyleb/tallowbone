@@ -190,11 +190,16 @@ func _stage() -> void:
 		return
 	_check("it extrudes the level's stone and back walls", st.counts.stone_faces > 2000 and st.counts.back_faces > 100, str(st.counts))
 	_check("a light for every street lamp, and a city behind", st.counts.lamp_lights == world.lamps.size() and st.counts.buildings > 50, str(st.counts))
+	var props_3d: bool = world.lamps.all(func(l): return l.in_3d) and world.signs.all(func(s): return s.in_3d) \
+		and world.gates.all(func(g): return g.in_3d)
+	_check("lamps, noticeboards and gates are built in 3D (their flat drawings off)", props_3d and st._lamps.size() == world.lamps.size() \
+		and st._signs.size() == world.signs.size() and st._gates.size() == world.gates.size())
 	_check("veils are built, and water drips off the ledges", st.counts.veil == 3 and st.counts.drips > 15, str(st.counts))
 	_check("indoor spaces get reflection probes (no sky in their puddles)", st.counts.probes >= 2 and st.counts.probes <= 12, str(st.counts))
 	_check("rain splashes where it lands, drainpipes pour, gas lamps burn in the street behind",
 		st.counts.splashes > 150 and st.counts.pours >= 3 and st.counts.gas_lamps >= 4, str(st.counts))
 	_check("mist lies over the streets and the canal", st.counts.mist >= 4, str(st.counts))
+	_check("pillars and chains stand out of focus between you and the play", st.counts.foreground >= 4, str(st.counts))
 	_check("watchers have rooftops to stand on", st.roofs.size() > 10, str(st.roofs.size()))
 	_check("every material is drawn once at load (no first-sight hitches)", st.counts.prewarmed >= 12, str(st.counts.prewarmed))
 	st.set_quality(2)

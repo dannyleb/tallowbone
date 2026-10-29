@@ -362,8 +362,10 @@ func art_pose(anim: String, frame: int) -> void:
 			dead_t = mid * 0.9
 
 
+## A colour of the drawing: blanched toward bone-white on a hit (not pure
+## white, so the hit still shows its form), faded by a.
 func _c(color: Color, white: bool, a: float) -> Color:
-	var c := Color.WHITE if white else color
+	var c := color.lerp(Color(1.0, 0.95, 0.88), 0.7) if white else color
 	c.a *= a
 	return c
 
