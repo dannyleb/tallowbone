@@ -430,6 +430,7 @@ func _build_level() -> void:
 	var back_mat := _stone(Color(0.62, 0.6, 0.6), 0.0)
 	var wood_mat := _wood()
 	var iron_mat := _iron()
+	var vine_mat := _vine()
 	var solid := func(c: int, r: int) -> bool: return lv.kind_at(Vector2i(c, r)) == "stone"
 	counts.stone_faces = 0
 	counts.back_faces = 0
@@ -440,11 +441,13 @@ func _build_level() -> void:
 		var wood := Builder.new()
 		var water := Builder.new()
 		var iron := Builder.new()
+		var vines := Builder.new()
 		for r in h:
 			for c in range(c0, mini(w, c0 + CHUNK)):
 				_build_cell(lv, c, r, h, solid, stone, inner, back, wood, water)
 				if not _lite:
 					_dress_cell(lv, c, r, solid, stone, inner, iron)
+					_overgrow(lv, c, r, solid, stone, vines, iron)
 		# The stone is open at the back and the back walls are single quads
 		# facing you, and the moon shines from behind: both cast shadows from
 		# either side, or moonlight leaks into the rooms underground.
@@ -455,6 +458,7 @@ func _build_level() -> void:
 				mi.layers = part[2]
 		_add_mesh(wood.mesh(), wood_mat)
 		_add_mesh(water.mesh(), water_mat)
+		_add_mesh(vines.mesh(), vine_mat)
 		var rails := _add_mesh(iron.mesh(), iron_mat)
 		if rails:
 			rails.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
@@ -549,6 +553,48 @@ func _dress_cell(lv, c: int, r: int, solid: Callable, stone: Builder, inner: Bui
 			iron.box(Vector3(px - 0.018, yt, z - 0.018), Vector3(px + 0.018, yt + 0.95, z + 0.018))
 		iron.box(Vector3(x0, yt + 0.92, z - 0.03), Vector3(x1, yt + 0.97, z + 0.03))
 		iron.box(Vector3(x0, yt + 0.12, z - 0.02), Vector3(x1, yt + 0.15, z + 0.02))
+
+
+## Life and ruin on the masonry: creepers hanging over the open ledges in
+## wandering strands, rubble along the back of the floors, now and then an
+## iron drain grate in the street. Desktop only.
+func _overgrow(lv, c: int, r: int, solid: Callable, stone: Builder, vines: Builder, iron: Builder) -> void:
+	if lv.kind_at(Vector2i(c, r)) != "stone" or solid.call(c, r - 1):
+		return
+	var outdoors: bool = lv.back_wall.get_cell_source_id(Vector2i(c, r - 1)) == -1
+	var yt := -float(r)
+	# Creepers: a few strands over the lip, swaying out and back as they hang.
+	if outdoors and _hash(c * 7, r * 3) < 0.22:
+		for s in 2 + int(_hash(c, r * 11) * 4.0):
+			var x := c + 0.1 + _hash(c + s * 5, r) * 0.8
+			var length := 0.4 + _hash(c + s, r * 3) * 1.6
+			var steps := int(length / 0.08)
+			var phase := _hash(c * 3 + s, r) * TAU
+			for i in steps:
+				var y := yt - 0.05 - i * 0.08
+				var dx := sin(i * 0.5 + phase) * 0.04
+				var z := FRONT + 0.06 + absf(sin(i * 0.31 + phase)) * 0.05
+				var leaf := 0.02 + 0.03 * absf(sin(i * 1.7 + phase * 2.0))
+				vines.box(Vector3(x + dx - leaf, y - 0.08, z - 0.015), Vector3(x + dx + leaf, y, z + 0.015))
+	# Rubble along the back of the floor, out of the way.
+	if _hash(c * 5, r * 13) < 0.35:
+		for i in 1 + int(_hash(c + 9, r) * 3.0):
+			var x := c + _hash(c + i * 3, r + 1) * 0.85
+			var z := -BACK + 0.15 + _hash(c, r + i * 5) * 0.9
+			var s := 0.06 + _hash(c + i, r * 2) * 0.12
+			stone.box(Vector3(x, yt - 0.01, z), Vector3(x + s * 1.4, yt + s * 0.7, z + s))
+	# A drain grate in the street.
+	if outdoors and _hash(c * 11, r * 7) < 0.06:
+		var gx := c + 0.2
+		for i in 6:
+			iron.box(Vector3(gx + i * 0.1, yt, -0.6), Vector3(gx + i * 0.1 + 0.03, yt + 0.012, 0.3))
+
+
+func _vine() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.11, 0.14, 0.08)
+	m.roughness = 0.7
+	return m
 
 
 ## A steady pseudo-random number in [0, 1) for a cell.

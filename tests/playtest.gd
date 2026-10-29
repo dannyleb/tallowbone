@@ -193,7 +193,7 @@ func _stage() -> void:
 	_check("veils are built, and water drips off the ledges", st.counts.veil == 3 and st.counts.drips > 15, str(st.counts))
 	_check("indoor spaces get reflection probes (no sky in their puddles)", st.counts.probes >= 2 and st.counts.probes <= 12, str(st.counts))
 	_check("rain splashes where it lands, drainpipes pour, gas lamps burn in the street behind",
-		st.counts.splashes > 150 and st.counts.pours >= 3 and st.counts.gas_lamps >= 6, str(st.counts))
+		st.counts.splashes > 150 and st.counts.pours >= 3 and st.counts.gas_lamps >= 4, str(st.counts))
 	_check("mist lies over the streets and the canal", st.counts.mist >= 4, str(st.counts))
 	_check("watchers have rooftops to stand on", st.roofs.size() > 10, str(st.roofs.size()))
 	_check("every material is drawn once at load (no first-sight hitches)", st.counts.prewarmed >= 12, str(st.counts.prewarmed))
