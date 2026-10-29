@@ -39,6 +39,8 @@ const VIAL := Color("c42b2f")
 const GUNMETAL := Color("34312f")
 
 ## The drawing's canvas in world px, and where the feet are on it.
+## Coming down faster than this (px/s) makes a landing sound.
+const LAND_SOUND := 330.0
 const FIG_SIZE := Vector2(160, 120)
 const FIG_ORIGIN := Vector2(80, 108)
 ## Painted animations (docs/ART.md) and their frame counts. Each comes in
@@ -281,6 +283,7 @@ func step(input: Dictionary, delta: float) -> void:
 
 	# Down + jump on a walkway drops through it for a moment.
 	collision_mask = 1 if drop_t > 0.0 else 3
+	var falling := velocity.y
 	move_and_slide()
 	_ledge_assist(dir_x)
 	_wall_slide(dir_x)
@@ -288,8 +291,14 @@ func step(input: Dictionary, delta: float) -> void:
 		coyote = T.PLAYER.coyote
 		air_dash = true
 		jumping = false
+		if not on_floor and falling > LAND_SOUND:
+			Sfx.play("land")
 		if absf(velocity.x) > 20.0:
+			# A footstep each time a foot comes down (twice a stride).
+			var stride := int(run_t * 13.0 / PI)
 			run_t += delta
+			if int(run_t * 13.0 / PI) != stride:
+				Sfx.play(_footing())
 		if _firm_footing():
 			safe = position
 	_check_hazard()
@@ -692,6 +701,12 @@ func swoosh() -> Dictionary:
 		"color": Color(1.0, 0.75, 0.43, 0.5 * fade) if burns else Color(0.91, 0.87, 0.81, 0.4 * fade),
 		"width": 9.0 if burns else 6.0,
 	}
+
+
+## What a footstep sounds like here: planks or stone.
+func _footing() -> String:
+	var under: String = world.level.kind_at(world.level.cell_at(position + Vector2(0, 4)))
+	return "step_wood" if under == "walkway" else "step_stone"
 
 
 ## Where the lantern or the hook's wick is, in world space, for the glow.

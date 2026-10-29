@@ -310,6 +310,11 @@ The Metroidvania-native mechanic.
   further off; after a reveal, the thing calls. Made by
   `tools/make_ambience.py`, mixed by `scripts/ambience.gd`; real
   recordings and music replace it later.
+- **Bodies [slice, synthesized]:** boots on wet stone and on planks (a
+  step each time a foot comes down), a splash when you land hard; the
+  Hound growls in its windup and snarls as it bites, a Communicant moans
+  before it strikes. Several takes each, picked at random and slightly
+  repitched.
 - The parry glint needs a distinct sound cue as well as the visual one.
   **[slice, placeholder]**
 - The current sound effects are synthesized placeholders.

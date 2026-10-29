@@ -146,6 +146,8 @@ func step(delta: float) -> void:
 				state = "windup"
 				t = 0.0
 				glinted = false
+				if absf(dx) < 420.0:
+					Sfx.play("growl" if kind == "hound" else "moan")
 			else:
 				walk = facing if gap > 4.0 else 0.0
 		"windup":
@@ -160,6 +162,8 @@ func step(delta: float) -> void:
 				state = "strike"
 				t = 0.0
 				hit_done = false
+				if kind == "hound" and absf(dx) < 420.0:
+					Sfx.play("snarl")
 				if def.lunge > 0.0:
 					velocity = Vector2(facing * def.lunge, -160.0)
 				else:

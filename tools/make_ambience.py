@@ -17,6 +17,11 @@ effects, so nothing is added at runtime):
   call              something enormous, very far away
   creak_a/b         a hanging sign and an iron gate in the wind
 
+Bodies (to assets/sfx/, several takes each, for scripts/sfx.gd):
+  step_stone, step_wood, land   boots on wet stone and planks, a landing
+  growl, snarl                  the Hound's windup and bite
+  moan                          a Communicant before it strikes
+
 Every loop is built circularly (noise shaped in the frequency domain,
 events and reverb wrapped around the end), so it repeats without a seam.
 Tones in loops are rounded to whole cycles per loop for the same reason.
@@ -633,6 +638,136 @@ def creak(seed, modes, rate, dur, q):
     return trim_tail(reverb(dry, impulse(1.5, 2.0, r, bright=4000, dark=800), wet=0.35))
 
 
+# ---------------------------------------------------------------- bodies
+# Sound effects tied to the bodies, written to assets/sfx/ for
+# scripts/sfx.gd (which picks one of each sound's takes at random).
+
+def _drops(r, n, count, lo, hi, spread):
+    wet = np.zeros(n)
+    for _ in range(count):
+        b = bubble(r, r.uniform(lo, hi), r.uniform(0.002, 0.007), r.uniform(0.2, 0.7))
+        at = secs(r.uniform(0.004, spread))
+        m = max(0, min(len(b), n - at))
+        wet[at:at + m] += b[:m] * r.uniform(0.08, 0.3)
+    return wet
+
+
+def step_stone(seed):
+    """A boot on wet stone: the heel, the weight, the splatter."""
+    r = rng(seed)
+    n = secs(0.4)
+    t = times(n)
+    thud = butter(r.standard_normal(n) * np.exp(-t / 0.014), "low", 240) * 2.2
+    heel = butter(r.standard_normal(n) * np.exp(-t / 0.004), "band", [900, 3800]) * 0.45
+    hiss = butter(r.standard_normal(n), "band", [2500, 7500]) * np.exp(-np.maximum(t - 0.01, 0) / 0.035) * 0.22
+    x = thud + heel + hiss + _drops(r, n, r.integers(4, 10), 1800, 4800, 0.08)
+    dry = np.zeros((2, n))
+    place(dry, x, 0, r.uniform(-0.1, 0.1))
+    return trim_tail(reverb(dry, impulse(0.9, 1.2, r, bright=5000, dark=1200), wet=0.18))
+
+
+def step_wood(seed):
+    """A boot on wet planks: a hollow knock, a little give."""
+    r = rng(seed)
+    n = secs(0.45)
+    t = times(n)
+    imp = np.zeros(n)
+    imp[0] = 1.0
+    imp[secs(0.006)] = 0.5
+    x = np.zeros(n)
+    for f, a in ((r.uniform(170, 210), 1.0), (r.uniform(300, 350), 0.6), (r.uniform(480, 560), 0.35)):
+        b, a_ = signal.iirpeak(f, 14, fs=SR)
+        x += a * signal.lfilter(b, a_, imp) * 6.0
+    x += butter(r.standard_normal(n) * np.exp(-t / 0.005), "band", [1000, 4000]) * 0.4
+    x += _drops(r, n, r.integers(2, 5), 2000, 4500, 0.06)
+    dry = np.zeros((2, n))
+    place(dry, x * np.exp(-t / 0.12), 0, r.uniform(-0.1, 0.1))
+    return trim_tail(reverb(dry, impulse(0.9, 1.2, r, bright=5000, dark=1200), wet=0.18))
+
+
+def land(seed):
+    """Coming down hard on wet stone: weight, coat, a sheet of water."""
+    r = rng(seed)
+    n = secs(0.7)
+    t = times(n)
+    thud = butter(r.standard_normal(n) * np.exp(-t / 0.03), "low", 180) * 3.0
+    cloth = butter(r.standard_normal(n), "band", [250, 1400]) * np.exp(-t / 0.05) * 0.5
+    splash = butter(r.standard_normal(n), "band", [900, 6000]) * (np.clip(t / 0.01, 0, 1) * np.exp(-t / 0.09)) * 0.7
+    x = thud + cloth + splash + _drops(r, n, 18, 900, 4200, 0.25)
+    dry = np.zeros((2, n))
+    place(dry, x, 0, 0.0)
+    return trim_tail(reverb(dry, impulse(1.0, 1.3, r, bright=5000, dark=1100), wet=0.2))
+
+
+def voice(r, f0, dur, formants, rough, breath, partials=40):
+    """A throat: a buzzing source shaped by formants that slide,
+    roughened by a fast flutter."""
+    n = secs(dur)
+    t = times(n)
+    f = glide(f0, n) * (1 + 0.02 * smooth_random(n, r, 12.0, -1, 1))
+    flutter = 1.0 - rough * smooth_random(n, r, 35.0)
+    tracks = [glide(fm, n) for fm in formants]
+    x = additive(f, [(k, 1.0 / k ** 0.8) for k in range(1, partials)],
+                 lambda k, fk: sum(formant_gain(fk, c, 90.0 + 0.08 * c) * w for c, w in zip(tracks, (1.0, 0.6, 0.3))))
+    x = x * flutter
+    x += butter(r.standard_normal(n), "band", [300, 3000]) * breath
+    return x
+
+
+def growl(seed):
+    r = rng(seed)
+    dur = r.uniform(1.0, 1.3)
+    x = voice(r, [(0, 62), (dur * 0.6, 84), (dur, 72)], dur,
+              [[(0, 380), (dur, 520)], [(0, 850), (dur, 1100)], [(0, 2300), (dur, 2400)]], 0.75, 0.25)
+    x *= env_adsr(len(x), 0.3, 0.25, 1.2)
+    dry = np.zeros((2, len(x)))
+    place(dry, x, 0, 0.0)
+    return trim_tail(reverb(dry, impulse(1.2, 1.5, r, bright=4000, dark=900), wet=0.2))
+
+
+def snarl(seed):
+    r = rng(seed)
+    dur = 0.45
+    x = voice(r, [(0, 140), (0.1, 190), (dur, 120)], dur,
+              [[(0, 700), (dur, 600)], [(0, 1500), (dur, 1300)], [(0, 2800), (dur, 2600)]], 0.6, 0.7)
+    x *= env_adsr(len(x), 0.02, 0.2, 1.0)
+    clack = butter(r.standard_normal(secs(0.01)), "band", [2000, 6000]) * np.hanning(secs(0.01)) * 0.8
+    x[secs(0.38):secs(0.38) + len(clack)] += clack
+    dry = np.zeros((2, len(x)))
+    place(dry, x, 0, 0.0)
+    return trim_tail(reverb(dry, impulse(1.2, 1.5, r, bright=4000, dark=900), wet=0.2))
+
+
+def moan(seed):
+    """A Communicant before it strikes: a wet, wavering moan, half breath,
+    opening from oo to ah, a gurgle in the throat."""
+    r = rng(seed)
+    dur = r.uniform(1.0, 1.4)
+    base = r.uniform(95, 125)
+    x = voice(r, [(0, base), (dur * 0.5, base * 1.18), (dur, base * 0.9)], dur,
+              [[(0, 320), (dur * 0.6, 700), (dur, 650)], [(0, 850), (dur * 0.6, 1150), (dur, 1100)], [(0, 2300), (dur, 2500)]], 0.3, 0.2)
+    n = len(x)
+    x *= env_adsr(n, 0.25, 0.35, 1.3)
+    x += _drops(r, n, 10, 180, 600, dur * 0.8) * 1.5
+    x += whisper_voice(r, dur, 0.9) * 0.12
+    dry = np.zeros((2, n))
+    place(dry, x, 0, 0.0)
+    return trim_tail(reverb(dry, impulse(1.4, 1.8, r, bright=4000, dark=800), wet=0.25))
+
+
+SFX = {}
+for i in range(4):
+    SFX[f"step_stone_{i + 1}"] = (lambda s: lambda: step_stone(s))(70 + i)
+for i in range(3):
+    SFX[f"step_wood_{i + 1}"] = (lambda s: lambda: step_wood(s))(80 + i)
+for i in range(2):
+    SFX[f"land_{i + 1}"] = (lambda s: lambda: land(s))(90 + i)
+    SFX[f"growl_{i + 1}"] = (lambda s: lambda: growl(s))(100 + i)
+    SFX[f"snarl_{i + 1}"] = (lambda s: lambda: snarl(s))(110 + i)
+for i in range(3):
+    SFX[f"moan_{i + 1}"] = (lambda s: lambda: moan(s))(120 + i)
+
+
 SOUNDS = {
     "rain_out": rain_out,
     "rain_in": rain_in,
@@ -661,7 +796,7 @@ BED_RMS = 0.1
 PEAK = 0.89
 
 
-def write(name, x):
+def write(name, x, out=OUT):
     x = np.asarray(x, dtype=np.float64)
     if name in ("rain_out", "rain_in", "wind", "water", "drone"):
         heard = butter(x, "high", 150)
@@ -680,7 +815,7 @@ def write(name, x):
             w.setframerate(SR)
             w.writeframes(pcm.tobytes())
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-c:a", "libvorbis", "-q:a", "3",
-                        os.path.join(OUT, name + ".ogg")], check=True)
+                        os.path.join(out, name + ".ogg")], check=True)
     return x
 
 
@@ -688,9 +823,10 @@ if __name__ == "__main__":
     import sys
     os.makedirs(OUT, exist_ok=True)
     only = sys.argv[1:]
-    for name, make in SOUNDS.items():
-        if only and name not in only:
-            continue
-        x = write(name, make())
-        size = os.path.getsize(os.path.join(OUT, name + ".ogg"))
-        print(f"{name:14s} {x.shape[1] / SR:5.1f} s  {size / 1024:6.0f} KB")
+    for table, out in ((SOUNDS, OUT), (SFX, "assets/sfx")):
+        for name, make in table.items():
+            if only and not any(name.startswith(o) for o in only):
+                continue
+            x = write(name, make(), out)
+            size = os.path.getsize(os.path.join(out, name + ".ogg"))
+            print(f"{name:14s} {x.shape[1] / SR:5.1f} s  {size / 1024:6.0f} KB")

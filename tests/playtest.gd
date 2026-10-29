@@ -65,6 +65,7 @@ func _run() -> void:
 	await _scenario("_death_pile_and_gorge", _death_pile_and_gorge)
 	await _scenario("_levelling", _levelling)
 	await _scenario("_controls", _controls)
+	await _scenario("_footsteps", _footsteps)
 	await _scenario("_ambience", _ambience)
 	await _scenario("_storm", _storm)
 	await _scenario("_render_scale", _render_scale)
@@ -814,3 +815,26 @@ func _storm() -> void:
 		await process_frame
 	_check("storm: its eyes close and it's gone", not storm.colossus.visible and storm.eyes == 0.0)
 	main.ambience.auto = true
+
+
+## Boots on wet stone as you walk, a landing when you come down hard; every
+## take of every body sound loads.
+func _footsteps() -> void:
+	var sfx = main.get_node("Sfx")
+	var missing := []
+	for n in sfx.TAKES:
+		for stream in sfx._streams[n]:
+			if stream == null:
+				missing.append(n)
+	_check("sfx: every take of the footsteps, landings and voices loads", missing.is_empty(), str(missing))
+	var start: Vector2 = world.level.player_start.position
+	await _tp(start.x, start.y, 1.0, 30.0)
+	var steps: int = sfx.counts.get("step_stone", 0) + sfx.counts.get("step_wood", 0)
+	await _hold("move_right", 60)
+	var walked: int = sfx.counts.get("step_stone", 0) + sfx.counts.get("step_wood", 0) - steps
+	_check("sfx: a second's walk is about four footsteps", walked >= 3 and walked <= 6, "%d steps" % walked)
+	var landings: int = sfx.counts.get("land", 0)
+	await _tp(start.x, start.y - 200.0, 1.0, 30.0)
+	await _frames(60)
+	_check("sfx: coming down hard lands with a splash", sfx.counts.get("land", 0) == landings + 1, str(sfx.counts.get("land", 0) - landings))
+	await _tp(start.x, start.y)
