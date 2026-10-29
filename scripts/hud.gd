@@ -46,14 +46,29 @@ func _draw() -> void:
 	var x := 14.0
 	var y := 14.0
 	var bw: float = p.max_hp * per
-	draw_rect(Rect2(x - 2, y - 2, bw + 4, 11), Color(0, 0, 0, 0.55))
-	draw_rect(Rect2(x, y, maxf(0.0, p.hp) * per, 7), BLOOD)
-	draw_rect(Rect2(x, y, maxf(0.0, p.hp) * per, 2), BLOOD_BRIGHT)
+	var fill := maxf(0.0, p.hp) * per
+	draw_rect(Rect2(x - 2, y - 2, bw + 4, 11), Color(0, 0, 0, 0.6))
+	# The blood: deep below, bright along the top, faintly streaked.
+	draw_rect(Rect2(x, y, fill, 7), BLOOD)
+	draw_rect(Rect2(x, y + 5, fill, 2), BLOOD.darkened(0.4))
+	draw_rect(Rect2(x, y, fill, 1.5), BLOOD_BRIGHT)
+	var sx := x + 3.0
+	while sx < x + fill - 1.0:
+		draw_rect(Rect2(sx, y + 1.5, 1, 4 + fmod(sx * 7.31, 2.0)), Color(0, 0, 0, 0.12))
+		sx += 5.0 + fmod(sx * 3.17, 4.0)
 	if p.rally > 0.0:
 		var c := RALLY
 		c.a = 0.85 if p.rally_hold > 0.0 else 0.55 + 0.25 * sin(world.time * 14.0)
 		draw_rect(Rect2(x + p.hp * per, y, p.rally * per, 7), c)
+	# Notches every 25, an iron frame, a diamond at each end.
+	var notch := 25.0
+	while notch < p.max_hp:
+		draw_rect(Rect2(x + notch * per - 0.5, y, 1, 7), Color(0, 0, 0, 0.45))
+		notch += 25.0
 	draw_rect(Rect2(x - 2, y - 2, bw + 4, 11), BONE_DIM, false, 0.75)
+	for ex in [x - 2.0, x + bw + 2.0]:
+		draw_colored_polygon(PackedVector2Array([Vector2(ex - 3, y + 3.5), Vector2(ex, y + 0.5), Vector2(ex + 3, y + 3.5), Vector2(ex, y + 6.5)]), BONE_DIM)
+		draw_colored_polygon(PackedVector2Array([Vector2(ex - 1.5, y + 3.5), Vector2(ex, y + 2), Vector2(ex + 1.5, y + 3.5), Vector2(ex, y + 5)]), Color(0.05, 0.04, 0.04))
 
 	# Vials and bullets.
 	draw_circle(Vector2(x + 4, y + 22), 4.0, BLOOD_BRIGHT)

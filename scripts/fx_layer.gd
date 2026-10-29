@@ -64,12 +64,36 @@ func _overlay() -> void:
 			draw_rect(Rect2(at, Vector2(w * maxf(0.0, e.hp / e.max_hp), 2)), col)
 	var sw: Dictionary = world.player.swoosh()
 	if not sw.is_empty():
-		draw_arc(sw.center, sw.radius, sw.from, sw.to, 20, sw.color, sw.width)
+		_swoosh(sw)
 	if not world.shot.is_empty():
 		var s: Dictionary = world.shot
 		draw_line(s.from, s.to, Color(1.0, 0.93, 0.78, s.t / 0.07), 1.2)
 	if world.show_hitboxes:
 		_hitboxes()
+
+
+## The swing's trail as a blur rather than a painted band: thin and faint
+## at its tail, full where the pole's head is now, bright along the outer
+## edge and fading inward.
+func _swoosh(sw: Dictionary) -> void:
+	var head: float = sw.head
+	var tail: float = sw.from if absf(sw.from - head) > absf(sw.to - head) else sw.to
+	var c: Color = sw.color
+	var n := 18
+	var outer := PackedVector2Array()
+	var inner := PackedVector2Array()
+	for i in n + 1:
+		var k := float(i) / n
+		var ang := lerpf(tail, head, k)
+		var dir := Vector2(cos(ang), sin(ang))
+		var w: float = sw.width * (0.3 + 0.9 * k) * 1.5
+		outer.append(sw.center + dir * (float(sw.radius) + w * 0.35))
+		inner.append(sw.center + dir * (float(sw.radius) - w * 0.65))
+	for i in n:
+		var a0 := c.a * pow(float(i) / n, 1.6)
+		var a1 := c.a * pow(float(i + 1) / n, 1.6)
+		draw_polygon(PackedVector2Array([outer[i], outer[i + 1], inner[i + 1], inner[i]]),
+			PackedColorArray([Color(c, a0), Color(c, a1), Color(c, a1 * 0.1), Color(c, a0 * 0.1)]))
 
 
 func _glow() -> void:
@@ -78,7 +102,7 @@ func _glow() -> void:
 		if l.lit:
 			var g: Vector2 = l.position + Vector2(0, -68)
 			Glow.draw(self, g, 22.0, Color(1.0, 0.72, 0.38, 0.35))
-			draw_colored_polygon(PackedVector2Array([g + Vector2(-7, 8), g + Vector2(7, 8), g + Vector2(5, -8), g + Vector2(-5, -8)]), Color(1.0, 0.78, 0.45, 0.55))
+			draw_colored_polygon(PackedVector2Array([g + Vector2(-5, 8), g + Vector2(5, 8), g + Vector2(7, -7), g + Vector2(-7, -7)]), Color(1.0, 0.78, 0.45, 0.55))
 	for it in world.pickups:
 		if not it.taken:
 			Glow.draw(self, it.position + Vector2(0, -14), 22.0, Color(1.0, 0.85, 0.8, 0.28))

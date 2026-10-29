@@ -41,6 +41,10 @@ const GAMEPAD := [
 const RENDER_MAX := 3.0
 const RENDER_STEPS := [3.0, 2.0, 1.5, 1.0]
 const SLOW_MS := 20.0
+## Averaging under FAST_MS for FAST_WINDOWS windows in a row steps the
+## render scale back up.
+const FAST_MS := 11.0
+const FAST_WINDOWS := 5
 const SLOW_WINDOW := 2.0
 ## Seconds after the night begins before frame times count (shaders compile
 ## on first sight of things, and those hitches shouldn't drop the scale).
@@ -78,6 +82,7 @@ const SETTINGS := "user://settings.cfg"
 var _clock := 0
 var _slow_t := 0.0
 var _slow_frames := 0
+var _fast_windows := 0
 var _settle := SETTLE
 
 @onready var view: TextureRect = $View
@@ -233,6 +238,21 @@ func _adapt(frame: float) -> void:
 	var avg_ms := _slow_t * 1000.0 / _slow_frames
 	_slow_t = 0.0
 	_slow_frames = 0
+	if avg_ms <= FAST_MS:
+		# Comfortably fast for a while (a hitch passed, a fight ended): a
+		# step sharper again.
+		_fast_windows += 1
+		if _fast_windows >= FAST_WINDOWS and render_cap < RENDER_MAX:
+			_fast_windows = 0
+			# The next step up (RENDER_STEPS runs largest first).
+			for i in range(RENDER_STEPS.size() - 1, -1, -1):
+				if RENDER_STEPS[i] > render_cap + 0.01:
+					render_cap = RENDER_STEPS[i]
+					break
+			fit_view()
+			print("Frames averaging %.1f ms: drawing the world at %.1fx again" % [avg_ms, render_scale])
+		return
+	_fast_windows = 0
 	if avg_ms <= SLOW_MS:
 		return
 	for step in RENDER_STEPS:

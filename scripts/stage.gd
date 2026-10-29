@@ -100,6 +100,9 @@ var _moth_count := -1
 var _steps: Array[GPUParticles3D] = []
 var _next_step := 0
 var _rain_lean := 0.0
+## Chimney tops on the nearer rows (filled by _build_city), some smoking.
+var _chimneys := PackedVector3Array()
+var _smoke: GPUParticles3D
 var _shadowed: Array[Light3D] = []
 var _time := 0.0
 ## The browser's lighter renderer: lamps and the lantern throw no shadows,
@@ -113,19 +116,27 @@ class Builder:
 	var normals := PackedVector3Array()
 	var colors := PackedColorArray()
 	var indices := PackedInt32Array()
+	## With UVs (windows): a quad given `uv` maps 0..1 across it, a to c;
+	## everything else gets -1 (no pattern).
+	var with_uv := false
+	var uvs := PackedVector2Array()
 
 	## A quad through a, b, c, d (in order round its edge), facing n.
-	func quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3, col := Color.WHITE) -> void:
+	func quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3, col := Color.WHITE, uv := false) -> void:
+		var corners := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
 		# Godot's front faces wind clockwise seen from the front.
 		if (b - a).cross(c - a).dot(n) > 0.0:
 			var t := b
 			b = d
 			d = t
+			corners = [corners[0], corners[3], corners[2], corners[1]]
 		var i := verts.size()
 		verts.append_array(PackedVector3Array([a, b, c, d]))
 		for k in 4:
 			normals.append(n)
 			colors.append(col)
+			if with_uv:
+				uvs.append(corners[k] if uv else Vector2(-1, -1))
 		indices.append_array(PackedInt32Array([i, i + 1, i + 2, i, i + 2, i + 3]))
 
 	func tri(a: Vector3, b: Vector3, c: Vector3, n: Vector3, col := Color.WHITE) -> void:
@@ -138,6 +149,8 @@ class Builder:
 		for k in 3:
 			normals.append(n)
 			colors.append(col)
+			if with_uv:
+				uvs.append(Vector2(-1, -1))
 		indices.append_array(PackedInt32Array([i, i + 1, i + 2]))
 
 	## A box. `slab` leaves out its back (-z) face, for things set against
@@ -169,6 +182,8 @@ class Builder:
 		arrays[Mesh.ARRAY_VERTEX] = verts
 		arrays[Mesh.ARRAY_NORMAL] = normals
 		arrays[Mesh.ARRAY_COLOR] = colors
+		if with_uv:
+			arrays[Mesh.ARRAY_TEX_UV] = uvs
 		arrays[Mesh.ARRAY_INDEX] = indices
 		m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		return m
@@ -203,6 +218,8 @@ func _ready() -> void:
 	_build_moths()
 	_build_mist()
 	_build_step_splashes()
+	if not _lite:
+		_build_smoke()
 	_build_probes()
 	storm = Storm.new()
 	storm.stage = self
@@ -464,6 +481,7 @@ func _build_level() -> void:
 		var vines := Builder.new()
 		var wax := Builder.new()
 		var flames := Builder.new()
+		flames.with_uv = true
 		for r in h:
 			for c in range(c0, mini(w, c0 + CHUNK)):
 				_build_cell(lv, c, r, h, solid, stone, inner, back, wood, water)
@@ -937,6 +955,8 @@ func _house(b: Dictionary, rng: RandomNumberGenerator, x: float, bw: float, bh: 
 		var ch := top + rng.randf_range(1.0, 2.2)
 		walls.box(Vector3(cx, top, cz), Vector3(cx + 0.7, ch, cz + 0.7))
 		trim.box(Vector3(cx - 0.08, ch - 0.15, cz - 0.08), Vector3(cx + 0.78, ch, cz + 0.78))
+		if row < 2:
+			_chimneys.append(Vector3(cx + 0.35, ch + 0.4, cz + 0.35))
 		if near:
 			for k in rng.randi_range(1, 3):
 				var px := cx + 0.12 + k * 0.2
@@ -1045,9 +1065,9 @@ func _gibbet(iron: Builder, at: Vector3, rng: RandomNumberGenerator) -> void:
 func _window(b: Dictionary, rng: RandomNumberGenerator, x: float, y: float, front: float, ww: float, wh: float, framed: bool) -> void:
 	var z := front + 0.05
 	if rng.randf() < 0.16:
-		# Lit; one in six of those flickers.
-		var col := Color(rng.randf_range(0.35, 0.9), rng.randf() if rng.randf() < 0.17 else 0.0, 0.0)
-		b.windows.quad(Vector3(x, y + wh, z), Vector3(x + ww, y + wh, z), Vector3(x + ww, y, z), Vector3(x, y, z), Vector3.BACK, col)
+		# Lit; one in six of those flickers; curtains drawn more or less.
+		var col := Color(rng.randf_range(0.35, 0.9), rng.randf() if rng.randf() < 0.17 else 0.0, rng.randf())
+		b.windows.quad(Vector3(x, y + wh, z), Vector3(x + ww, y + wh, z), Vector3(x + ww, y, z), Vector3(x, y, z), Vector3.BACK, col, true)
 	elif framed:
 		b.glass.quad(Vector3(x, y + wh, z), Vector3(x + ww, y + wh, z), Vector3(x + ww, y, z), Vector3(x, y, z), Vector3.BACK)
 	if framed and ww < 0.48 and rng.randf() < 0.35:
@@ -1204,9 +1224,11 @@ func _far_spires(rng: RandomNumberGenerator, w: float, mats: Dictionary) -> void
 ## dark glass.
 func _city_builders() -> Dictionary:
 	var walls := Builder.new()
+	var windows := Builder.new()
+	windows.with_uv = true
 	if _lite:
-		return {"walls": walls, "roofs": Builder.new(), "windows": Builder.new(), "trim": walls, "iron": walls, "wood": walls, "glass": Builder.new()}
-	return {"walls": walls, "roofs": Builder.new(), "windows": Builder.new(), "trim": Builder.new(), "iron": Builder.new(), "wood": Builder.new(), "glass": Builder.new()}
+		return {"walls": walls, "roofs": Builder.new(), "windows": windows, "trim": walls, "iron": walls, "wood": walls, "glass": Builder.new()}
+	return {"walls": walls, "roofs": Builder.new(), "windows": windows, "trim": Builder.new(), "iron": Builder.new(), "wood": Builder.new(), "glass": Builder.new()}
 
 
 func _add_city_chunk(b: Dictionary, mats: Dictionary, shadows: bool) -> void:
@@ -1501,6 +1523,61 @@ func _build_pours() -> void:
 	_pour.draw_pass_1 = drop
 
 
+## Smoke from some of the chimneys: pale, slow, spreading as it rises and
+## leaning with the wind. Desktop only (it's all overdraw).
+func _build_smoke() -> void:
+	var points := PackedVector3Array()
+	for i in _chimneys.size():
+		if _hash(i * 7, 3) < 0.4:
+			points.append(_chimneys[i])
+	counts.smoke = points.size()
+	if points.is_empty():
+		return
+	_smoke = _point_emitter(points, points.size() * 10, 7.0)
+	var pm: ParticleProcessMaterial = _smoke.process_material
+	pm.direction = Vector3(0, 1, 0)
+	pm.spread = 12.0
+	pm.initial_velocity_min = 0.35
+	pm.initial_velocity_max = 0.6
+	pm.gravity = Vector3(-0.12, 0.04, 0.0)
+	pm.damping_min = 0.05
+	pm.damping_max = 0.1
+	pm.scale_min = 0.6
+	pm.scale_max = 1.0
+	var grow := Curve.new()
+	grow.add_point(Vector2(0, 0.4))
+	grow.add_point(Vector2(1, 2.6))
+	var grow_tex := CurveTexture.new()
+	grow_tex.curve = grow
+	pm.scale_curve = grow_tex
+	var fade := Gradient.new()
+	fade.offsets = PackedFloat32Array([0.0, 0.15, 0.7, 1.0])
+	fade.colors = PackedColorArray([Color(1, 1, 1, 0), Color(1, 1, 1, 1), Color(1, 1, 1, 0.5), Color(1, 1, 1, 0)])
+	var fade_tex := GradientTexture1D.new()
+	fade_tex.gradient = fade
+	pm.color_ramp = fade_tex
+	_smoke.transform_align = GPUParticles3D.TRANSFORM_ALIGN_Z_BILLBOARD
+	_smoke.visibility_aabb = _smoke.visibility_aabb.grow(6.0)
+	var puff := QuadMesh.new()
+	puff.size = Vector2(1.4, 1.4)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.vertex_color_use_as_albedo = true
+	m.albedo_color = Color(0.42, 0.45, 0.52, 0.16)
+	var soft := GradientTexture2D.new()
+	soft.fill = GradientTexture2D.FILL_RADIAL
+	soft.fill_from = Vector2(0.5, 0.5)
+	soft.fill_to = Vector2(0.5, 0.0)
+	var g := Gradient.new()
+	g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0)])
+	soft.gradient = g
+	m.albedo_texture = soft
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	puff.material = m
+	_smoke.draw_pass_1 = puff
+
+
 ## Water kicked up from under your boots, a little each step and more when
 ## you land. One-shot emitters taken in turn, set off by the player's
 ## `stepped` signal.
@@ -1724,6 +1801,13 @@ func _prewarm() -> void:
 	var seen := {}
 	var holder := Node3D.new()
 	camera.add_child(holder)
+	# A lamp beside them, so the lamp-lit versions of the shaders compile
+	# too, and the copies cast shadows (the shadow pass has its own).
+	var lamp := OmniLight3D.new()
+	lamp.position = Vector3(0, 0, -0.8)
+	lamp.omni_range = 2.0
+	lamp.shadow_enabled = not _lite
+	holder.add_child(lamp)
 	for node in find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		var m := mi.material_override
@@ -1733,7 +1817,7 @@ func _prewarm() -> void:
 		var copy := MeshInstance3D.new()
 		copy.mesh = mi.mesh if mi.mesh else QuadMesh.new()
 		copy.material_override = m
-		copy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		copy.cast_shadow = mi.cast_shadow
 		var box := copy.mesh.get_aabb()
 		copy.scale = Vector3.ONE * (0.02 / maxf(box.size.length(), 0.001))
 		copy.position = Vector3((seen.size() % 8) * 0.03 - 0.1, (seen.size() / 8) * 0.03 - 0.1, -1.0) - box.get_center() * copy.scale.x

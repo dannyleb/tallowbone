@@ -694,6 +694,7 @@ func swoosh() -> Dictionary:
 	var burns: bool = form_data().burns
 	var a := minf(sweep.x, to)
 	var b := maxf(sweep.x, to)
+	var head := to if facing > 0 else PI - to
 	if facing < 0:
 		# Mirror the arc: an angle θ facing right is π - θ facing left.
 		var mirrored := [PI - b, PI - a]
@@ -703,7 +704,7 @@ func swoosh() -> Dictionary:
 	return {
 		"center": position + Vector2(s.x * facing, s.y),
 		"radius": attack.reach * 0.7 + 12.0,
-		"from": a, "to": b,
+		"from": a, "to": b, "head": head,
 		"color": Color(1.0, 0.75, 0.43, 0.5 * fade) if burns else Color(0.91, 0.87, 0.81, 0.4 * fade),
 		"width": 9.0 if burns else 6.0,
 	}

@@ -297,8 +297,11 @@ The Metroidvania-native mechanic.
   the street behind them is cluttered with barrels, crates and carts.
   Drain mouths open in the big embankment walls, grilled, water pouring
   from them; creepers hang over the ledges; rooms have clusters of
-  guttering tallow candles. The street lamps are Victorian gas lamps, the
-  signs church noticeboards. Every step kicks up water; the rain leans
+  guttering tallow candles. Lit windows show their sashes, glazing bars
+  and half-drawn curtains, a lamp low inside; some chimneys smoke, the
+  smoke leaning with the wind. The street lamps are Victorian gas lamps,
+  the signs church noticeboards. The swing's trail is a fading blur, not
+  a painted band; the health bar sits in an iron frame. Every step kicks up water; the rain leans
   with the gusts the wind sound makes, its streaks flare in the
   lightning, and near thunder shakes the view. Figures are painted with a
   woven grain, folds and a wet hem until the illustrated frames arrive.
