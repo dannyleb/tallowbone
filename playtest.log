@@ -1,0 +1,154 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+3D stage built in 235 ms
+--- level_loaded
+PASS  ground tiles loaded
+PASS  veil tiles loaded
+PASS  canal water loaded
+PASS  walkways loaded
+PASS  entities placed
+PASS  player lands at the start
+PASS  actors are drawn as lit, rounded figures
+--- stage
+PASS  the 3D stage is on
+PASS  it extrudes the level's stone and back walls
+PASS  a light for every street lamp, and a city behind
+PASS  lamps, noticeboards and gates are built in 3D (their flat drawings off)
+PASS  veils are built, and water drips off the ledges
+PASS  indoor spaces get reflection probes (no sky in their puddles)
+PASS  rain splashes where it lands, drainpipes pour, gas lamps burn in the street behind
+PASS  mist lies over the streets and the canal
+PASS  chains, hooks and cages hang out of focus between you and the play
+PASS  coffins, barrels and crates are left about the streets and rooms
+PASS  the canal's water throws a cold light up its walls
+PASS  watchers have rooftops to stand on
+PASS  every material is drawn once at load (no first-sight hitches)
+PASS  Begin opens on the title once they're compiled
+PASS  quality steps down (Fast drops fog, occlusion, reflections) and back up
+PASS  the flat 2D tiles and night are off
+PASS  actors and props draw onto the 3D plane, effects over it
+--- starts_with_little
+PASS  every ability starts locked
+PASS  pistol, quickstep and transform do nothing yet
+PASS  the title shows five essentials per device
+PASS  pausing shows the map
+PASS  the pause screen lists only the keys you have
+PASS  the map starts with only the start seen
+--- movement
+PASS  walks right
+PASS  jumps about three tiles
+PASS  lands again
+--- ledge_assist
+PASS  a jump that clips a ledge still lands on it
+--- canal
+PASS  the canal hurts and puts you back on firm ground
+--- canal_jumps
+PASS  plain jumps cross the canal post to post
+--- finds
+PASS  WatchmansBoots1 gives quickstep
+PASS  WatchPistol1 gives pistol
+PASS  LampOil1 gives lantern
+PASS  ClimbingIrons1 gives irons
+--- keyboard
+PASS  prompts name the mouse button and the key
+PASS  Ctrl-click fires the pistol, and doesn't strike
+PASS  rebinding strike to Z replaces J, and prompts say Z
+PASS  taking another action's key swaps them
+PASS  bindings are saved and come back
+PASS  reset brings back J and K, and forgets the saved ones
+--- lamps
+PASS  lamp prompt shows
+PASS  lamp lights and becomes the checkpoint
+PASS  resting opens the lamp menu
+PASS  leaving closes it
+--- melee
+PASS  melee kills a Communicant
+PASS  its tallow is yours
+--- parry_and_visceral
+PASS  enemy winds up and glints
+PASS  a shot on the glint staggers it
+PASS  striking a staggered enemy is a Visceral
+PASS  the Visceral kills it
+--- rally
+PASS  the hound lands a hit and leaves rally
+PASS  striking back wins health back
+--- blood_and_vials
+PASS  out of bullets, holding the pistol trades 20 HP for 4 rounds
+PASS  the blood spent becomes rally
+PASS  a vial heals
+--- quickstep
+PASS  quickstep darts forward, untouchable
+--- veil
+PASS  holding strike turns the Pole to its Lantern
+PASS  the Lantern burns the whole veil
+PASS  and it's gone from the 3D stage too
+PASS  the transform key still turns it back
+--- gates
+PASS  from the wrong side a gate is barred
+PASS  and it won't open or let you through
+PASS  from its own side it offers to open
+PASS  lifting the bar opens it
+PASS  and the way through is open
+PASS  the hall door opens from the plaza
+PASS  opened gates stay open after dying
+--- chimney
+PASS  the chimney is too sheer without the Climbing Irons
+PASS  with them you wall-jump up it
+PASS  and the vial holder up there adds a vial
+--- map
+PASS  the map fills in where you've been
+PASS  the pause screen lists what you've found
+--- death_pile_and_gorge
+PASS  dies
+PASS  respawns at the lamp
+PASS  tallow drops where you fell
+PASS  an enemy that walks through it is Gorged
+PASS  Gorged means tougher
+PASS  killing it reclaims your tallow (+10%)
+PASS  dying with tallow drops a new pile
+PASS  dying again before reclaiming loses it
+--- levelling
+PASS  tallow buys a level
+PASS  the menu closes
+--- controls
+PASS  left-click strikes, right-click shoots
+PASS  no separate blood-bullet button
+--- footsteps
+PASS  sfx: every take of the footsteps, landings and voices loads
+PASS  sfx: a second's walk is about four footsteps
+PASS  each footstep kicks up a splash
+PASS  sfx: coming down hard lands with a splash
+--- ambience
+PASS  ambience: there is a soundscape
+PASS  ambience: every bed loads, loops and plays
+PASS  ambience: rain in the open, muffled under a roof
+PASS  ambience: the wind drops under a roof
+PASS  ambience: ten minutes of night bring howls, the bell, creaks and storms
+PASS  ambience: every flash has its thunder
+PASS  ambience: whispers only in the dark
+PASS  ambience: an overhead strike thunders at once; a reveal brings the call
+--- storm
+PASS  storm: the stage has one
+PASS  blood stays on the ground where things were struck
+PASS  storm: a strike flashes and shows the thing in the fog
+PASS  storm: then dark again, its eyes still open, watchers on the roofs
+PASS  storm: its eyes close and it's gone
+--- render_scale
+PASS  the world draws into its own viewport, the size of the view
+PASS  a forced scale sizes the viewport, and slow frames lower it
+PASS  F3 shows the frame rate and render size, and hides it again
+--- art
+PASS  every template pose is the frame the game shows then
+PASS  painted frames are found by animation, in order
+PASS  standing still shows the idle animation
+PASS  a painted frame draws in place of the greybox
+--- lessons
+PASS  the first glint starts a lesson
+PASS  a parry during it is learned, and the Visceral lesson follows
+PASS  finishing it ends the lessons and time runs normally
+
+117 checks, 0 failed
+WARNING: 50 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 25 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)
