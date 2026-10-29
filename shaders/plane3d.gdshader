@@ -18,11 +18,11 @@ uniform float reach = 9.0;
 // Bumps from the drawing's own shading.
 uniform float detail = 0.5;
 // How much light from behind comes through at the edges.
-uniform float rim = 0.9;
+uniform float rim = 0.65;
 // And a faint cold edge of their own, as if the moon caught them, so
 // figures still read where no light reaches.
 uniform vec3 edge_glow : source_color = vec3(0.32, 0.38, 0.55);
-uniform float edge_energy = 0.07;
+uniform float edge_energy = 0.035;
 
 #define alpha_at(uv) texture(plane, uv).a
 #define lum_at(uv) dot(texture(plane, uv).rgb, vec3(0.299, 0.587, 0.114))

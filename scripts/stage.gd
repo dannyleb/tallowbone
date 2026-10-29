@@ -258,6 +258,7 @@ func _ready() -> void:
 	_environment()
 	_camera()
 	_build_level()
+	_build_clutter()
 	_build_veil()
 	_build_city()
 	_build_lights()
@@ -464,6 +465,10 @@ func _environment() -> void:
 	moon.light_color = Color(0.6, 0.68, 0.92)
 	moon.light_energy = 1.1
 	moon.light_angular_distance = 0.8
+	# A flat wet face turned to the moon mirrors its highlight all over,
+	# a white sheet down the side of a house: little direct glint (the
+	# puddles still mirror the sky).
+	moon.light_specular = 0.12
 	moon.light_volumetric_fog_energy = 2.0
 	moon.shadow_enabled = true
 	moon.shadow_blur = 1.5
@@ -1226,6 +1231,111 @@ func _street_clutter(rng: RandomNumberGenerator, w: float, mats: Dictionary) -> 
 	counts.clutter = placed
 
 
+## What's been left in the streets and the rooms, behind the play: coffins
+## stood against the walls or laid on the stones, barrels, stacked crates,
+## a cartwheel leaning by a door. Dark shapes for the lamps to catch.
+func _build_clutter() -> void:
+	var lv = world.level
+	var w: int = lv.size_tiles.x
+	var h: int = lv.size_tiles.y
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1666
+	var wood := Builder.new()
+	var iron := Builder.new()
+	var solid := func(c: int, r: int) -> bool: return lv.kind_at(Vector2i(c, r)) == "stone"
+	var air := func(c: int, r: int) -> bool: return lv.kind_at(Vector2i(c, r)) == ""
+	var placed := 0
+	# Per floor level (row): the column the next group may stand at.
+	var next := {}
+	for c in range(2, w - 2):
+		for r in range(3, h):
+			# Dry floor with room to stand, three columns of it.
+			var room := true
+			for k in 3:
+				room = room and solid.call(c + k, r) and air.call(c + k, r - 1) and air.call(c + k, r - 2)
+			if not room:
+				continue
+			if c < int(next.get(r, 6)) or rng.randf() > 0.4:
+				continue
+			var floor_y := -float(r)
+			var x := c + rng.randf_range(0.1, 0.5)
+			var walled: bool = lv.back_wall.get_cell_source_id(Vector2i(c, r - 1)) != -1
+			var wall_z := -BACK + 0.05
+			match rng.randi() % (5 if walled else 3):
+				0:
+					_coffin(wood, iron, Vector3(x + 0.6, floor_y + 0.02, -rng.randf_range(1.4, 2.2)), false)
+				1:
+					for i in rng.randi_range(1, 3):
+						_barrel(wood, iron, Vector3(x + i * 0.62, floor_y, -rng.randf_range(1.5, 2.4)), rng.randf_range(0.24, 0.3))
+				2:
+					var s := rng.randf_range(0.5, 0.7)
+					var z := -rng.randf_range(1.6, 2.4)
+					wood.box(Vector3(x, floor_y, z - s), Vector3(x + s, floor_y + s, z), Color(0.8, 0.74, 0.62))
+					if rng.randf() < 0.6:
+						var t := s * 0.72
+						wood.box(Vector3(x + 0.08, floor_y + s, z - t - 0.06), Vector3(x + 0.08 + t, floor_y + s + t, z - 0.06), Color(0.7, 0.64, 0.55))
+				3:
+					for i in rng.randi_range(1, 2):
+						_coffin(wood, iron, Vector3(x + i * 0.75, floor_y, wall_z), true)
+				4:
+					_wheel(wood, Vector3(x + 0.5, floor_y + 0.55, wall_z + 0.12), 0.55)
+			placed += 1
+			next[r] = c + rng.randi_range(5, 11)
+	var mat := _wood()
+	mat.vertex_color_use_as_albedo = true
+	var mi := _add_mesh(wood.mesh(), mat)
+	if mi:
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_add_mesh(iron.mesh(), _iron())
+	counts.clutter_level = placed
+
+
+## A coffin: six-sided, wide at the shoulders, a raised lid with an iron
+## cross. `standing`: upright against a wall, its back at `at`.z, foot at
+## at.y; else laid on the stones along x, its foot end at `at`.
+func _coffin(wood: Builder, iron: Builder, at: Vector3, standing: bool) -> void:
+	var length := 1.9
+	var depth := 0.36
+	var col := Color(0.42, 0.36, 0.33)
+	# The outline: along its length u (head at 0), across it v.
+	var outline := [Vector2(0, -0.18), Vector2(0.5, -0.28), Vector2(length, -0.15), Vector2(length, 0.15), Vector2(0.5, 0.28), Vector2(0, 0.18)]
+	var place := func(p: Vector2, lift: float) -> Vector3:
+		if standing:
+			return at + Vector3(p.y, length - p.x, lift)
+		return at + Vector3(length - p.x, lift, p.y)
+	var out := Vector3.BACK if standing else Vector3.UP
+	for k in 2:
+		# The body, then the lid on it a little smaller.
+		var shrink := 1.0 if k == 0 else 0.9
+		var lo := 0.0 if k == 0 else depth
+		var hi := depth if k == 0 else depth + 0.04
+		var pts := []
+		for p in outline:
+			var q: Vector2 = p
+			pts.append(Vector2(length * 0.5 + (q.x - length * 0.5) * shrink, q.y * shrink))
+		var centre: Vector3 = place.call(Vector2(length * 0.5, 0), hi)
+		for i in pts.size():
+			var a: Vector2 = pts[i]
+			var b: Vector2 = pts[(i + 1) % pts.size()]
+			var a0: Vector3 = place.call(a, lo)
+			var b0: Vector3 = place.call(b, lo)
+			var a1: Vector3 = place.call(a, hi)
+			var b1: Vector3 = place.call(b, hi)
+			var side := (b1 - a1).cross(out).normalized()
+			if side.dot(a1 - centre) < 0.0:
+				side = -side
+			wood.quad(a0, b0, b1, a1, side, col)
+			wood.tri(centre, a1, b1, out, col)
+	# The cross on the lid.
+	var top := depth + 0.04
+	var c0: Vector3 = place.call(Vector2(0.3, 0), top)
+	var c1: Vector3 = place.call(Vector2(1.25, 0), top)
+	var a0: Vector3 = place.call(Vector2(0.55, -0.16), top)
+	var a1: Vector3 = place.call(Vector2(0.55, 0.16), top)
+	iron.strut(c0 + out * 0.012, c1 + out * 0.012, 0.035)
+	iron.strut(a0 + out * 0.012, a1 + out * 0.012, 0.035)
+
+
 ## A barrel standing at `base`: eight staves round, iron hoops.
 func _barrel(wood: Builder, iron: Builder, base: Vector3, radius: float) -> void:
 	var height := radius * 2.9
@@ -1562,11 +1672,11 @@ func _build_foreground() -> void:
 		if pillar:
 			var z := rng.randf_range(5.0, 6.2)
 			var foot := Vector3(x, ground - 14.0, z)
-			b.frustum(foot, 0.5, 0.5, 13.0, 4)
-			b.frustum(foot + Vector3(0, 13.0, 0), 0.62, 0.58, 0.35, 4)
-			b.frustum(foot + Vector3(0, 13.35, 0), 0.42, 0.42, 6.0, 8)
-			b.frustum(foot + Vector3(0, 19.35, 0), 0.5, 0.62, 0.4, 8)
-			b.frustum(foot + Vector3(0, 19.75, 0), 0.7, 0.7, 12.0, 4)
+			b.frustum(foot, 0.34, 0.34, 13.0, 4)
+			b.frustum(foot + Vector3(0, 13.0, 0), 0.44, 0.4, 0.3, 4)
+			b.frustum(foot + Vector3(0, 13.3, 0), 0.28, 0.28, 6.0, 8)
+			b.frustum(foot + Vector3(0, 19.3, 0), 0.34, 0.44, 0.35, 8)
+			b.frustum(foot + Vector3(0, 19.65, 0), 0.5, 0.5, 12.0, 4)
 		else:
 			var z := rng.randf_range(5.2, 6.4)
 			var bottom := ground + rng.randf_range(4.0, 5.5)
@@ -1584,7 +1694,8 @@ func _build_foreground() -> void:
 			b.strut(Vector3(x, y - 0.35, z), Vector3(x + 0.16, y - 0.3, z), 0.035)
 			b.strut(Vector3(x + 0.16, y - 0.3, z), Vector3(x + 0.18, y - 0.14, z), 0.03)
 		counts.foreground += 1
-		pillar = not pillar
+		# Chains more often than pillars: a pillar hides more.
+		pillar = rng.randf() < 0.35
 		x += rng.randf_range(16.0, 26.0)
 	_fore_mat = ShaderMaterial.new()
 	_fore_mat.shader = FOREGROUND

@@ -92,6 +92,13 @@ func _run() -> void:
 		first.append(m)
 		_status("Benchmark: first visit to %s, worst frame %.0f ms" % [spot[0], m.max_ms])
 
+	# Once round the spots with everything on, unmeasured: what the first
+	# visits left compiling (shadow passes, probes) finishes here, not in
+	# the first row.
+	for spot in SPOTS:
+		_put(spot[1])
+		await _measure(1.0)
+
 	var rows := []
 	var configs: Array = [[]]
 	if not quick:

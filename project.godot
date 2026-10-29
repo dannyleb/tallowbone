@@ -168,6 +168,9 @@ environment/glow/upscale_mode.web=0
 ; The volumetric fog's grid: coarser than the default (it's soft anyway).
 environment/volumetric_fog/volume_size=48
 environment/volumetric_fog/volume_depth=48
+; Bounce light is a soft wash in the dark here: low quality is plenty.
+environment/ssil/quality=1
+environment/ssil/blur_passes=3
 
 [importer_defaults]
 

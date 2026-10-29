@@ -163,8 +163,8 @@ void fragment() {
 		float across = texture(wet_noise, vec2(wpos.x * 1.7 + wpos.z * 1.7, 0.37)).r;
 		float flow = texture(wet_noise, vec2(wpos.x * 3.1 + wpos.z * 3.1, wpos.y * 0.35 + TIME * 0.18)).r;
 		sheet = smoothstep(0.62, 0.8, across) * smoothstep(0.45, 0.7, flow) * (1.0 - abs(n.y));
-		float runs = texture(wet_noise, vec2((wpos.x + wpos.z) * 0.9, wpos.y * 0.05 + 0.5)).r;
-		grime = smoothstep(0.48, 0.72, runs) * (1.0 - abs(n.y));
+		float runs = texture(wet_noise, vec2((wpos.x + wpos.z) * 0.45, wpos.y * 0.04 + 0.5)).r;
+		grime = smoothstep(0.42, 0.7, runs) * (1.0 - abs(n.y));
 	}
 
 	// How wet, and over the whole city some walls dirtier, some cleaner
@@ -175,7 +175,14 @@ void fragment() {
 	albedo *= tint * (0.8 + 0.4 * macro);
 	rough *= 0.9 + 0.2 * macro;
 	albedo *= mix(1.0, 0.68, wet);              // wet stone darkens
-	albedo *= mix(vec3(1.0), vec3(0.6, 0.66, 0.58), grime);
+	albedo *= mix(vec3(1.0), vec3(0.5, 0.56, 0.48), grime);
+	// Damp patches a couple of metres across, so no two stretches of wall
+	// look alike.
+	if (!distant) {
+		float damp = texture(wet_noise, wpos.xy * 0.09 + wpos.zx * 0.07 + 0.31).r;
+		albedo *= mix(vec3(0.7, 0.74, 0.7), vec3(1.12, 1.1, 1.06), smoothstep(0.25, 0.75, damp));
+		rough *= mix(0.8, 1.05, damp);
+	}
 	albedo = mix(albedo, albedo * 0.45, puddle);
 	rough = mix(rough, rough * 0.35, wet);
 	// Not quite mirrors: rain pocks the puddles, so reflections blur a little.

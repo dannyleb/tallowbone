@@ -284,7 +284,8 @@ The Metroidvania-native mechanic.
   that has had a century of coal smoke and rain: every surface carries
   its history. Ashlar of uneven courses with chipped, worn arrises, pits,
   spalls and cracks, soot run down from above, salt bloom, moss low in the
-  joints, long dark rain stains run down the walls under every ledge; granite setts worn smooth on top with mud and water in the
+  joints, long dark rain stains run down the walls under every ledge and
+  damp patches mottle them, so no two stretches look alike; granite setts worn smooth on top with mud and water in the
   joints; old planks rotting at the ends round rusting nails; soot-black
   brick and slate on the houses. Water settles in the low parts first.
   The masonry around the play has coping stones along every ledge,
@@ -304,7 +305,11 @@ The Metroidvania-native mechanic.
   gameplay plane (iron post, glass lantern that glows when lit; planks
   under a gabled cap, the notice brightening as you come near), and the
   shortcut gates are iron whose bars lift into the lintel; only the
-  figures are drawn on the plane, smoothed (multisampled). The swing's
+  figures are drawn on the plane, smoothed (multisampled). Behind the
+  play, coffins stand against the walls or lie on the stones, with
+  barrels, stacked crates and a cartwheel leaning by a door; in front of
+  it (desktop), now and then a pillar or a hanging chain passes close to
+  the camera, out of focus, thinning away where it crosses you. The swing's
   trail is a fading blur, not
   a painted band; the health bar sits in an iron frame. Blood stays on
   the stone where things are struck and the rain washes it away over

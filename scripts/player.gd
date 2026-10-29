@@ -1000,10 +1000,13 @@ func _paint_figure(ci: CanvasItem, offset: float, alpha: float, ghost: bool, pos
 		Vector2(-6.5 + lean, -38 + top), Vector2(-2.0 + lean, -39 + top), Vector2(-3.0 + lean, -45 + top), Vector2(-6.0 + lean, -43.5 + top),
 	]), c.call(COAT_DARK))
 
-	# The face, mostly shadow: a pale strip under the brim, an eye.
-	ci.draw_rect(Rect2(-2.0 + lean, -47.5 + top, 7.0, 7.0), c.call(SKIN))
-	ci.draw_rect(Rect2(-2.0 + lean, -47.5 + top, 7.0, 1.8), c.call(SKIN.darkened(0.55)))
-	ci.draw_rect(Rect2(2.6 + lean, -45.2 + top, 1.6, 0.9), c.call(Color("1a1414")))
+	# The face, mostly shadow under the brim: a cheekbone catching the
+	# light, a sunken eye with a glint in it.
+	ci.draw_rect(Rect2(-2.0 + lean, -47.5 + top, 7.0, 7.0), c.call(SKIN.darkened(0.42)))
+	ci.draw_rect(Rect2(-2.0 + lean, -47.5 + top, 7.0, 2.8), c.call(SKIN.darkened(0.72)))
+	ci.draw_rect(Rect2(3.2 + lean, -44.6 + top, 1.8, 1.4), c.call(SKIN.darkened(0.15)))
+	ci.draw_rect(Rect2(2.4 + lean, -45.4 + top, 1.7, 1.0), c.call(Color("140f0f")))
+	ci.draw_rect(Rect2(3.3 + lean, -45.2 + top, 0.5, 0.45), c.call(Color("e8dcc0")))
 	ci.draw_rect(Rect2(-3.8 + lean, -47.5 + top, 2.4, 6.0), c.call(HAIR))
 	# The scarf: wound over the mouth and nose, the tail streaming.
 	ci.draw_colored_polygon(PackedVector2Array([

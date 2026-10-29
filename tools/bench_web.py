@@ -30,9 +30,9 @@ PORT = 8060
 
 # label, browser, screen size, device pixel ratio, query, timeout (s)
 RUNS = [
-    ("Firefox, 1280x720", "firefox", (1280, 720), 1, "bench", 420),
-    ("Chrome, 1280x720", "chrome", (1280, 720), 1, "bench", 420),
-    ("Firefox, 1280x720 at 2x (2560x1440 pixels, like a Retina screen)", "firefox", (2560, 1440), 2, "bench=quick", 240),
+    ("Firefox, 1280x720", "firefox", (1280, 720), 1, "bench", 600),
+    ("Chrome, 1280x720", "chrome", (1280, 720), 1, "bench", 600),
+    ("Firefox, 1280x720 at 2x (2560x1440 pixels, like a Retina screen)", "firefox", (2560, 1440), 2, "bench=quick", 360),
 ]
 
 FIREFOX_PREFS = {
