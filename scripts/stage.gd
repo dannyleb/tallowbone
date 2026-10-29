@@ -2289,6 +2289,15 @@ func _prewarm() -> void:
 	lamp.omni_range = 2.0
 	lamp.shadow_enabled = not _lite
 	holder.add_child(lamp)
+	# And a reflection probe round them: a probe draws with pipelines of
+	# its own, compiled the first time one sees each material (the rooms'
+	# probes, on first sight of the undercroft).
+	var probe := ReflectionProbe.new()
+	probe.size = Vector3(1, 1, 1)
+	probe.position = Vector3(0, 0, -1.0)
+	probe.max_distance = 3.0
+	probe.update_mode = ReflectionProbe.UPDATE_ONCE
+	holder.add_child(probe)
 	# [mesh, material, shadow casting]: every mesh's, and the lamp glass lit.
 	var uses := []
 	for node in find_children("*", "MeshInstance3D", true, false):
@@ -2315,7 +2324,7 @@ func _prewarm() -> void:
 		copy.position = Vector3((seen.size() % 8) * 0.03 - 0.1, (seen.size() / 8) * 0.03 - 0.1, -1.0) - box.get_center() * copy.scale.x
 		holder.add_child(copy)
 	counts.prewarmed = seen.size()
-	get_tree().create_timer(0.5).timeout.connect(func():
+	get_tree().create_timer(1.0).timeout.connect(func():
 		holder.queue_free()
 		warmed.emit())
 
