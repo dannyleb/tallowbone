@@ -464,6 +464,7 @@ The Metroidvania-native mechanic.
 | — | Easier start: canal of short hops, ledge assist, five starting keys with the rest found along the way, hold strike to transform, pause-screen map, shortcut gates, Climbing Irons | **done** |
 | — | Atmosphere: soundscape, storm and the thing in the fog, a dressed and wetter city (rain rings, splashes, mist, drainpipes), characters drawn in depth, key rebinding and Ctrl-click | **done (greybox)** |
 | — | Weathered: generated materials with history (soot, moss, wear, water in the joints), gothic skyline and masonry, textured figures, grade and grain, quality levels | **done (generated)** |
+| — | Film light and real props: AgX tonemapping (texture in the dark), lamps, noticeboards and gates in 3D, coffins and clutter behind the play, hanging things out of focus in front, haze, rain stains and damp, amber windows, canal light; cheaper far city, shaders compiled behind the title | **done** |
 
 ## 14. Open questions
 - Lore: who is the Medium, and what is the church actually burning?
