@@ -33,8 +33,10 @@ void fragment() {
 		c = mix(vec3(l), c, 0.8);
 		c *= 0.78 + 0.32 * weave;
 		c *= 0.86 + 0.2 * folds;
-		// The hem soaked dark from the wet streets.
+		// The hem soaked dark from the wet streets; a little more light on
+		// the upper body, under the open sky.
 		c *= 1.0 - 0.28 * smoothstep(-14.0, -1.0, p.y);
+		c *= 0.88 + 0.16 * smoothstep(-6.0, -46.0, p.y);
 	}
 	COLOR.rgb = mix(c, vec3(1.0), flash);
 }

@@ -27,7 +27,7 @@ static func hurt_player(world, damage: float, from_x: float) -> bool:
 	p.rally_hold = T.RALLY.hold
 	world.hitstop = maxf(world.hitstop, T.HITSTOP.hurt)
 	world.fx.add_shake(5.0)
-	world.fx.burst(p.position + Vector2(0, -26), {"count": 14, "color": BLOOD_COLOR, "dir": signf(p.position.x - from_x)})
+	world.fx.burst(p.position + Vector2(0, -26), {"count": 14, "color": BLOOD_COLOR, "dir": signf(p.position.x - from_x), "stain": 0.4})
 	Sfx.play("hurt")
 	if p.hp <= 0.0:
 		kill_player(world)
@@ -62,7 +62,7 @@ static func damage_enemy(world, e, damage: float, dir: float, visceral := false)
 	e.hp -= damage
 	e.flash = 0.1
 	var at: Vector2 = e.position + Vector2(0, -e.def.h * 0.6)
-	world.fx.burst(at, {"count": 40 if visceral else 10, "color": BLOOD_COLOR, "dir": dir, "spread": 260.0 if visceral else 160.0})
+	world.fx.burst(at, {"count": 40 if visceral else 10, "color": BLOOD_COLOR, "dir": dir, "spread": 260.0 if visceral else 160.0, "stain": 1.0 if visceral else 0.5})
 	if e.hp <= 0.0:
 		kill_enemy(world, e)
 		return
@@ -92,7 +92,7 @@ static func kill_enemy(world, e) -> void:
 	world.tallow += gain
 	world.gained = {"amount": gain, "t": 0.0}
 	world.fx.add_motes(at, mini(24, 4 + roundi(gain / 10.0)))
-	world.fx.burst(at, {"count": 18, "color": BLOOD_COLOR, "spread": 200.0})
+	world.fx.burst(at, {"count": 18, "color": BLOOD_COLOR, "spread": 200.0, "stain": 0.8})
 	Sfx.play("tallow")
 
 

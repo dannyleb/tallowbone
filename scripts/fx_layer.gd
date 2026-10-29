@@ -106,6 +106,15 @@ func _glow() -> void:
 	for it in world.pickups:
 		if not it.taken:
 			Glow.draw(self, it.position + Vector2(0, -14), 22.0, Color(1.0, 0.85, 0.8, 0.28))
+	# The things of the night: an eye catching what light there is, burning
+	# when they've Gorged.
+	for e in world.enemies:
+		if not e.visible:
+			continue
+		var eye = e.eye_at()
+		if eye != null:
+			var hot: bool = e.gorged > 0
+			Glow.draw(self, eye, 4.0 if hot else 3.0, Color(1.0, 0.42, 0.2, 0.6) if hot else Color(0.95, 0.85, 0.55, 0.35))
 	var p = world.player
 	if p.visible and p.state != "dead":
 		var f: Vector2 = p.flame_at()

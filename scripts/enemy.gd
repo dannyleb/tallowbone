@@ -224,6 +224,17 @@ func _wall_ahead(level, dir: float) -> bool:
 	return level.solid_at(Vector2(x, position.y - 4.0)) or level.solid_at(Vector2(x, r.position.y))
 
 
+## Where its eye is (for the glow drawn over the dark), or nowhere (null)
+## when it shouldn't show: dead, staggered, or painted art (which may have
+## no eye there).
+func eye_at():
+	if not alive or state == "stagger" or state == "held" or Art.frames(kind).has(art_frame()[0]):
+		return null
+	if kind == "hound":
+		return position + Vector2(facing * 17.5 * _stretch, -18.2 + _crouch)
+	return position + Vector2(facing * 13.6, -34.6)
+
+
 ## Where the parry glint shows: the claw tip, or the hound's teeth.
 func weapon_point() -> Vector2:
 	if kind == "hound":

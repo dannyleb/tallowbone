@@ -394,9 +394,37 @@ def slate():
     write("slate", col, h, 8.0, rough)
 
 
+def splat():
+    """A blood splatter for the decals left where things are struck (not
+    tiling): a pool, a spray thrown one way, scattered drops. Colour in
+    RGB, coverage in alpha."""
+    r = np.random.default_rng(601)
+    c = N / 2
+    d = np.hypot(xx - c, yy - c) / (N / 2)
+    ang = np.arctan2(yy - c, xx - c)
+    wobble = fbm(602, (4, 8, 16, 32))
+    edge = 0.3 + 0.04 * np.sin(ang * 3 + 1.3) + 0.03 * np.sin(ang * 7 + 0.4) + (wobble - 0.5) * 0.42
+    a = np.clip((edge - d) * 30, 0, 1)
+    # A spray thrown to the right, thinning.
+    spray = np.clip(1 - np.abs((yy - c) / (N * 0.12)) * (1 + (xx - c) / N), 0, 1) * np.clip((xx - c) / (N * 0.45), 0, 1)
+    spray *= (fbm(603, (16, 32, 64)) > 0.52)
+    a = np.maximum(a, spray * 0.9)
+    for _ in range(60):
+        px, py = r.normal(c + N * 0.18, N * 0.17), r.normal(c, N * 0.13)
+        rad = r.uniform(2, 11)
+        a = np.maximum(a, np.clip((rad - np.hypot(xx - px, yy - py)) / 2.0, 0, 1))
+    a *= np.clip((1 - d) * 3, 0, 1)
+    tone = 0.75 + 0.5 * fbm(604, (8, 16, 32))
+    col = np.dstack([0.32 * tone, 0.025 * tone, 0.02 * tone])
+    # Thicker toward the middle of the pool: darker.
+    col *= (0.7 + 0.3 * d)[..., None]
+    img = np.dstack([down(col), down(a)])
+    save("blood_splat.png", img)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for make in (stone, cobble, wood, brick, slate):
+    for make in (stone, cobble, wood, brick, slate, splat):
         make()
         print("made", make.__name__)
 

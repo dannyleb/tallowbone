@@ -103,6 +103,13 @@ var _rain_lean := 0.0
 ## Chimney tops on the nearer rows (filled by _build_city), some smoking.
 var _chimneys := PackedVector3Array()
 var _smoke: GPUParticles3D
+## Blood on the ground where things were struck: [decal, age]. The rain
+## washes each away over STAIN_LIFE seconds; at most STAINS at once.
+const STAIN_LIFE := 50.0
+const STAINS := 24
+var _stains: Array = []
+var _stain_rng := RandomNumberGenerator.new()
+var _splat: Texture2D
 var _shadowed: Array[Light3D] = []
 var _time := 0.0
 ## The browser's lighter renderer: lamps and the lantern throw no shadows,
@@ -1859,6 +1866,60 @@ func _process(delta: float) -> void:
 		_rain_lean = lean
 		(_rain.process_material as ParticleProcessMaterial).direction = Vector3(lean, -1.0, 0.0)
 	_update_lights()
+	_update_stains(delta)
+
+
+## New blood from the World's effects (FxState.stains) becomes a decal on
+## the floor below; old blood fades in the rain. Desktop only (the
+## browser's renderer has no decals).
+func _update_stains(delta: float) -> void:
+	var fresh: Array = world.fx.stains
+	while not fresh.is_empty():
+		var s: Array = fresh.pop_front()
+		if not _lite:
+			_stain(s[0], s[1])
+	for i in range(_stains.size() - 1, -1, -1):
+		var e: Array = _stains[i]
+		e[1] += delta
+		var d: Decal = e[0]
+		d.modulate.a = 0.95 * clampf(1.0 - e[1] / STAIN_LIFE, 0.0, 1.0)
+		if e[1] >= STAIN_LIFE:
+			d.queue_free()
+			_stains.remove_at(i)
+
+
+func _stain(at: Vector2, amount: float) -> void:
+	var lv = world.level
+	var y := at.y
+	var found := false
+	for i in 14:
+		if lv.standable_at(Vector2(at.x, y)):
+			found = true
+			break
+		y += PX * 0.5
+	if not found:
+		return
+	if _splat == null:
+		_splat = load("res://assets/3d/blood_splat.png")
+	var top := floorf(y / PX) * PX
+	var d := Decal.new()
+	d.texture_albedo = _splat
+	var s := 0.8 + amount * 0.9
+	d.size = Vector3(s, 0.5, s * 0.8)
+	d.position = _to_3d(Vector2(at.x + _stain_rng.randf_range(-6.0, 6.0), top), _stain_rng.randf_range(-0.7, 0.5)) + Vector3(0, 0.15, 0)
+	d.rotation.y = _stain_rng.randf_range(0.0, TAU)
+	d.albedo_mix = 0.95
+	d.upper_fade = 0.2
+	d.lower_fade = 0.2
+	d.modulate = Color(1, 1, 1, 0.95)
+	# Not on the plane: the figures standing in it shouldn't wear it.
+	d.cull_mask = 0xFFFFF & ~MOVING
+	add_child(d)
+	_stains.append([d, 0.0])
+	if _stains.size() > STAINS:
+		(_stains[0][0] as Decal).queue_free()
+		_stains.remove_at(0)
+	counts.stains = counts.get("stains", 0) + 1
 
 
 func _update_lights() -> void:

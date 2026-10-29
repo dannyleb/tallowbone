@@ -9,6 +9,9 @@ var shake := 0.0
 var banner := {}
 ## { text, t, dur } or empty.
 var notice := {}
+## Blood to leave on the ground: [where, how much 0..1]. The 3D stage takes
+## them; nothing else reads them, so only the newest few are kept.
+var stains: Array = []
 
 
 ## count particles at `at`. spread: speed range; up: extra upward kick;
@@ -23,6 +26,11 @@ func burst(at: Vector2, opts := {}) -> void:
 	var gravity: float = opts.get("gravity", 900.0)
 	var glow: bool = opts.get("glow", false)
 	var dir: float = opts.get("dir", 0.0)
+	var stain: float = opts.get("stain", 0.0)
+	if stain > 0.0:
+		stains.append([at, stain])
+		if stains.size() > 16:
+			stains.pop_front()
 	for i in count:
 		var a := randf() * TAU
 		var s := spread * (0.3 + randf() * 0.7)

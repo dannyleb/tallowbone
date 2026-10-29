@@ -770,9 +770,10 @@ func _ambience() -> void:
 		amb.strike(1.0)
 		if not flashes.is_empty() and flashes[-1][1]:
 			break
+	# (Noted now: a storm of its own may strike while the call is awaited.)
+	var revealed: bool = not flashes.is_empty() and flashes[-1][1]
 	for i in 60:
 		amb.step(0.1)
-	var revealed: bool = not flashes.is_empty() and flashes[-1][1]
 	_check("ambience: an overhead strike thunders at once; a reveal brings the call",
 		revealed and amb.heard.has("thunder_near") and amb.heard.has("call") and amb.dread > 0.6,
 		"%s %s dread %.2f" % [flashes, amb.heard, amb.dread])
@@ -800,6 +801,7 @@ func _storm() -> void:
 	_check("storm: the stage has one", storm != null)
 	if storm == null:
 		return
+	_check("blood stays on the ground where things were struck", main.stage.counts.get("stains", 0) > 0, str(main.stage.counts.get("stains", 0)))
 	main.ambience.auto = false
 	storm.flash(1.0, true)
 	var peak := 0.0

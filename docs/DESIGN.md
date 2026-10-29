@@ -301,7 +301,10 @@ The Metroidvania-native mechanic.
   and half-drawn curtains, a lamp low inside; some chimneys smoke, the
   smoke leaning with the wind. The street lamps are Victorian gas lamps,
   the signs church noticeboards. The swing's trail is a fading blur, not
-  a painted band; the health bar sits in an iron frame. Every step kicks up water; the rain leans
+  a painted band; the health bar sits in an iron frame. Blood stays on
+  the stone where things are struck and the rain washes it away over
+  most of a minute (desktop); enemies' eyes catch what light there is,
+  and burn when they've Gorged. Every step kicks up water; the rain leans
   with the gusts the wind sound makes, its streaks flare in the
   lightning, and near thunder shakes the view. Figures are painted with a
   woven grain, folds and a wet hem until the illustrated frames arrive.
@@ -409,7 +412,9 @@ The Metroidvania-native mechanic.
   heavy lighting; the desktop builds are where the look gets judged.
 - F3 shows fps and the render size. `?bench` runs a frame-time benchmark (each system switched off in turn,
   then lower render scales) and shows the table; `?perf` is F3 from the start;
-  `?scale=1.5` fixes the render scale. CI runs `?bench` in
+  `?scale=1.5` fixes the render scale. CI also runs the benchmark with the
+  desktop renderer (`-- --bench --bench-quit`, Vulkan drawn by the CPU) and
+  adds it to `bench/bench.md`. CI runs `?bench` in
   Firefox and Chrome (`tools/bench_web.py`, CPU-drawn, so compare rows).
 - Levels are scenes with TileMapLayers (`Ground`, `BackWall`) and placed
   entities. The first was generated from ASCII by `tools/build_level.py`.
