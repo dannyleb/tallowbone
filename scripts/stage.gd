@@ -670,8 +670,11 @@ func _candles(lv, c: int, r: int, solid: Callable, wax: Builder, flames: Builder
 		return
 	var floor_y := -float(r + 1)
 	var z0 := -BACK + 0.35
-	# A pool of old wax under them.
-	wax.box(Vector3(c + 0.05, floor_y, z0 - 0.15), Vector3(c + 0.95, floor_y + 0.02, z0 + 0.35))
+	# Pools of old wax under them.
+	for i in 2:
+		var px := c + 0.15 + _hash(c + i * 31, r) * 0.5
+		var pz := z0 - 0.05 + _hash(c, r + i * 29) * 0.2
+		wax.box(Vector3(px, floor_y, pz), Vector3(px + 0.18 + _hash(c + i, r) * 0.15, floor_y + 0.012, pz + 0.12 + _hash(c, r + i) * 0.1))
 	for i in 3 + int(_hash(c, r * 5) * 5.0):
 		var x := c + 0.12 + _hash(c + i * 7, r) * 0.76
 		var z := z0 + _hash(c, r + i * 3) * 0.4 - 0.1
@@ -682,13 +685,14 @@ func _candles(lv, c: int, r: int, solid: Callable, wax: Builder, flames: Builder
 		wax.box(Vector3(x + w * 0.6, floor_y, z - w * 0.6), Vector3(x + w * 1.3, floor_y + h * 0.7, z + w * 0.2))
 		var f := Vector3(x, floor_y + h + 0.012, z + w + 0.004)
 		var phase := _hash(c + i * 13, r * 7) * 0.9 + 0.05
-		flames.tri(f + Vector3(-0.011, 0, 0), f + Vector3(0.011, 0, 0), f + Vector3(0, 0.045, 0), Vector3.BACK, Color(1.0, phase, 0.0))
+		flames.tri(f + Vector3(-0.02, 0, 0), f + Vector3(0.02, 0, 0), f + Vector3(0, 0.085, 0), Vector3.BACK, Color(1.0, phase, 0.0))
+		flames.tri(f + Vector3(-0.009, 0.004, 0.002), f + Vector3(0.009, 0.004, 0.002), f + Vector3(0, 0.04, 0.002), Vector3.BACK, Color(1.0, phase, 0.0))
 	counts.candles = counts.get("candles", 0) + 1
 
 
 func _wax() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.78, 0.72, 0.58)
+	m.albedo_color = Color(0.5, 0.45, 0.36)
 	m.roughness = 0.35
 	m.rim_enabled = true
 	m.rim = 0.3
