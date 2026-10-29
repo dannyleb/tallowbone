@@ -95,7 +95,7 @@ func _run() -> void:
 	Combat.kill_player(world)
 	await _frames(50)
 	await _shot("08-death")
-	await _frames(150)
+	await _frames(100)
 
 	# Resting at a lamp.
 	world.tallow = 240
@@ -189,6 +189,8 @@ func _shot(name: String) -> void:
 	paused = true
 	main.fixed_scale = 2.0
 	main.fit_view()
+	if main.stage:
+		main.stage.set_quality(0)
 	for i in 8:
 		await process_frame
 	await RenderingServer.frame_post_draw
@@ -196,6 +198,9 @@ func _shot(name: String) -> void:
 	img.save_png("%s/%s.png" % [out_dir, name])
 	main.fixed_scale = 0.5
 	main.fit_view()
+	# Between shots, draw as little as possible (CI draws on the CPU).
+	if main.stage:
+		main.stage.set_quality(2)
 	paused = was_paused
 	player.iframes = 999.0
 	print("saved ", name)

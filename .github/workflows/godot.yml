@@ -77,9 +77,9 @@ jobs:
 
       - name: Screenshots
         if: always()
-        timeout-minutes: 12
+        timeout-minutes: 20
         run: |
-          xvfb-run -a -s "-screen 0 1280x720x24" timeout -k 10 660 godot --audio-driver Dummy --path . --rendering-driver vulkan --resolution 1280x720 \
+          xvfb-run -a -s "-screen 0 1280x720x24" timeout -k 10 1140 godot --audio-driver Dummy --path . --rendering-driver vulkan --resolution 1280x720 \
             --fixed-fps 60 --script res://tests/screenshots.gd -- "$PWD/ci-out/shots" 2>&1 | head -c 20000000 | tee ci-out/screenshots.log
 
       - name: Art templates

@@ -50,6 +50,9 @@ void fragment() {
 	float edge = smoothstep(0.15, 0.9, length(n));
 	BACKLIGHT = vec3(rim * edge);
 	EMISSION = edge_glow * edge_energy * edge;
-	ROUGHNESS = 0.7;
-	SPECULAR = 0.35;
+	// Darker parts (leather, a soaked coat, boots) are wetter and catch the
+	// lamps; pale ones (skin, bone, cloth) less.
+	float lum = dot(ALBEDO, vec3(0.299, 0.587, 0.114));
+	ROUGHNESS = mix(0.38, 0.78, smoothstep(0.05, 0.45, lum));
+	SPECULAR = 0.45;
 }

@@ -448,6 +448,7 @@ func _build_level() -> void:
 				if not _lite:
 					_dress_cell(lv, c, r, solid, stone, inner, iron)
 					_overgrow(lv, c, r, solid, stone, vines, iron)
+					_culvert(lv, c, r, solid, stone, water, iron)
 		# The stone is open at the back and the back walls are single quads
 		# facing you, and the moon shines from behind: both cast shadows from
 		# either side, or moonlight leaks into the rooms underground.
@@ -588,6 +589,48 @@ func _overgrow(lv, c: int, r: int, solid: Callable, stone: Builder, vines: Build
 		var gx := c + 0.2
 		for i in 6:
 			iron.box(Vector3(gx + i * 0.1, yt, -0.6), Vector3(gx + i * 0.1 + 0.03, yt + 0.012, 0.3))
+
+
+## A drain's mouth in a big stone front, every dozen metres or so where the
+## wall is deep enough: a dark wet arch in a ring of voussoirs behind an
+## iron grille, water pouring from its sill.
+func _culvert(lv, c: int, r: int, solid: Callable, stone: Builder, water: Builder, iron: Builder) -> void:
+	if c % 13 != 6:
+		return
+	for dc in [-1, 0, 1, 2]:
+		for dr in [0, 1]:
+			if not solid.call(c + dc, r + dr):
+				return
+	# Only below an open street: two rows of stone above, then air.
+	if not (solid.call(c, r - 1) and solid.call(c, r - 2) and not solid.call(c, r - 3)):
+		return
+	var cx := c + 0.5
+	var base := -float(r + 2) + 0.35
+	var half := 0.85
+	var spring := base + 0.9
+	var z := FRONT + 0.01
+	var segs := 10
+	# The dark mouth: a rectangle below, a half-round above.
+	water.quad(Vector3(cx - half, spring, z), Vector3(cx + half, spring, z), Vector3(cx + half, base, z), Vector3(cx - half, base, z), Vector3.BACK)
+	for i in segs:
+		var a0 := PI * i / segs
+		var a1 := PI * (i + 1) / segs
+		water.tri(Vector3(cx, spring, z), Vector3(cx + cos(a0) * half, spring + sin(a0) * half, z), Vector3(cx + cos(a1) * half, spring + sin(a1) * half, z), Vector3.BACK)
+	# Voussoirs round the arch, a keystone proud at the top.
+	for i in segs + 1:
+		var a := PI * i / segs
+		var p := Vector3(cx + cos(a) * (half + 0.13), spring + sin(a) * (half + 0.13), FRONT)
+		var big := 0.11 if i == segs / 2 else 0.08
+		stone.box(p - Vector3(big, big, 0), p + Vector3(big, big, 0.06 + (0.04 if i == segs / 2 else 0.0)))
+	stone.box(Vector3(cx - half - 0.2, base - 0.12, FRONT), Vector3(cx + half + 0.2, base, FRONT + 0.14))
+	# The grille.
+	for i in 7:
+		var bx := cx - half + 0.15 + i * (2.0 * half - 0.3) / 6.0
+		var top := spring + sqrt(maxf(0.0, half * half - (bx - cx) * (bx - cx))) - 0.05
+		iron.box(Vector3(bx - 0.018, base, FRONT + 0.05), Vector3(bx + 0.018, top, FRONT + 0.09))
+	iron.box(Vector3(cx - half, spring - 0.05, FRONT + 0.05), Vector3(cx + half, spring, FRONT + 0.09))
+	_pours.append(Vector3(cx, base + 0.05, FRONT + 0.16))
+	counts.culverts = counts.get("culverts", 0) + 1
 
 
 func _vine() -> StandardMaterial3D:
