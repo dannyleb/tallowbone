@@ -160,7 +160,7 @@ lamps/gates, pause. Each find adds one, and its banner names the key.
 | Pause and map | Esc | Esc | Start | start |
 | Vial | F | F | Y | start (first shown when you're hurt) |
 | Quickstep | Shift | L | B | Watchman's Boots |
-| Pistol (parry) | Right-click | K | LT | Watch Pistol |
+| Pistol (parry) | Right-click or Ctrl-click | K | LT | Watch Pistol |
 | Wall jump | Space against a wall | Space | A | Climbing Irons |
 
 - No separate blood-bullet button: holding the pistol when empty does it.
@@ -171,7 +171,11 @@ lamps/gates, pause. Each find adds one, and its banner names the key.
   slows and a prompt says to shoot; the first stagger says to strike. Each
   stops once you've done it. **[slice]**
 - The pause screen lists only the keys you have. **[slice]**
-- Rebinding in an options menu, and touch controls. **[planned]**
+- **Controls panel** on the title and pause screens: rebind any key (a key
+  in use swaps over), saved between sessions, Reset for the defaults.
+  Ctrl-click fires the pistol, for Mac trackpads without right-click.
+  **[slice]**
+- Gamepad remapping and touch controls. **[planned]**
 
 ### 6.7 Found along the way
 The Canal District hands out the kit in order, each find right where it's
@@ -228,6 +232,10 @@ The Metroidvania-native mechanic.
 - **The Long Night:** the world changes after major bosses: dusk, then
   midnight, then the witching hour, then something in the sky. Palette,
   enemies and paths change, so backtracking feels new. **[planned]**
+  Its first omen is already there: lightning sometimes shows something
+  enormous standing in the fog beyond the city, its eyes stay lit after
+  the flash, the moon's pupil widens, and for a while there are tall thin
+  figures on the rooftops. **[slice]**
 - **Gating:** Trick Arm forms (abilities) and Second Sight (perception).
 - **Shortcut gates:** barred from one side, lifted from the other, and open
   for good (through rests and deaths). From the barred side they read
@@ -243,6 +251,10 @@ The Metroidvania-native mechanic.
   about 20 per enemy), painted over templates CI renders from the greybox
   so the art matches the hitboxes; flat colour, the 3D lights do the rest.
   The pipeline is in [ART.md](ART.md). **[slice: pipeline, art to come]**
+  Until then the greybox is drawn in some depth, as a guide to the
+  designs: the Lamplighter's greatcoat, mantle, scarf and stovepipe hat;
+  the Communicant's peaked hood, tallow running down its hump, bone
+  charms; the Hound's ribs, hackles and opening jaw. **[slice]**
 - **Environments:** 3D, generated from the level for now; painted textures
   or modelled pieces later.
 - **Palette:** soot black, bone, oxblood, lantern amber. Spirit-cyan only for
@@ -256,10 +268,18 @@ The Metroidvania-native mechanic.
   tops, long shadows reaching toward you, the moon and lamps shining in wet
   stone. Lamps and your lantern are real lights that throw the characters'
   shadows on the walls. It rains (stopping at roofs) and water drips off
-  every ledge and runs down the walls; puddles stand on anything flat.
+  every ledge and runs down the walls; puddles stand on anything flat,
+  ringed where the drops land, and rain splashes up off the stone and the
+  canal. Mist lies low in the streets and over the canal; moths circle the
+  lit lamps. The houses have cornices, framed windows of dark glass,
+  doors, chimney pots, drainpipes pouring onto the street, and gas lamps
+  burn along the street behind; the rows are low enough to leave a band of
+  sky for the moon and the storm. The moon is not quite a moon (an iris,
+  a slit pupil). Figures keep a faint cold edge so they read in the dark.
   Play stays 2D on the plane z = 0; characters and props are drawn there
   and lit by the 3D lights. Full quality is the desktop app; the browser
-  gets a reduced version (no volumetric fog or screen-space reflections).
+  gets a reduced version (no volumetric fog or mist, no screen-space
+  reflections, fewer details).
 - **The flat look (`?2d`).** Lit like 3D, drawn in 2D: surfaces have normal maps (bumps) and
   specular maps (wet gloss), so lamps, your lantern and the moon light them
   like real stone, wood and water: raking light across brick, glints on wet
@@ -280,6 +300,16 @@ The Metroidvania-native mechanic.
 - Period instruments: pump organ / harmonium, bowed saw, fiddle, and
   **Sacred Harp shape-note singing** (a raw 19th-century American hymn
   style).
+- **The soundscape [slice, synthesized]:** loops of rain (muffled with
+  cave drips under a roof), gusting wind that whistles when strong, the
+  canal, and a drone (beating sub tones, a tritone, a hummed choir, glass
+  harmonics) that rises with the dread: no lit lamp near, underground,
+  hurt, after an omen. Far off, at random: wolves howling (one of them is
+  not a wolf), a cracked bell tolling, signs and gates creaking in gusts,
+  whispers when it's dark enough. Thunder follows each flash, later the
+  further off; after a reveal, the thing calls. Made by
+  `tools/make_ambience.py`, mixed by `scripts/ambience.gd`; real
+  recordings and music replace it later.
 - The parry glint needs a distinct sound cue as well as the visual one.
   **[slice, placeholder]**
 - The current sound effects are synthesized placeholders.
@@ -306,6 +336,17 @@ The Metroidvania-native mechanic.
   fall from points under every ledge. The camera's field of view and
   distance make the plane z = 0 match the 2D view exactly, so the 2D
   overlay (glows, swooshes, bars, HUD prompts) lines up.
+- **Storm and sound:** `scripts/ambience.gd` (in the main scene, on the
+  frame clock with its own random numbers, never touching the game) mixes
+  the beds and schedules the far-off sounds and the lightning; its
+  `lightning` signal drives `scripts/storm.gd` on the stage (a light from
+  the clouds, fog and sky flashing, the bolt as ribbons, the colossus on a
+  far quad that ignores fog, watchers on the middle row's roofs) or a white
+  flicker with `?2d`. Beds are seamless Ogg loops; one-shots have their
+  distance and reverb baked in, since the web build can't run bus effects.
+  The sky shader draws the moon where you can see it (`moon_dir`), apart
+  from where the moonlight comes from, and only changes during a storm
+  (each change redraws the reflections).
 - **The plane:** actors and props (World layer 2) draw into a transparent
   SubViewport that shares the World's canvas (canvas cull masks split
   them from the overlay, layer 1). A quad at z = 0 shows it through
@@ -361,6 +402,7 @@ The Metroidvania-native mechanic.
 | — | Mac app built by CI (universal, ad-hoc signed) | **done** |
 | — | 2.5D: 3D stage around the 2D game (geometry from tiles, moon and lamp shadows, volumetric fog, wet stone, rain and drips, city) | **done (greybox)** |
 | — | Easier start: canal of short hops, ledge assist, five starting keys with the rest found along the way, hold strike to transform, pause-screen map, shortcut gates, Climbing Irons | **done** |
+| — | Atmosphere: soundscape, storm and the thing in the fog, a dressed and wetter city (rain rings, splashes, mist, drainpipes), characters drawn in depth, key rebinding and Ctrl-click | **done (greybox)** |
 
 ## 14. Open questions
 - Lore: who is the Medium, and what is the church actually burning?

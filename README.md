@@ -17,9 +17,13 @@ open: System Settings > Privacy & Security, scroll down, **Open Anyway**.
 
 The current build is the **first playable slice** (greybox: shapes stand in
 for the art), drawn **2.5D**: play is 2D, the world around it is a real 3D
-night (moon and lamp shadows, volumetric fog, wet stone, rain). Best in the
-Mac app; the browser gets a lighter version, and `?2d` shows the old flat
-look. It covers the Canal District with the full core loop:
+night (moon and lamp shadows, volumetric fog and low mist, wet stone with
+rain rings in every puddle, a storm). Something stands in the fog beyond
+the city; the lightning shows it. A synthesized soundscape (rain, wind,
+the canal, far-off howls and bells, whispers in the dark, thunder) follows
+where you are. Best in the Mac app; the browser gets a lighter version,
+and `?2d` shows the old flat look. It covers the Canal District with the
+full core loop:
 - combat: Lamplighter's Pole (Hook and Lantern forms), trick attacks, the
   gun parry and Visceral attacks, Rally, blood bullets
 - lamps and levelling
@@ -66,14 +70,19 @@ find's banner names its key. **Esc** shows the map and the keys you have.
 | Pause and map | Esc | Esc | Start | start |
 | Vial | F | F | Y | start |
 | Quickstep | Shift | L | B | Watchman's Boots |
-| Pistol (shoot as an enemy glints to parry; hold when empty for blood bullets) | Right-click | K | LT / RT | Watch Pistol |
+| Pistol (shoot as an enemy glints to parry; hold when empty for blood bullets) | Right-click or Ctrl-click | K | LT / RT | Watch Pistol |
 | Transform key (same as holding strike) | Q or mouse wheel | I | LB | Lamp Oil |
 | Wall jump (press into a wall to cling) | Space | Space | A | Climbing Irons |
 
 Signs and prompts show the keys for whatever you're holding. The first
 parry and the first Visceral are taught in the moment (time slows, a prompt
-says what to press). Rebind in **Project → Project Settings → Input Map**,
-or edit `tools/input_map.py` and run it.
+says what to press).
+
+**Trackpad, no right-click?** J strikes and K fires, or Ctrl-click fires.
+**Controls** (on the title and pause screens) rebinds any key: pick an
+action, press its new key. A key already in use swaps over; your keys are
+saved, and Reset brings back the defaults. The defaults live in
+`tools/input_map.py` (run it to rewrite the project's input map).
 
 ## How it's built and tested
 
@@ -85,7 +94,8 @@ Actions with Godot 4.7.2:
    the canal hops, finds unlocking abilities, lamps, melee, parry →
    Visceral, Rally, blood bullets, vials, quickstep, the veil, shortcut
    gates, the chimney wall-jump climb, the map, death → Tallow pile →
-   Gorged → reclaim, levelling).
+   Gorged → reclaim, levelling, rebinding keys, the soundscape's mix and
+   timing, the storm).
 3. **Screenshots:** `tests/screenshots.gd` renders key moments.
 4. **Export** the web build and the Mac app (kept two weeks as a run
    artifact).
@@ -120,6 +130,11 @@ scripts/
   map_view.gd        the pause-screen map (what you've explored)
   bench.gd           ?bench: the frame-time benchmark
   stage.gd           the 3D stage built from the level, kept in step with it
+  storm.gd           lightning, the thing in the fog, watchers on the roofs
+  ambience.gd        the soundscape: beds mixed by where you are, far-off
+                     sounds, when lightning strikes
+  sfx.gd             sound effects
+  controls.gd        rebinding keys (saved), Ctrl-click as the pistol
   art.gd             painted character frames (art/characters), greybox fallback
   keys.gd            key names for the device in use ({attack} -> Left-click)
   figure.gd          paints an actor into a SubViewport, shown lit and rounded
@@ -129,14 +144,17 @@ scripts/
 shaders/
   stone3d.gdshader   wet stone for the 3D stage (triplanar, puddles, runs)
   plane3d.gdshader   the gameplay plane in 3D: rounded, lit, casts shadows
-  water3d, veil3d, night_sky, windows3d: the rest of the 3D stage
+  night_sky          the sky, the moon (an eye), the lightning in the clouds
+  colossus3d         what stands in the fog; watcher3d, bolt3d: the storm's
+  water3d, veil3d, windows3d: the rest of the 3D stage
   volume.gdshader    rounds flat drawings under 2D lights (the ?2d look)
   water.gdshader     the canal in the ?2d look
-assets/              fonts (OFL), placeholder sounds, greybox tiles
-                     (colour, normal and gloss atlases)
+assets/              fonts (OFL), placeholder sounds, the ambience (Ogg),
+                     greybox tiles (colour, normal and gloss atlases)
 tiles/               the TileSet
 tools/               Python generators: lit greybox tiles, 3D surface
-                     textures (textures3d.py), sounds, the
+                     textures (textures3d.py), sounds, the ambience
+                     (make_ambience.py: numpy, scipy, ffmpeg), the
                      ASCII level (tools/levels/*.txt), the input map;
                      bench_web.py runs ?bench in browsers (CI)
 tests/               headless playtest and screenshot scripts (CI)

@@ -487,16 +487,21 @@ func _paint_hound(ci: CanvasItem, fl: bool, a: float) -> void:
 	ci.draw_colored_polygon(torso, body)
 	# The flank in shadow, a mangy bare patch, the ribs.
 	ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(-15, -12)), _h(Vector2(-4, -12.5)), _h(Vector2(1, -10)), _h(Vector2(6, -8.5)), _h(Vector2(5, -11.5)), _h(Vector2(-12, -14))]), dark)
-	ci.draw_colored_polygon(_ellipse(_h(Vector2(-8, -15.5)), 3.0, 1.6, 10), _c(Color("8a5a4e"), fl, a))
-	for i in 4:
-		var rx := -1.0 + i * 2.6
-		ci.draw_polyline(PackedVector2Array([_h(Vector2(rx, -18.5)), _h(Vector2(rx + 1.4, -15)), _h(Vector2(rx + 0.8, -11.5))]), dark, 0.8)
-	# Hackles along the spine.
-	for i in 9:
-		var sx := -14.0 + i * 2.6
-		var sy := -18.6 - (1.6 if i > 5 else 0.0)
-		var up := 2.2 + (1.4 if state == "windup" else 0.0) + float(i % 2) * 0.8
-		ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(sx - 1.0, sy + 0.5)), _h(Vector2(sx + 1.6, sy - up)), _h(Vector2(sx + 1.6, sy + 0.5))]), body)
+	var mange := _c(Color("5e3a33"), fl, a)
+	ci.draw_colored_polygon(_ellipse(_h(Vector2(-8.5, -15.2)), 2.2, 1.1, 8), mange)
+	ci.draw_colored_polygon(_ellipse(_h(Vector2(-6.6, -14.4)), 1.4, 0.9, 8), mange)
+	var rib := _c(Color(base.darkened(0.6), 0.55), fl, a)
+	for i in 3:
+		var rx := 0.5 + i * 2.4
+		ci.draw_polyline(PackedVector2Array([_h(Vector2(rx, -17.8)), _h(Vector2(rx + 1.2, -15)), _h(Vector2(rx + 0.6, -12.2))]), rib, 0.6)
+	# Hackles: ragged fur over the shoulders and along the spine, rising
+	# in the windup.
+	var bristle := [1.0, 1.6, 1.2, 1.9, 1.4, 2.2, 1.8, 1.2]
+	for i in bristle.size():
+		var sx := -12.0 + i * 2.4
+		var sy := -18.4 - (1.4 if i > 4 else 0.0)
+		var up: float = bristle[i] * (1.6 if state == "windup" else 1.0)
+		ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(sx - 1.2, sy + 0.6)), _h(Vector2(sx + 0.9, sy - up)), _h(Vector2(sx + 1.2, sy + 0.6))]), body)
 	# A ragged tail, low.
 	var tail := PackedVector2Array([_h(Vector2(-16, -16)), _h(Vector2(-21, -17 + sin(_time * 6.0) * 2.0)), _h(Vector2(-25, -12 + sin(_time * 6.0 + 1.0) * 1.5))])
 	ci.draw_polyline(tail, body, 2.2)
