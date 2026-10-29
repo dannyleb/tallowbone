@@ -156,35 +156,6 @@ func _run() -> void:
 		await _shot("16-eyes")
 		main.stage.storm.pose(0.0, -1.0)
 
-	# TEMPORARY: which pass blurs the 3D? One suspect off per shot.
-	if main.stage:
-		var st = main.stage
-		var lamp2b = world.level.get_node("Entities/Lamp2")
-		await _tp(lamp2b.position.x + 100.0, lamp2b.position.y, 1.0)
-		await _frames(30)
-		await _shot("dbg-0-all")
-		var attrs: CameraAttributesPractical = st.camera.attributes
-		attrs.dof_blur_far_enabled = false
-		await _shot("dbg-1-no-dof")
-		attrs.dof_blur_far_enabled = true
-		st.env.ssil_enabled = false
-		await _shot("dbg-2-no-ssil")
-		st.env.ssil_enabled = true
-		st.env.glow_enabled = false
-		await _shot("dbg-3-no-glow")
-		st.env.glow_enabled = true
-		st.env.volumetric_fog_enabled = false
-		await _shot("dbg-4-no-vfog")
-		st.env.volumetric_fog_enabled = true
-		st.env.ssr_enabled = false
-		st.env.ssao_enabled = false
-		await _shot("dbg-5-no-ssr-ssao")
-		st.env.ssr_enabled = true
-		st.env.ssao_enabled = true
-		main.view.material = null
-		st.env.adjustment_enabled = false
-		await _shot("dbg-6-no-post-grade")
-
 	print("screenshots written to ", out_dir)
 	quit(0)
 

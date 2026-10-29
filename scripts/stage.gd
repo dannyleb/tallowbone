@@ -175,8 +175,9 @@ func _ready() -> void:
 	var game: SubViewport = main.game
 	game.positional_shadow_atlas_size = 4096
 	game.use_debanding = true
+	# 4x: with 2x, depth of field read the depth wrong and blurred everything.
 	if RenderingServer.get_current_rendering_method() == "forward_plus":
-		game.msaa_3d = Viewport.MSAA_2X
+		game.msaa_3d = Viewport.MSAA_4X
 	_wet_noise = _noise(3, 0.02)
 	_stone_mat = _stone(Color(1, 1, 1), 0.45)
 	_hide_2d()
@@ -1422,9 +1423,8 @@ func _build_probes() -> void:
 		p.interior = true
 		p.box_projection = true
 		p.update_mode = ReflectionProbe.UPDATE_ONCE
-		p.ambient_mode = ReflectionProbe.AMBIENT_COLOR
-		p.ambient_color = Color(0.11, 0.11, 0.14)
-		p.ambient_color_energy = 0.6
+		# The same ambient as outside: rooms are dark, not black.
+		p.ambient_mode = ReflectionProbe.AMBIENT_ENVIRONMENT
 		p.blend_distance = 0.5
 		p.cull_mask = 0xFFFFF & ~MOVING
 		add_child(p)
@@ -1526,7 +1526,7 @@ func set_quality(level: int) -> void:
 	var fast := quality == 2
 	var game: SubViewport = main.game
 	if RenderingServer.get_current_rendering_method() == "forward_plus":
-		game.msaa_3d = Viewport.MSAA_2X if high else Viewport.MSAA_DISABLED
+		game.msaa_3d = Viewport.MSAA_4X if high else Viewport.MSAA_DISABLED
 		game.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED if high else Viewport.SCREEN_SPACE_AA_FXAA
 	env.ssil_enabled = high and not _lite
 	env.ssr_enabled = high
