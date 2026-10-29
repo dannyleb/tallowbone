@@ -14,7 +14,7 @@ const SPOTS := [["street", Vector2(400, 640)], ["canal", Vector2(1000, 640)], ["
 ## what's left is the level and the engine). The flat 2D look (?2d) has
 ## SYSTEMS; the 3D stage has STAGE_SYSTEMS.
 const SYSTEMS := ["figures", "lights", "normals", "water", "weather", "backdrop", "fx", "hud"]
-const STAGE_SYSTEMS := ["shadows", "fog", "reflections", "bounce", "glow", "rain", "city", "plane", "fx", "hud"]
+const STAGE_SYSTEMS := ["shadows", "fog", "reflections", "bounce", "glow", "rain", "far city", "city", "plane", "fx", "hud"]
 ## Then everything on again, with the game view drawn at these render
 ## scales (render px per world px; those below the starting scale only).
 const SCALES := [2.0, 1.5, 1.0]
@@ -212,7 +212,7 @@ func _switch(off: Array, now_off: bool) -> void:
 
 
 func _switch_system(system: String, off: bool) -> void:
-	if main.stage and system in ["shadows", "fog", "reflections", "glow", "rain", "city", "plane"]:
+	if main.stage and system in ["shadows", "fog", "reflections", "bounce", "glow", "rain", "far city", "city", "plane"]:
 		main.stage.set_feature(system, not off)
 		return
 	match system:

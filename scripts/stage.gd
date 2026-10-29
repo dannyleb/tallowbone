@@ -88,6 +88,8 @@ var _pile: OmniLight3D
 var _veil: MeshInstance3D
 var _veil_mat: ShaderMaterial
 var _city: Node3D
+## The rows behind the nearest, the spires and the church (in _city).
+var _far_city: Node3D
 var _rain: GPUParticles3D
 var _drips: GPUParticles3D
 ## Where drainpipes empty onto the street (filled by _build_city).
@@ -308,6 +310,14 @@ func _stone(tint: Color, puddles: float, wall := "stone", top := "cobble") -> Sh
 	return m
 
 
+## The same stone for what stands deep in the fog: no running water, no
+## puddles (see the shader's `distant`).
+func _far_stone(tint: Color, wall: String, top: String) -> ShaderMaterial:
+	var m := _stone(tint, 0.0, wall, top)
+	m.set_shader_parameter("distant", true)
+	return m
+
+
 func _wood() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = load("res://assets/3d/wood_albedo.png")
@@ -349,9 +359,13 @@ func _environment() -> void:
 	env.ambient_light_color = Color(0.16, 0.19, 0.27)
 	env.ambient_light_energy = 1.3
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_exposure = 1.25
-	env.tonemap_white = 6.0
+	# AgX, like film: a gentle toe keeps the texture in what the lamps
+	# barely reach (ACES crushed everything under a few percent to black),
+	# and the brightest lights burn toward white instead of yellow.
+	env.tonemap_mode = Environment.TONE_MAPPER_AGX
+	env.tonemap_exposure = 1.5
+	env.tonemap_agx_white = 12.0
+	env.tonemap_agx_contrast = 1.35
 	env.ssr_enabled = true
 	env.ssr_max_steps = 32
 	env.ssr_fade_in = 0.15
@@ -371,11 +385,11 @@ func _environment() -> void:
 	env.glow_bloom = 0.05
 	env.glow_hdr_threshold = 0.9
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
-	# The grade: a little more contrast, a little less colour, shadows
-	# cooled toward blue and highlights warmed toward lamplight.
+	# The grade: shadows cooled toward blue and highlights warmed toward
+	# lamplight (AgX sets the contrast and already mutes the colour).
 	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.06
-	env.adjustment_saturation = 0.86
+	env.adjustment_contrast = 1.0
+	env.adjustment_saturation = 1.0
 	env.adjustment_color_correction = _grade()
 	# Depth fog starts at the gameplay plane, so the play space stays clear
 	# and everything behind it sinks into the night.
@@ -430,7 +444,7 @@ func _grade() -> GradientTexture1D:
 	var g := Gradient.new()
 	g.offsets = PackedFloat32Array([0.0, 0.12, 0.5, 0.85, 1.0])
 	g.colors = PackedColorArray([
-		Color(0.012, 0.014, 0.022), Color(0.125, 0.135, 0.158), Color(0.5, 0.505, 0.51),
+		Color(0.008, 0.01, 0.018), Color(0.112, 0.122, 0.148), Color(0.5, 0.5, 0.51),
 		Color(0.87, 0.85, 0.8), Color(1.0, 0.98, 0.94),
 	])
 	var t := GradientTexture1D.new()
@@ -773,6 +787,8 @@ func _build_veil() -> void:
 func _build_city() -> void:
 	_city = Node3D.new()
 	add_child(_city)
+	_far_city = Node3D.new()
+	_city.add_child(_far_city)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1850
 	var w: float = world.level.size_tiles.x
@@ -787,14 +803,18 @@ func _build_city() -> void:
 		"wood": _wood(),
 		"windows": win_mat,
 	}
-	# In the browser everything past the nearest row is plain stone colour:
-	# it's in fog, and the wet-stone shader on every row cost a lot there.
-	var far_mats := mats
+	# Everything past the nearest row is in fog: a cheaper stone there, and
+	# in the browser plain colour (the wet stone on every row cost a lot).
+	var far_mats := mats.duplicate()
+	far_mats.far = true
 	if _lite:
-		far_mats = mats.duplicate()
 		far_mats.walls = _plain(Color(0.2, 0.19, 0.2))
 		far_mats.roofs = _plain(Color(0.15, 0.16, 0.19))
 		far_mats.trim = far_mats.walls
+	else:
+		far_mats.walls = _far_stone(Color(0.8, 0.8, 0.84), "brick", "cobble")
+		far_mats.roofs = _far_stone(Color(0.9, 0.9, 0.95), "slate", "slate")
+		far_mats.trim = _far_stone(Color(0.62, 0.62, 0.66), "stone", "cobble")
 	# The ground the city stands on: it only receives shadows.
 	var ground := Builder.new()
 	ground.box(Vector3(-90, -46, -260), Vector3(w + 90, STREET, -BACK - 0.12))
@@ -815,7 +835,7 @@ func _build_city() -> void:
 		var shadows := row_index == 0 and not _lite
 		while x < w + 80.0:
 			if x >= chunk_end:
-				_add_city_chunk(b, mats if row_index == 0 or not _lite else far_mats, shadows)
+				_add_city_chunk(b, mats if row_index == 0 else far_mats, shadows)
 				b = _city_builders()
 				chunk_end += CITY_CHUNK
 			var bw := rng.randf_range(4.0, 8.5)
@@ -824,7 +844,7 @@ func _build_city() -> void:
 			_house(b, rng, x, bw, bh, front, depth, row_index)
 			buildings += 1
 			x += bw + (rng.randf_range(1.0, 3.0) if rng.randf() < 0.15 else 0.0)
-		_add_city_chunk(b, mats if row_index == 0 or not _lite else far_mats, shadows)
+		_add_city_chunk(b, mats if row_index == 0 else far_mats, shadows)
 		row_index += 1
 	_gas_lamps(rng, w, mats)
 	_far_spires(rng, w, far_mats)
@@ -1248,7 +1268,7 @@ func _add_city_chunk(b: Dictionary, mats: Dictionary, shadows: bool) -> void:
 		if done.has(builder) or (_lite and part == "glass"):
 			continue
 		done[builder] = true
-		var mi := _add_mesh(builder.mesh(), mats[part], _city)
+		var mi := _add_mesh(builder.mesh(), mats[part], _far_city if mats.has("far") else _city)
 		if mi:
 			mi.cast_shadow = cast if part in ["walls", "roofs"] else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
@@ -1997,6 +2017,8 @@ func set_feature(feature: String, on: bool) -> void:
 					p.visible = on
 		"city":
 			_city.visible = on
+		"far city":
+			_far_city.visible = on
 		"plane":
 			plane.visible = on
 			plane_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS if on else SubViewport.UPDATE_DISABLED

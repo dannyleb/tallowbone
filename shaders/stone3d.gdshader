@@ -30,6 +30,9 @@ uniform float bump = 1.0;
 // how big a patch each ring has to itself (m).
 uniform float ripple_strength = 0.35;
 uniform float ripple_cell = 0.3;
+// Deep in the fog (the far rows of the city): no running water or puddles
+// and one roughness for all, half the texture reads.
+uniform bool distant = false;
 
 varying vec3 wpos;
 varying vec3 wnrm;
@@ -109,7 +112,7 @@ void fragment() {
 		vec3 t = unpack(textureGrad(wall_normal, uv_x, dx_x, dy_x).xy);
 		albedo += a.rgb * blend.x;
 		height += a.a * blend.x;
-		rough += textureGrad(wall_rough, uv_x, dx_x, dy_x).r * blend.x;
+		rough += distant ? 0.0 : textureGrad(wall_rough, uv_x, dx_x, dy_x).r * blend.x;
 		// Side faces: texture x runs along -z*sx, texture up is +y.
 		wsum += vec3(abs(t.z) * n.x, t.y + n.y, -t.x * sx + n.z) * blend.x;
 		used += blend.x;
@@ -119,7 +122,7 @@ void fragment() {
 		vec3 t = unpack(up ? textureGrad(top_normal, uv_y, dx_y, dy_y).xy : textureGrad(wall_normal, uv_y, dx_y, dy_y).xy);
 		albedo += a.rgb * blend.y;
 		height += a.a * blend.y;
-		rough += (up ? textureGrad(top_rough, uv_y, dx_y, dy_y).r : textureGrad(wall_rough, uv_y, dx_y, dy_y).r) * blend.y;
+		rough += distant ? 0.0 : (up ? textureGrad(top_rough, uv_y, dx_y, dy_y).r : textureGrad(wall_rough, uv_y, dx_y, dy_y).r) * blend.y;
 		// Tops: texture x along +x, texture up is -z.
 		wsum += vec3(t.x + n.x, abs(t.z) * n.y, -t.y + n.z) * blend.y;
 		used += blend.y;
@@ -129,14 +132,14 @@ void fragment() {
 		vec3 t = unpack(textureGrad(wall_normal, uv_z, dx_z, dy_z).xy);
 		albedo += a.rgb * blend.z;
 		height += a.a * blend.z;
-		rough += textureGrad(wall_rough, uv_z, dx_z, dy_z).r * blend.z;
+		rough += distant ? 0.0 : textureGrad(wall_rough, uv_z, dx_z, dy_z).r * blend.z;
 		// Fronts: texture x along +x*sz, texture up is +y.
 		wsum += vec3(t.x * sz + n.x, t.y + n.y, abs(t.z) * n.z) * blend.z;
 		used += blend.z;
 	}
 	albedo /= used;
 	height /= used;
-	rough /= used;
+	rough = distant ? 0.7 : rough / used;
 	vec3 wn = normalize(wsum);
 
 	// Water on anything facing up: always in the joints, and where the
@@ -144,7 +147,7 @@ void fragment() {
 	float flatness = smoothstep(0.75, 0.95, n.y);
 	float pool = 0.0;
 	float puddle = 0.0;
-	if (flatness > 0.0) {
+	if (flatness > 0.0 && !distant) {
 		float noise_top = texture(wet_noise, wpos.xz * 0.23).r;
 		float level = clamp((noise_top - (1.0 - puddles)) * 6.0, 0.0, 1.0);
 		pool = smoothstep(level - 0.08, level, 1.0 - height) * step(0.01, level) * flatness;
@@ -153,7 +156,7 @@ void fragment() {
 	}
 	// Running water down the walls: thin streaks that slide downward.
 	float sheet = 0.0;
-	if (abs(n.y) < 0.6) {
+	if (abs(n.y) < 0.6 && !distant) {
 		float across = texture(wet_noise, vec2(wpos.x * 1.7 + wpos.z * 1.7, 0.37)).r;
 		float flow = texture(wet_noise, vec2(wpos.x * 3.1 + wpos.z * 3.1, wpos.y * 0.35 + TIME * 0.18)).r;
 		sheet = smoothstep(0.62, 0.8, across) * smoothstep(0.45, 0.7, flow) * (1.0 - abs(n.y));
