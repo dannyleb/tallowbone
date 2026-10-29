@@ -1508,6 +1508,7 @@ func _build_lights() -> void:
 	_lamp_lit.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_lamp_lit.albedo_color = Color(1.0, 0.72, 0.4) * 4.0
 	_lamp_dark = _glass()
+	var halo_mat := _halo_material()
 	var iron := Builder.new()
 	for lamp in world.lamps:
 		var at := _to_3d(lamp.position + Vector2(0, -68), 0.5)
@@ -1518,9 +1519,20 @@ func _build_lights() -> void:
 		glass.material_override = _lamp_dark
 		glass.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(glass)
+		# The glow round the lit glass, where the glass is (a 2D halo would
+		# sit off it: the lantern stands behind the plane).
+		var halo := MeshInstance3D.new()
+		var quad := QuadMesh.new()
+		quad.size = Vector2(1.5, 1.5)
+		halo.mesh = quad
+		halo.material_override = halo_mat
+		halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		halo.position = _to_3d(lamp.position + Vector2(0, -68), LAMP_Z + 0.25)
+		halo.visible = false
+		add_child(halo)
 		lamp.in_3d = true
 		lamp.queue_redraw()
-		_lamps.append({"lamp": lamp, "light": light, "glass": glass})
+		_lamps.append({"lamp": lamp, "light": light, "glass": glass, "halo": halo})
 	var posts := _add_mesh(iron.mesh(), _iron())
 	if posts:
 		posts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
@@ -1535,6 +1547,28 @@ func _build_lights() -> void:
 		l.position = _to_3d(it.position + Vector2(0, -14), 0.4)
 		_finds.append({"find": it, "light": l})
 	counts.lamp_lights = _lamps.size()
+
+
+## A soft warm glow, always facing the camera, added over what's behind.
+func _halo_material() -> StandardMaterial3D:
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.2, 0.55, 1.0])
+	g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.45), Color(1, 1, 1, 0.1), Color(1, 1, 1, 0)])
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.fill = GradientTexture2D.FILL_RADIAL
+	t.fill_from = Vector2(0.5, 0.5)
+	t.fill_to = Vector2(1.0, 0.5)
+	t.width = 64
+	t.height = 64
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.albedo_texture = t
+	m.albedo_color = Color(1.0, 0.62, 0.32, 0.4)
+	return m
 
 
 ## A street lamp in iron, its feet at `foot`, matching the 2D drawing
@@ -2264,6 +2298,9 @@ func _prewarm() -> void:
 		uses.append([(_lamps[0].glass as MeshInstance3D).mesh, _lamp_lit, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF])
 	if not _signs.is_empty():
 		uses.append([(_signs[0].paper as MeshInstance3D).mesh, _paper_near, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF])
+	if not _lamps.is_empty():
+		var halo: MeshInstance3D = _lamps[0].halo
+		uses.append([halo.mesh, halo.material_override, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF])
 	for use in uses:
 		var m: Material = use[1]
 		if m == null or seen.has(m):
@@ -2387,6 +2424,7 @@ func _update_lights() -> void:
 		var want: Material = _lamp_lit if lamp.lit else _lamp_dark
 		if glass.material_override != want:
 			glass.material_override = want
+		(e.halo as MeshInstance3D).visible = lamp.lit
 		var x: float = lamp.position.x
 		light.light_energy = 5.0 * (1.0 + sin(_time * 11.0 + x) * sin(_time * 6.7 + x * 2.0) * 0.05)
 	for e in _signs:

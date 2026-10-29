@@ -110,8 +110,7 @@ func _glow() -> void:
 	# Lit lamp glass and your own flame burn through the dark.
 	for l in world.lamps:
 		# (In 3D the lantern stands behind the plane, so a halo drawn here
-		# would sit off its glass; the glass glows there and the haze and
-		# bloom make the halo.)
+		# would sit off its glass: the stage draws that one, in 3D.)
 		if l.lit and not l.in_3d:
 			var g: Vector2 = l.position + Vector2(0, -68)
 			Glow.draw(self, g, 22.0, Color(1.0, 0.72, 0.38, 0.35))
