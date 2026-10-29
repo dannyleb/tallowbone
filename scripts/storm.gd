@@ -18,8 +18,8 @@ const WATCHER := preload("res://shaders/watcher3d.gdshader")
 ## (degrees above the camera's level: over the rooftops, below the top of
 ## the view), and how far below it its base is hidden (degrees).
 const COLOSSUS_Z := -200.0
-const HEAD_ELEVATION := 19.0
-const BASE_DEPTH := 5.0
+const HEAD_ELEVATION := 21.0
+const BASE_DEPTH := 8.0
 ## The shape is drawn at this size (shaders/colossus3d.gdshader) and the
 ## head's height in it; the quad is scaled to put the head where it goes.
 const SHAPE := Vector2(440.0, 420.0)

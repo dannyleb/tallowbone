@@ -28,6 +28,15 @@ const HAT := Color("2a2730")
 const POLE := Color("7a5a40")
 const IRON := Color("46464f")
 const LAMP := Color("ffcf7a")
+const TROUSERS := Color("26232c")
+const LEATHER := Color("1d1a1e")
+const BRASS := Color("a8854a")
+const LINING := Color("421c1f")
+const MANTLE := Color("3a3644")
+const GLOVE := Color("19171b")
+const HAIR := Color("1b1716")
+const VIAL := Color("c42b2f")
+const GUNMETAL := Color("34312f")
 
 ## The drawing's canvas in world px, and where the feet are on it.
 const FIG_SIZE := Vector2(160, 120)
@@ -879,79 +888,211 @@ func _paint_figure(ci: CanvasItem, offset: float, alpha: float, ghost: bool, pos
 		return
 	var c := func(col: Color) -> Color: return Color(col, col.a * alpha)
 	var air := _airborne() and state != "dead"
-	var cyc := sin(run_t * 13.0) if not _airborne() and absf(velocity.x) > 20.0 else 0.0
+	var moving := not _airborne() and absf(velocity.x) > 20.0
+	var cyc := sin(run_t * 13.0) if moving else 0.0
+	var bob := absf(cos(run_t * 13.0)) * 1.2 if moving else 0.0
 	var sway := clampf(-velocity.x / 300.0, -1.0, 1.0) * 6.0
 	var lean := _lean()
+	var top := -bob
 
-	# Legs.
-	if air:
-		ci.draw_rect(Rect2(-5, -15, 4, 11), c.call(COAT_DARK))
-		ci.draw_rect(Rect2(1, -14, 4, 9), c.call(COAT_DARK))
-	else:
-		ci.draw_rect(Rect2(-5 + cyc * 4.0, -14, 4, 14), c.call(COAT_DARK))
-		ci.draw_rect(Rect2(1 - cyc * 4.0, -14, 4, 14), c.call(COAT_DARK))
+	# The far arm, hanging behind the body (unless it's busy in front).
+	if not ghost and not (state in ["shoot", "heal", "blood"]):
+		var back_s := Vector2(-3.0 + lean, -35.0 + top)
+		var back_h := back_s + Vector2(-2.0 - cyc * 3.0 + sway * 0.25, 11.5)
+		_limb(ci, back_s, back_h, -1.0, c.call(COAT_DARK.darkened(0.25)), 3.4, 3.0)
+		ci.draw_circle(back_h + Vector2(0, 1), 1.6, c.call(GLOVE))
 
-	# Long coat, tails trailing.
+	# Legs: the far one darker; thigh, shin and boot, the knee bending
+	# forward. In the air, tucked.
+	for side in [-1.0, 1.0]:
+		var shade := 0.3 if side < 0.0 else 0.0
+		var hip := Vector2(side * 2.0 + lean * 0.3, -14.0 + top)
+		var foot: Vector2
+		if air:
+			foot = hip + (Vector2(5.0, 8.0) if side > 0.0 else Vector2(-4.0, 10.0))
+		else:
+			foot = Vector2(side * 1.5 + cyc * 5.0 * side, 0.0)
+		var lift := maxf(0.0, -cyc * side) * 2.5 if moving else 0.0
+		foot.y -= lift
+		var knee := (hip + foot) * 0.5 + Vector2(2.2 + absf(cyc) * 1.5, -0.5)
+		if air:
+			knee = (hip + foot) * 0.5 + Vector2(3.5 * side + 1.0, -1.5)
+		ci.draw_line(hip, knee, c.call(TROUSERS.darkened(shade)), 4.2)
+		ci.draw_line(knee, foot + Vector2(0, -6), c.call(TROUSERS.darkened(shade)), 3.6)
+		# The boot: shaft, heel, a pointed toe.
+		var boot: Color = c.call(LEATHER.darkened(shade))
+		ci.draw_colored_polygon(PackedVector2Array([
+			foot + Vector2(-2.2, -7.5), foot + Vector2(2.0, -7.5), foot + Vector2(2.4, -2.2),
+			foot + Vector2(5.4, -1.4), foot + Vector2(5.8, 0.0), foot + Vector2(-2.6, 0.0),
+		]), boot)
+		ci.draw_line(foot + Vector2(-2.4, -7.6), foot + Vector2(2.2, -7.6), c.call(LEATHER.lightened(0.15)), 1.0)
+
+	# The greatcoat: tails split and trailing, flaring with the run.
+	var flare := sway * 1.1 - cyc * 1.5
+	var coat := PackedVector2Array([
+		Vector2(-6.5 + lean, -38 + top), Vector2(5.5 + lean, -38.5 + top), Vector2(7.0 + lean * 0.8, -30 + top),
+		Vector2(6.0 + lean * 0.5, -24 + top), Vector2(8.5 + cyc * 1.5, -9.5), Vector2(4.0 + cyc, -8.0),
+		Vector2(0.5, -11.0), Vector2(-3.0, -7.5 + absf(flare) * 0.3), Vector2(-10.0 + flare, -6.5 + absf(flare) * 0.5),
+		Vector2(-7.5 + lean * 0.3, -24 + top), Vector2(-7.5 + lean, -34 + top),
+	])
+	ci.draw_colored_polygon(coat, c.call(COAT))
+	# The lining, oxblood, where the coat parts below the belt.
 	ci.draw_colored_polygon(PackedVector2Array([
-		Vector2(-6 + lean, -38), Vector2(6 + lean, -38), Vector2(8, -12), Vector2(-9 + sway, -8 + absf(sway) * 0.4),
-	]), c.call(COAT))
-	ci.draw_rect(Rect2(-1 + lean * 0.5, -36, 2, 22), c.call(COAT_DARK))
-
-	# Oxblood scarf, its tail streaming behind.
-	ci.draw_rect(Rect2(-6 + lean, -40, 12, 4), c.call(SCARF))
+		Vector2(0.8 + lean * 0.4, -22 + top), Vector2(3.6 + cyc, -8.5), Vector2(0.5, -11.0), Vector2(-2.6, -8.0),
+	]), c.call(LINING))
+	# Shade down the back, and the seam.
 	ci.draw_colored_polygon(PackedVector2Array([
-		Vector2(-5 + lean, -39), Vector2(-13 + sway * 1.4, -35 + sin(_time * 8.0) * 1.5), Vector2(-5 + lean, -36),
+		Vector2(-7.5 + lean, -34 + top), Vector2(-5.0 + lean, -34 + top), Vector2(-5.5, -22 + top),
+		Vector2(-7.0 + flare * 0.6, -8.0), Vector2(-10.0 + flare, -6.5 + absf(flare) * 0.5), Vector2(-7.5 + lean * 0.3, -24 + top),
+	]), c.call(COAT_DARK))
+	ci.draw_line(Vector2(1.0 + lean * 0.6, -37 + top), Vector2(0.8 + lean * 0.4, -22 + top), c.call(COAT_DARK), 1.0)
+	# Two rows of brass buttons.
+	for i in 4:
+		var by := -35.0 + i * 3.2 + top
+		ci.draw_rect(Rect2(2.2 + lean * 0.6, by, 1.1, 1.1), c.call(BRASS))
+		ci.draw_rect(Rect2(4.6 + lean * 0.6, by, 1.1, 1.1), c.call(BRASS.darkened(0.3)))
+	# The belt: buckle, a pouch, a vial.
+	ci.draw_colored_polygon(PackedVector2Array([
+		Vector2(-7.6 + lean * 0.3, -25.5 + top), Vector2(6.2 + lean * 0.5, -25.5 + top),
+		Vector2(6.1 + lean * 0.5, -23.3 + top), Vector2(-7.6 + lean * 0.3, -23.3 + top),
+	]), c.call(LEATHER))
+	ci.draw_rect(Rect2(2.6 + lean * 0.5, -25.8 + top, 2.4, 2.8), c.call(BRASS))
+	ci.draw_rect(Rect2(3.2 + lean * 0.5, -25.2 + top, 1.2, 1.6), c.call(LEATHER))
+	ci.draw_rect(Rect2(-6.5 + lean * 0.3, -23.5 + top, 3.4, 3.6), c.call(LEATHER.lightened(0.08)))
+	if vials > 0:
+		ci.draw_rect(Rect2(-2.4 + lean * 0.4, -23.6 + top, 1.6, 3.2), c.call(VIAL))
+		ci.draw_rect(Rect2(-2.4 + lean * 0.4, -24.4 + top, 1.6, 0.9), c.call(LEATHER.lightened(0.3)))
+
+	# The mantle over the shoulders, its hem ragged.
+	var mantle := PackedVector2Array([
+		Vector2(-8.5 + lean, -38.5 + top), Vector2(6.0 + lean, -39.5 + top), Vector2(8.5 + lean, -32.5 + top),
+		Vector2(6.0 + lean, -30.5 + top), Vector2(3.5 + lean, -31.8 + top), Vector2(0.5 + lean, -29.8 + top),
+		Vector2(-2.5 + lean, -31.2 + top), Vector2(-5.5 + lean + sway * 0.2, -29.5 + top),
+		Vector2(-9.5 + lean + sway * 0.35, -31.5 + top),
+	])
+	ci.draw_colored_polygon(mantle, c.call(MANTLE))
+	ci.draw_polyline(PackedVector2Array([Vector2(-9.0 + lean, -36 + top), Vector2(-1.0 + lean, -37 + top), Vector2(7.5 + lean, -35 + top)]), c.call(MANTLE.darkened(0.35)), 1.0)
+	# The high collar, turned up behind the head.
+	ci.draw_colored_polygon(PackedVector2Array([
+		Vector2(-6.5 + lean, -38 + top), Vector2(-2.0 + lean, -39 + top), Vector2(-3.0 + lean, -45 + top), Vector2(-6.0 + lean, -43.5 + top),
+	]), c.call(COAT_DARK))
+
+	# The face, mostly shadow: a pale strip under the brim, an eye.
+	ci.draw_rect(Rect2(-2.0 + lean, -47.5 + top, 7.0, 7.0), c.call(SKIN))
+	ci.draw_rect(Rect2(-2.0 + lean, -47.5 + top, 7.0, 1.8), c.call(SKIN.darkened(0.55)))
+	ci.draw_rect(Rect2(2.6 + lean, -45.2 + top, 1.6, 0.9), c.call(Color("1a1414")))
+	ci.draw_rect(Rect2(-3.8 + lean, -47.5 + top, 2.4, 6.0), c.call(HAIR))
+	# The scarf: wound over the mouth and nose, the tail streaming.
+	ci.draw_colored_polygon(PackedVector2Array([
+		Vector2(-6.5 + lean, -41.5 + top), Vector2(5.8 + lean, -43.2 + top), Vector2(6.2 + lean, -39.0 + top),
+		Vector2(-6.0 + lean, -37.2 + top),
 	]), c.call(SCARF))
+	ci.draw_line(Vector2(-5.5 + lean, -39.8 + top), Vector2(5.5 + lean, -41.2 + top), c.call(SCARF.darkened(0.35)), 0.8)
+	var tail := PackedVector2Array()
+	for i in 5:
+		var k := i / 4.0
+		var wave := sin(_time * 8.0 - i * 0.9) * 1.6 * k
+		tail.append(Vector2(-5.5 + lean - k * (6.0 - sway * 1.6), -39.5 + top + k * (4.0 - absf(sway) * 0.5) + wave))
+	ci.draw_polyline(tail, c.call(SCARF), 2.6)
+	ci.draw_polyline(tail, c.call(SCARF.darkened(0.3)), 0.8)
 
-	# Face, under a tall hat.
-	ci.draw_rect(Rect2(-2 + lean, -46, 7, 6), c.call(SKIN))
-	ci.draw_rect(Rect2(-8 + lean, -47, 17, 2), c.call(HAT))
-	ci.draw_rect(Rect2(-5 + lean, -58, 11, 11), c.call(HAT))
-	ci.draw_rect(Rect2(-5 + lean, -50, 11, 1.5), c.call(SCARF))
+	# The hat: a tall stovepipe, a little tapered, worn back; a band and a
+	# curled brim.
+	var tilt := -0.8 + sin(run_t * 13.0) * 0.3 if moving else -0.8
+	ci.draw_colored_polygon(PackedVector2Array([
+		Vector2(-4.8 + lean, -48.0 + top), Vector2(5.4 + lean, -48.0 + top),
+		Vector2(5.0 + lean + tilt, -59.5 + top), Vector2(-4.2 + lean + tilt, -60.2 + top),
+	]), c.call(HAT))
+	ci.draw_line(Vector2(5.2 + lean, -48.5 + top), Vector2(4.8 + lean + tilt, -59.3 + top), c.call(HAT.lightened(0.18)), 0.8)
+	ci.draw_line(Vector2(-4.2 + lean + tilt, -60.0 + top), Vector2(5.0 + lean + tilt, -59.4 + top), c.call(HAT.lightened(0.12)), 0.8)
+	ci.draw_colored_polygon(PackedVector2Array([
+		Vector2(-4.8 + lean, -48.2 + top), Vector2(5.4 + lean, -48.2 + top), Vector2(5.3 + lean, -50.4 + top), Vector2(-4.7 + lean, -50.6 + top),
+	]), c.call(SCARF.darkened(0.25)))
+	ci.draw_colored_polygon(PackedVector2Array([
+		Vector2(-9.5 + lean, -49.2 + top), Vector2(-7.5 + lean, -48.0 + top), Vector2(8.5 + lean, -47.6 + top),
+		Vector2(10.5 + lean, -48.8 + top), Vector2(9.5 + lean, -46.6 + top), Vector2(-8.5 + lean, -47.0 + top),
+	]), c.call(HAT))
 
 	if not ghost:
 		_paint_arms(ci)
+
+
+## An arm (or leg) from a to b, its joint bent `bend` (1 down/out, -1 the
+## other way), as two segments.
+func _limb(ci: CanvasItem, a: Vector2, b: Vector2, bend: float, col: Color, w0: float, w1: float) -> void:
+	var mid := (a + b) * 0.5
+	var d := b - a
+	var joint := mid + Vector2(-d.y, d.x).normalized() * bend * minf(2.5, d.length() * 0.18)
+	ci.draw_line(a, joint, col, w0)
+	ci.draw_line(joint, b, col, w1)
+	ci.draw_circle(joint, w1 * 0.5, col)
 
 
 func _paint_arms(ci: CanvasItem) -> void:
 	var s := _shoulder()
 	var th := _pole_angle()
 	var dir := Vector2(cos(th), sin(th))
+	var across := Vector2(-dir.y, dir.x)
 	var hand := _hand()
 	var f := form_data()
 
-	# The pole.
+	# The pole: ash, iron-shod at the butt, banded below the head.
 	var length := 30.0 if f.burns else 46.0
 	var tip := hand + dir * length
-	ci.draw_line(hand - dir * 12.0, tip, POLE, 2.5)
+	var butt := hand - dir * 12.0
+	ci.draw_line(butt, tip, POLE, 2.6)
+	ci.draw_line(butt + across * 0.5, tip + across * 0.5, POLE.darkened(0.35), 0.8)
+	ci.draw_line(butt, butt + dir * 2.5, IRON, 3.2)
+	ci.draw_line(tip - dir * 5.0, tip - dir * 3.0, IRON, 3.2)
 	if not f.burns:
-		# Hook and wick.
-		var hook := hand + dir * (length - 4.0) + Vector2(-dir.y, dir.x) * -5.0
-		ci.draw_arc(hook, 5.0, th - 0.1 * PI, th + 0.5 * PI, 10, IRON, 2.0)
-		ci.draw_circle(hand + dir * (length + 1.0), 1.6 + sin(_time * 20.0) * 0.4, LAMP)
+		# The hook, curling back, and the wick holder at the very end.
+		var hook := PackedVector2Array()
+		for i in 9:
+			var a := th - 0.15 * PI + i / 8.0 * 1.15 * PI
+			hook.append(tip - dir * 3.0 + across * -4.5 + Vector2(cos(a), sin(a)) * 4.5)
+		ci.draw_polyline(hook, IRON, 1.8)
+		ci.draw_circle(hook[hook.size() - 1], 0.9, IRON)
+		ci.draw_line(tip, tip + dir * 2.5, IRON.lightened(0.15), 1.6)
+		ci.draw_circle(hand + dir * (length + 3.0), 1.5 + sin(_time * 20.0) * 0.4, LAMP)
 	else:
-		# Lantern on its chain: hangs from the pole tip, flung outward mid-swing.
+		# The Lantern on its chain: a peaked iron cage round a glass.
 		var l := _lantern_point()
-		ci.draw_line(tip, l, IRON, 1.0)
-		ci.draw_rect(Rect2(l.x - 5, l.y - 1, 10, 2), IRON)
-		ci.draw_rect(Rect2(l.x - 4, l.y + 1, 8, 9), LAMP)
-		ci.draw_rect(Rect2(l.x - 5, l.y + 10, 10, 2), IRON)
+		var links := 4
+		for i in links:
+			ci.draw_line(tip.lerp(l, i / float(links)), tip.lerp(l, (i + 0.6) / float(links)), IRON, 1.0)
+		ci.draw_colored_polygon(PackedVector2Array([l + Vector2(-5.5, 1), l + Vector2(0, -3), l + Vector2(5.5, 1)]), IRON)
+		ci.draw_rect(Rect2(l.x - 4.5, l.y + 1, 9, 9), LAMP)
+		ci.draw_rect(Rect2(l.x - 1.5, l.y + 3, 3, 5), LAMP.lightened(0.5))
+		for bx in [-4.5, -1.5, 1.5, 4.5]:
+			ci.draw_line(Vector2(l.x + bx, l.y + 1), Vector2(l.x + bx, l.y + 10), IRON, 0.9)
+		ci.draw_rect(Rect2(l.x - 5.5, l.y + 10, 11, 2), IRON)
+		ci.draw_rect(Rect2(l.x - 1.5, l.y + 12, 3, 1.5), IRON)
 
-	# The arm holding it.
-	ci.draw_line(s, hand, COAT, 4.0)
+	# The arm holding it: sleeve, cuff, glove.
+	_limb(ci, s, hand, 1.0, COAT, 4.2, 3.6)
+	ci.draw_line(hand - (hand - s).normalized() * 3.0, hand - (hand - s).normalized() * 1.6, MANTLE.lightened(0.15), 4.0)
+	ci.draw_circle(hand, 2.0, GLOVE)
 
 	# Off hand: the pistol, a vial, or the blade for blood bullets.
 	match state:
 		"shoot":
 			var gy: float = -T.GUN.y
-			ci.draw_line(s + Vector2(-2, 2), Vector2(13, gy), COAT, 4.0)
-			ci.draw_rect(Rect2(11, gy - 3, 9, 3), Color("3a3633"))
-			ci.draw_rect(Rect2(12, gy - 1, 3, 4), Color("3a3633"))
+			var gh := Vector2(12.5, gy)
+			_limb(ci, s + Vector2(-2, 2), gh, -1.0, COAT, 4.0, 3.4)
+			ci.draw_circle(gh, 1.9, GLOVE)
+			# A long-barrelled pistol, brass at the lock.
+			ci.draw_colored_polygon(PackedVector2Array([Vector2(11, gy - 3), Vector2(22, gy - 3), Vector2(22, gy - 1.2), Vector2(14, gy - 0.8), Vector2(13.5, gy + 4), Vector2(11, gy + 3.5)]), GUNMETAL)
+			ci.draw_rect(Rect2(13.5, gy - 2.6, 2.5, 1.6), BRASS)
+			ci.draw_line(Vector2(15, gy - 3.4), Vector2(21.5, gy - 3.4), GUNMETAL.lightened(0.25), 0.7)
 			if not world.shot.is_empty():
-				ci.draw_colored_polygon(PackedVector2Array([Vector2(20, gy - 6), Vector2(30, gy - 1.5), Vector2(20, gy + 3)]), Color(1.0, 0.9, 0.67, 0.9))
+				ci.draw_colored_polygon(PackedVector2Array([Vector2(22, gy - 6), Vector2(32, gy - 2), Vector2(22, gy + 2)]), Color(1.0, 0.9, 0.67, 0.9))
 		"heal":
-			ci.draw_line(s + Vector2(-2, 2), Vector2(4, -44), COAT, 4.0)
-			ci.draw_rect(Rect2(3, -48, 4, 6), Color("c42b2f"))
+			_limb(ci, s + Vector2(-2, 2), Vector2(4, -44), -1.0, COAT, 4.0, 3.4)
+			ci.draw_circle(Vector2(4, -44), 1.9, GLOVE)
+			ci.draw_rect(Rect2(3, -49, 3.5, 6), VIAL)
+			ci.draw_rect(Rect2(3.6, -50.2, 2.3, 1.4), LEATHER.lightened(0.3))
 		"blood":
-			ci.draw_line(s + Vector2(-2, 2), Vector2(6, -24), COAT, 4.0)
-			ci.draw_arc(Vector2(0, -70), 6.0, -PI / 2.0, -PI / 2.0 + (t / T.BLOOD.time) * TAU, 16, Color("c42b2f"), 2.0)
+			_limb(ci, s + Vector2(-2, 2), Vector2(6, -24), -1.0, COAT, 4.0, 3.4)
+			ci.draw_circle(Vector2(6, -24), 1.9, GLOVE)
+			ci.draw_line(Vector2(6, -24), Vector2(12, -28), Color("b8b2a6"), 1.2)
+			ci.draw_arc(Vector2(0, -70), 6.0, -PI / 2.0, -PI / 2.0 + (t / T.BLOOD.time) * TAU, 16, VIAL, 2.0)

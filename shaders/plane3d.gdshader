@@ -19,6 +19,10 @@ uniform float reach = 9.0;
 uniform float detail = 0.5;
 // How much light from behind comes through at the edges.
 uniform float rim = 0.9;
+// And a faint cold edge of their own, as if the moon caught them, so
+// figures still read where no light reaches.
+uniform vec3 edge_glow : source_color = vec3(0.32, 0.38, 0.55);
+uniform float edge_energy = 0.07;
 
 #define alpha_at(uv) texture(plane, uv).a
 #define lum_at(uv) dot(texture(plane, uv).rgb, vec3(0.299, 0.587, 0.114))
@@ -43,7 +47,9 @@ void fragment() {
 	n.x += (lum_at(UV - vec2(d.x, 0.0)) - lum_at(UV + vec2(d.x, 0.0))) * detail;
 	n.y += (lum_at(UV + vec2(0.0, d.y)) - lum_at(UV - vec2(0.0, d.y))) * detail;
 	NORMAL_MAP = normalize(vec3(n * bulge, 1.0)) * 0.5 + 0.5;
-	BACKLIGHT = vec3(rim * smoothstep(0.15, 0.9, length(n)));
+	float edge = smoothstep(0.15, 0.9, length(n));
+	BACKLIGHT = vec3(rim * edge);
+	EMISSION = edge_glow * edge_energy * edge;
 	ROUGHNESS = 0.7;
 	SPECULAR = 0.35;
 }

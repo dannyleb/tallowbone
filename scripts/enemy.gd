@@ -370,50 +370,157 @@ static func _ease(x: float) -> float:
 
 func _paint_communicant(ci: CanvasItem, fl: bool, a: float) -> void:
 	var robe := _c(Color("5c302a") if gorged > 0 else ROBE, fl, a)
+	var dark := _c((Color("5c302a") if gorged > 0 else ROBE).darkened(0.4), fl, a)
+	var flesh := _c(FLESH, fl, a)
+	var bone := _c(FLESH.darkened(0.25), fl, a)
 	var stride := sin(run_t * 9.0) * 2.0
-	ci.draw_rect(Rect2(-6 + stride, -8, 4, 8), _c(ROBE_DARK, fl, a))
-	ci.draw_rect(Rect2(2 - stride, -8, 4, 8), _c(ROBE_DARK, fl, a))
-	# Hunched robe, ragged hem.
-	var hump := PackedVector2Array()
-	for i in 9:
-		var k := i / 8.0
-		hump.append(Vector2(-10, -26).lerp(Vector2(-6, -42), k).lerp(Vector2(-6, -42).lerp(Vector2(6, -36), k), k))
-	hump.append_array(PackedVector2Array([Vector2(10, -6), Vector2(7, -2), Vector2(4, -6), Vector2(0, -1), Vector2(-4, -6), Vector2(-8, -1), Vector2(-11, -6)]))
-	ci.draw_colored_polygon(hump, robe)
-	# Hooded head, thrust forward.
-	ci.draw_circle(Vector2(8, -36), 7.0, robe)
-	ci.draw_rect(Rect2(10, -37, 5, 6), _c(FLESH, fl, a))
-	ci.draw_rect(Rect2(12, -36, 2, 1.5), _c(GORGED_COLOR if gorged > 0 else Color("1a1412"), fl, a))
-	# The long arm and its claw.
 	var th := _claw_angle()
+	# The far arm, thin, hanging behind.
+	var bs := Vector2(-2, -31)
+	var bh := bs + Vector2(-1.5 - stride * 0.6, 15.0)
+	ci.draw_polyline(PackedVector2Array([bs, bs + Vector2(-2.5, 7.5), bh]), _c(FLESH.darkened(0.45), fl, a), 1.8)
+	for k in [-0.35, 0.0, 0.35]:
+		ci.draw_line(bh, bh + Vector2(sin(k) * 3.0, 4.5), _c(FLESH.darkened(0.45), fl, a), 1.0)
+	# Bony shins and long bare feet under the hem.
+	for side in [-1.0, 1.0]:
+		var x: float = side * 4.0 + stride * side
+		var col := flesh if side > 0.0 else bone
+		ci.draw_line(Vector2(x - 0.5, -9), Vector2(x, -1.2), col, 1.8)
+		ci.draw_colored_polygon(PackedVector2Array([Vector2(x - 1.5, -1.6), Vector2(x + 4.5, -0.9), Vector2(x + 4.8, 0.0), Vector2(x - 1.8, 0.0)]), col)
+	# A tattered underhem, swaying.
+	for i in 7:
+		var hx := -10.0 + i * 3.2
+		var sw := sin(_time * 3.0 + i * 1.7) * 1.2
+		ci.draw_colored_polygon(PackedVector2Array([Vector2(hx, -9), Vector2(hx + 3.0, -9), Vector2(hx + 1.6 + sw, -1.5 - float(i % 3))]), dark)
+	# The hunched robe.
+	var hump := PackedVector2Array()
+	for i in 11:
+		var k := i / 10.0
+		hump.append(Vector2(-11, -24).lerp(Vector2(-7, -43), k).lerp(Vector2(-7, -43).lerp(Vector2(7, -36), k), k))
+	hump.append_array(PackedVector2Array([
+		Vector2(9, -30), Vector2(10, -8), Vector2(7, -4), Vector2(4, -7), Vector2(1, -3),
+		Vector2(-2, -7), Vector2(-5, -3.5), Vector2(-8, -7), Vector2(-11.5, -4.5), Vector2(-12, -14),
+	]))
+	ci.draw_colored_polygon(hump, robe)
+	# Folds, and the shadow down its back.
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(-11, -24), Vector2(-8, -38), Vector2(-6, -30), Vector2(-7, -8), Vector2(-11.5, -4.5), Vector2(-12, -14)]), dark)
+	for fx in [-3.0, 1.5, 5.5]:
+		ci.draw_line(Vector2(fx, -26), Vector2(fx + 0.8, -6), dark, 0.9)
+	# The spine standing out through the cloth.
+	for i in 5:
+		var k := 0.25 + i * 0.13
+		var p := Vector2(-11, -24).lerp(Vector2(-7, -43), k).lerp(Vector2(-7, -43).lerp(Vector2(7, -36), k), k)
+		ci.draw_circle(p + Vector2(0.6, 0.8), 1.3, dark)
+	# Tallow it has drunk, sweating out of it and running down the hump.
+	var wax := _c(Color("d6c99a"), fl, a)
+	for d in [[Vector2(-6, -40), 7.0], [Vector2(-2, -41), 11.0], [Vector2(2, -39), 5.0]]:
+		var top: Vector2 = d[0]
+		var len: float = d[1]
+		ci.draw_line(top, top + Vector2(-0.6, len), wax, 1.3)
+		ci.draw_circle(top + Vector2(-0.6, len + 0.4), 1.0, wax)
+	# A rope belt hung with knuckle bones.
+	ci.draw_line(Vector2(-11, -19), Vector2(9.5, -21), _c(Color("6b5a44"), fl, a), 1.3)
+	for bx in [-4.0, 2.0, 6.0]:
+		var by: float = -20.0 + bx * -0.1
+		var cord := Vector2(bx + sin(_time * 2.0 + bx) * 0.8, by + 5.0)
+		ci.draw_line(Vector2(bx, by), cord, _c(Color("6b5a44"), fl, a), 0.8)
+		ci.draw_rect(Rect2(cord.x - 0.9, cord.y, 1.8, 2.6), bone)
+	# The hood, peaked and drooping forward over the face.
+	var hood := robe
+	ci.draw_colored_polygon(PackedVector2Array([
+		Vector2(1, -31), Vector2(0, -40), Vector2(5, -45), Vector2(11, -44), Vector2(17, -40.5),
+		Vector2(18.5, -37), Vector2(15, -38), Vector2(15.5, -30), Vector2(10, -28),
+	]), hood)
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(10, -38), Vector2(15, -38.5), Vector2(15.5, -30), Vector2(11, -29)]), _c(Color("0f0b0a"), fl, a))
+	# What's in the hood: a gaunt jaw, a slit of a mouth, one eye lit.
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(12, -36), Vector2(15.2, -35.5), Vector2(15.4, -31), Vector2(13, -29.5), Vector2(11.5, -31.5)]), flesh)
+	ci.draw_line(Vector2(12.2, -32.2), Vector2(15.4, -32.6), _c(Color("1a1412"), fl, a), 0.8)
+	for tx in [12.8, 13.8, 14.8]:
+		ci.draw_line(Vector2(tx, -32.4), Vector2(tx, -31.7), bone, 0.5)
+	var eye := GORGED_COLOR if gorged > 0 else Color("e8d9a0")
+	ci.draw_circle(Vector2(13.6, -34.6), 0.9, _c(eye, fl, a))
+	# The long arm, all bone and sinew, and its claw.
 	var s := Vector2(4, -30)
 	var e := s + Vector2(cos(th), sin(th)) * 24.0
 	var mid := s + Vector2(cos(th - 0.5), sin(th - 0.5)) * 14.0
-	ci.draw_polyline(PackedVector2Array([s, mid, e]), _c(FLESH, fl, a), 2.5)
-	for k in [-0.5, 0.0, 0.5]:
-		ci.draw_line(e, e + Vector2(cos(th + k), sin(th + k)) * 7.0, _c(FLESH, fl, a), 1.5)
+	ci.draw_line(s, mid, robe, 3.6)
+	ci.draw_line(s.lerp(mid, 0.55), mid, flesh, 2.4)
+	ci.draw_line(mid, e, flesh, 1.9)
+	ci.draw_circle(mid, 1.5, bone)
+	ci.draw_circle(e, 1.6, flesh)
+	for k in [-0.55, -0.15, 0.25, 0.65]:
+		var j := e + Vector2(cos(th + k), sin(th + k)) * 4.5
+		var tip := j + Vector2(cos(th + k * 1.6 + 0.35), sin(th + k * 1.6 + 0.35)) * 4.0
+		ci.draw_line(e, j, flesh, 1.3)
+		ci.draw_line(j, tip, flesh, 1.0)
+		ci.draw_line(tip, tip + (tip - j).normalized() * 1.6, _c(Color("2a211c"), fl, a), 0.9)
 	if state == "strike":
 		ci.draw_arc(s, 24.0, minf(-2.3, th), maxf(-2.3, th), 12, Color(0.79, 0.73, 0.63, 0.35 * a), 6.0)
 
 
 func _paint_hound(ci: CanvasItem, fl: bool, a: float) -> void:
-	var body := _c(Color("5a2c24") if gorged > 0 else HOUND, fl, a)
+	var base := Color("5a2c24") if gorged > 0 else HOUND
+	var body := _c(base, fl, a)
+	var far := _c(base.darkened(0.35), fl, a)
+	var dark := _c(base.darkened(0.5), fl, a)
+	var flesh := _c(FLESH.darkened(0.15), fl, a)
 	_crouch = minf(1.0, t / 0.2) * 4.0 if state == "windup" else 0.0
 	_stretch = 1.18 if state == "strike" else 1.0
 	var g := sin(run_t * 16.0) * 4.0
-	for leg in [Vector2(-11, 1), Vector2(-7, -1), Vector2(6, -1), Vector2(10, 1)]:
-		ci.draw_line(_h(Vector2(leg.x, -10)), _h(Vector2(leg.x + g * leg.y, -_crouch)), body, 3.0)
-	ci.draw_colored_polygon(_ellipse(_h(Vector2(-1, -14)), 15.0 * _stretch, 6.5), body)
-	for i in 3:
-		ci.draw_line(_h(Vector2(-4 + i * 4, -19)), _h(Vector2(-5 + i * 4, -10)), Color(0, 0, 0, 0.35 * a), 1.0)
-	var tail := PackedVector2Array([_h(Vector2(-15, -15)), _h(Vector2(-21, -19 + sin(_time * 6.0) * 3.0)), _h(Vector2(-24, -12))])
-	ci.draw_polyline(tail, body, 2.0)
-	ci.draw_colored_polygon(_ellipse(_h(Vector2(13, -15)), 7.0, 5.0), body)
-	ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(9, -19)), _h(Vector2(11, -25)), _h(Vector2(13, -19))]), body)
-	ci.draw_rect(Rect2(_h(Vector2(12, -12)), Vector2(8, 2)), body)
-	for i in 3:
-		ci.draw_rect(Rect2(_h(Vector2(14 + i * 2, -13)), Vector2(1, 2)), _c(FLESH, fl, a))
-	ci.draw_rect(Rect2(_h(Vector2(14, -17)), Vector2(2, 1.5)), _c(GORGED_COLOR if gorged > 0 else Color("8a2a1e"), fl, a))
+	# Legs: far pair first. Hind legs bend back at the hock, fore legs
+	# forward at the wrist.
+	for leg in [[Vector2(-7, -1), true, far], [Vector2(10, 1), false, far], [Vector2(-11, 1), true, body], [Vector2(6, -1), false, body]]:
+		var at: Vector2 = leg[0]
+		var hind: bool = leg[1]
+		var col: Color = leg[2]
+		var hip := _h(Vector2(at.x, -12))
+		var paw := _h(Vector2(at.x + g * at.y, -_crouch))
+		var joint := hip.lerp(paw, 0.55) + Vector2(-2.6 if hind else 1.4, 0)
+		ci.draw_line(hip, joint, col, 3.0 if hind else 2.6)
+		ci.draw_line(joint, paw, col, 1.8)
+		ci.draw_colored_polygon(PackedVector2Array([paw + Vector2(-1.2, -1.2), paw + Vector2(2.6, -0.6), paw + Vector2(2.8, 0.3), paw + Vector2(-1.4, 0.3)]), col)
+	# A gaunt body: deep chest, tucked belly, bony rump.
+	var torso := PackedVector2Array()
+	for p in [Vector2(-16, -16.5), Vector2(-12, -18.5), Vector2(-5, -18.5), Vector2(2, -20), Vector2(7, -21.5), Vector2(10, -19.5),
+			Vector2(10, -11), Vector2(6, -8.5), Vector2(1, -10), Vector2(-4, -12.5), Vector2(-10, -12), Vector2(-15, -11.5), Vector2(-17, -13.5)]:
+		torso.append(_h(p))
+	ci.draw_colored_polygon(torso, body)
+	# The flank in shadow, a mangy bare patch, the ribs.
+	ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(-15, -12)), _h(Vector2(-4, -12.5)), _h(Vector2(1, -10)), _h(Vector2(6, -8.5)), _h(Vector2(5, -11.5)), _h(Vector2(-12, -14))]), dark)
+	ci.draw_colored_polygon(_ellipse(_h(Vector2(-8, -15.5)), 3.0, 1.6, 10), _c(Color("8a5a4e"), fl, a))
+	for i in 4:
+		var rx := -1.0 + i * 2.6
+		ci.draw_polyline(PackedVector2Array([_h(Vector2(rx, -18.5)), _h(Vector2(rx + 1.4, -15)), _h(Vector2(rx + 0.8, -11.5))]), dark, 0.8)
+	# Hackles along the spine.
+	for i in 9:
+		var sx := -14.0 + i * 2.6
+		var sy := -18.6 - (1.6 if i > 5 else 0.0)
+		var up := 2.2 + (1.4 if state == "windup" else 0.0) + float(i % 2) * 0.8
+		ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(sx - 1.0, sy + 0.5)), _h(Vector2(sx + 1.6, sy - up)), _h(Vector2(sx + 1.6, sy + 0.5))]), body)
+	# A ragged tail, low.
+	var tail := PackedVector2Array([_h(Vector2(-16, -16)), _h(Vector2(-21, -17 + sin(_time * 6.0) * 2.0)), _h(Vector2(-25, -12 + sin(_time * 6.0 + 1.0) * 1.5))])
+	ci.draw_polyline(tail, body, 2.2)
+	ci.draw_line(tail[2], tail[2] + Vector2(-2, 1.5), body, 1.2)
+	# The head: long and narrow, ear pinned back, jaw opening for the bite.
+	var jaw := 0.0
+	match state:
+		"windup":
+			jaw = minf(1.0, t / (def.windup * 0.7)) * 4.0
+		"strike":
+			jaw = 4.5
+		"idle", "chase":
+			jaw = 0.6 + sin(_time * 5.0) * 0.4
+	ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(7, -21)), _h(Vector2(12, -22)), _h(Vector2(15, -20.5)), _h(Vector2(21, -17.5)),
+		_h(Vector2(25, -16.2)), _h(Vector2(24.6, -14.2)), _h(Vector2(14, -13.6)), _h(Vector2(9.5, -12))]), body)
+	ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(14, -14)), _h(Vector2(23, -13.6 + jaw * 0.3)), _h(Vector2(22.5, -11.6 + jaw)), _h(Vector2(13, -11.5))]), dark)
+	for i in 5:
+		var tx := 16.0 + i * 1.6
+		ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(tx, -14.2)), _h(Vector2(tx + 0.9, -14.2)), _h(Vector2(tx + 0.4, -12.8))]), flesh)
+		ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(tx, -12.6 + jaw * 0.85)), _h(Vector2(tx + 0.9, -12.6 + jaw * 0.85)), _h(Vector2(tx + 0.4, -13.8 + jaw * 0.85))]), flesh)
+	ci.draw_colored_polygon(PackedVector2Array([_h(Vector2(11, -21.5)), _h(Vector2(8.5, -25.5)), _h(Vector2(13.5, -21.5))]), body)
+	ci.draw_circle(_h(Vector2(17.5, -18.2)), 0.95, _c(GORGED_COLOR if gorged > 0 else Color("b8321f"), fl, a))
+	if jaw > 2.0:
+		ci.draw_line(_h(Vector2(21, -11.6 + jaw)), _h(Vector2(21.2, -8.5 + jaw)), _c(Color(0.85, 0.82, 0.75, 0.6), fl, a), 0.6)
 
 
 # The hound crouches before a lunge and stretches out during it.

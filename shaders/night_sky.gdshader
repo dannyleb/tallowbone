@@ -78,9 +78,11 @@ void sky() {
 	col = mix(col, horizon * 0.7, c * 0.75);
 	// Lightning: the clouds lit from inside, brightest low down and at
 	// their thick hearts.
+	// (Faint in the reflections: wet stone everywhere would mirror it and
+	// light the whole street white.)
 	if (flash > 0.0) {
 		float glow = (0.35 + smoothstep(0.3, 0.85, cn) * 1.4) * (1.0 - up * 0.6);
-		col += flash_color * flash * glow;
+		col += flash_color * flash * glow * (AT_CUBEMAP_PASS ? 0.15 : 1.0);
 	}
 	COLOR = col;
 }

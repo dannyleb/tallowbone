@@ -574,7 +574,7 @@ func _house(b: Dictionary, rng: RandomNumberGenerator, x: float, bw: float, bh: 
 	trim.box(Vector3(x - 0.12, top - 0.32, front - 0.05), Vector3(x + bw + 0.12, top, front + 0.3))
 	if rng.randf() < 0.6:
 		# A gable along the street.
-		var ridge := top + bw * rng.randf_range(0.3, 0.5)
+		var ridge := top + bw * (rng.randf_range(0.2, 0.32) if row == 0 else rng.randf_range(0.25, 0.42))
 		var mid := front - depth / 2.0
 		if row == 1:
 			roofs.append([x, x + bw, ridge, mid])
