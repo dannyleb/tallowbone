@@ -1926,6 +1926,8 @@ func set_feature(feature: String, on: bool) -> void:
 		"reflections":
 			env.ssr_enabled = on
 			env.ssao_enabled = on
+		"bounce":
+			env.ssil_enabled = on and not _lite and quality == 0
 		"glow":
 			env.glow_enabled = on
 		"rain":

@@ -14,7 +14,7 @@ const SPOTS := [["street", Vector2(400, 640)], ["canal", Vector2(1000, 640)], ["
 ## what's left is the level and the engine). The flat 2D look (?2d) has
 ## SYSTEMS; the 3D stage has STAGE_SYSTEMS.
 const SYSTEMS := ["figures", "lights", "normals", "water", "weather", "backdrop", "fx", "hud"]
-const STAGE_SYSTEMS := ["shadows", "fog", "reflections", "glow", "rain", "city", "plane", "fx", "hud"]
+const STAGE_SYSTEMS := ["shadows", "fog", "reflections", "bounce", "glow", "rain", "city", "plane", "fx", "hud"]
 ## Then everything on again, with the game view drawn at these render
 ## scales (render px per world px; those below the starting scale only).
 const SCALES := [2.0, 1.5, 1.0]
@@ -99,7 +99,7 @@ func _run() -> void:
 		var spots := []
 		for spot in SPOTS:
 			_put(spot[1])
-			await _frames(10)
+			await _frames(_warmup())
 			var m := await _measure(MEASURE)
 			m.spot = spot[0]
 			spots.append(m)
@@ -117,7 +117,7 @@ func _run() -> void:
 		var spots := []
 		for spot in SPOTS:
 			_put(spot[1])
-			await _frames(10)
+			await _frames(_warmup())
 			var m := await _measure(MEASURE)
 			m.spot = spot[0]
 			spots.append(m)
@@ -135,6 +135,15 @@ func _run() -> void:
 		print("BENCH | ", line)
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("fetch('/bench', {method: 'POST', body: %s}).catch(() => {})" % JSON.stringify(JSON.stringify(result)))
+	elif OS.get_cmdline_user_args().has("--bench-quit"):
+		# CI's desktop run: done.
+		get_tree().quit()
+
+
+## Frames to settle before measuring (fog and reflections build up over a
+## few); fewer on the desktop, whose CI run draws on the CPU.
+func _warmup() -> int:
+	return 10 if OS.has_feature("web") else 4
 
 
 func _status(text: String) -> void:

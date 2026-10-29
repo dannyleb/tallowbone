@@ -181,7 +181,7 @@ jobs:
       group: bench-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -199,6 +199,23 @@ jobs:
           firefox --version || true
           google-chrome --version || true
           python3 tools/bench_web.py build/web bench-out
+
+      - name: Benchmark the desktop renderer
+        # The Mac's renderer (Forward+, here on Vulkan drawn by the CPU):
+        # what each part of the 3D night costs, to compare rows.
+        if: always()
+        timeout-minutes: 18
+        run: |
+          sudo apt-get install -y -qq mesa-vulkan-drivers > /dev/null
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -sSfL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$HOME/godot-bin" && rm godot.zip
+          mkdir -p bench-out ci-out && touch ci-out/.gdignore
+          timeout 300 "$HOME/godot-bin" --headless --audio-driver Dummy --path . --import > /dev/null 2>&1 || true
+          xvfb-run -a -s "-screen 0 1280x720x24" timeout -k 10 900 "$HOME/godot-bin" --audio-driver Dummy --path . \
+            --rendering-driver vulkan --resolution 1280x720 -- --bench --bench-quit 2>&1 | grep --line-buffered "^BENCH | " | sed 's/^BENCH | //' > bench-out/desktop.txt || true
+          { echo; echo "## Desktop renderer (Forward+ on Vulkan, CPU-drawn), 1280x720"; echo; echo '```'; grep -v "^Benchmark:" bench-out/desktop.txt; echo '```'; } >> bench-out/bench.md
+          tail -30 bench-out/desktop.txt
 
       - name: Add the results to ci-reports
         if: always()
