@@ -70,6 +70,7 @@ var stage = null
 ## The night's sound (scripts/ambience.gd).
 var ambience
 var _perf: Label
+var _flash_rect: ColorRect
 var _clock := 0
 var _slow_t := 0.0
 var _slow_frames := 0
@@ -100,6 +101,8 @@ func _ready() -> void:
 		stage.main = self
 		stage.world = world
 		game.add_child(stage)
+	else:
+		ambience.lightning.connect(_flash_2d)
 	get_viewport().size_changed.connect(fit_view)
 	fit_view()
 	var web_debug := query.contains("debug")
@@ -139,6 +142,29 @@ func _add_vignette() -> void:
 	shade.anchor_bottom = 1.1
 	layer.add_child(shade)
 	game.add_child(layer)
+
+
+## Lightning in the flat look (?2d; the 3D stage has its own storm): the
+## view flickers white.
+func _flash_2d(strength: float, _reveal: bool) -> void:
+	if _flash_rect == null:
+		var layer := CanvasLayer.new()
+		layer.layer = 8
+		_flash_rect = ColorRect.new()
+		_flash_rect.color = Color(0.75, 0.8, 1.0, 0.0)
+		_flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_flash_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		var add := CanvasItemMaterial.new()
+		add.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		_flash_rect.material = add
+		layer.add_child(_flash_rect)
+		game.add_child(layer)
+	var a := 0.1 + 0.25 * strength
+	var t := create_tween()
+	t.tween_property(_flash_rect, "color:a", a, 0.02)
+	t.tween_property(_flash_rect, "color:a", 0.0, 0.12)
+	t.tween_property(_flash_rect, "color:a", a * 0.6, 0.03)
+	t.tween_property(_flash_rect, "color:a", 0.0, 0.4)
 
 
 ## F3 (or ?perf): frame rate, frame time and the world's render size, top

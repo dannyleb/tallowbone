@@ -27,6 +27,8 @@ func _run() -> void:
 	await _frames(10)
 	world = main.world
 	player = world.player
+	# No lightning but the one posed below.
+	main.ambience.auto = false
 	# CI draws with the CPU, so the game runs at a tiny render scale between
 	# shots, and each shot is drawn at 2x (see _shot).
 	main.fixed_scale = 0.5
@@ -141,6 +143,17 @@ func _run() -> void:
 	await _shot("14-controls")
 	main.close_controls()
 	main.set_paused(false)
+
+	# Lightning shows what stands beyond the city; then the dark, its eyes
+	# still open, and something on the roofs.
+	if main.stage:
+		await _tp(lamp.position.x + 260.0, 640.0, 1.0)
+		await _frames(20)
+		main.stage.storm.pose(1.0, 0.3)
+		await _shot("15-lightning")
+		main.stage.storm.pose(0.0, 2.5)
+		await _shot("16-eyes")
+		main.stage.storm.pose(0.0, -1.0)
 
 	print("screenshots written to ", out_dir)
 	quit(0)

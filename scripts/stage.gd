@@ -18,6 +18,7 @@
 extends Node3D
 
 const Figure = preload("res://scripts/figure.gd")
+const Storm = preload("res://scripts/storm.gd")
 const STONE := preload("res://shaders/stone3d.gdshader")
 const WATER := preload("res://shaders/water3d.gdshader")
 const VEIL := preload("res://shaders/veil3d.gdshader")
@@ -60,6 +61,11 @@ var env: Environment
 var moon: DirectionalLight3D
 var plane_vp: SubViewport
 var plane: MeshInstance3D
+## Lightning and what it shows (scripts/storm.gd).
+var storm
+## Rooftops of the middle row of houses, where the watchers stand:
+## [x from, x to, top y, z] (m).
+var roofs := []
 ## What got built, for the playtest.
 var counts := {}
 
@@ -170,6 +176,11 @@ func _ready() -> void:
 	_build_rain()
 	_build_drips()
 	_build_probes()
+	storm = Storm.new()
+	storm.stage = self
+	add_child(storm)
+	if main.ambience:
+		main.ambience.lightning.connect(storm.flash)
 	world.level.burnt.connect(func(_cells): _build_veil())
 	fit()
 
@@ -505,11 +516,15 @@ func _build_city() -> void:
 				# A gable along the street.
 				var ridge := top + bw * rng.randf_range(0.3, 0.5)
 				var mid := front - depth / 2.0
+				if row_index == 1:
+					roofs.append([x, x + bw, ridge, mid])
 				roofs.quad(Vector3(x - 0.2, top, front + 0.3), Vector3(x + bw + 0.2, top, front + 0.3), Vector3(x + bw + 0.2, ridge, mid), Vector3(x - 0.2, ridge, mid), Vector3(0, 0.7, 0.7).normalized())
 				roofs.quad(Vector3(x - 0.2, top, front - depth - 0.3), Vector3(x + bw + 0.2, top, front - depth - 0.3), Vector3(x + bw + 0.2, ridge, mid), Vector3(x - 0.2, ridge, mid), Vector3(0, 0.7, -0.7).normalized())
 				roofs.tri(Vector3(x, top, front), Vector3(x, ridge, mid), Vector3(x, top, front - depth), Vector3.LEFT)
 				roofs.tri(Vector3(x + bw, top, front), Vector3(x + bw, ridge, mid), Vector3(x + bw, top, front - depth), Vector3.RIGHT)
 			elif rng.randf() < 0.7:
+				if row_index == 1:
+					roofs.append([x, x + bw, top, front - depth * 0.3])
 				# Chimney stacks.
 				var cx := x + rng.randf_range(0.5, bw - 1.2)
 				walls.box(Vector3(cx, top, front - depth * 0.6), Vector3(cx + 0.7, top + rng.randf_range(1.0, 2.2), front - depth * 0.6 + 0.7))

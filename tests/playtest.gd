@@ -66,6 +66,7 @@ func _run() -> void:
 	await _scenario("_levelling", _levelling)
 	await _scenario("_controls", _controls)
 	await _scenario("_ambience", _ambience)
+	await _scenario("_storm", _storm)
 	await _scenario("_render_scale", _render_scale)
 	await _scenario("_art", _art)
 	await _scenario("_lessons", _lessons)
@@ -779,3 +780,33 @@ func _roofed_spot() -> Vector2:
 					and not lv.solid_at(feet + Vector2(0, -40)) and lv.roofed_at(feet + Vector2(0, -24)):
 				return feet
 	return Vector2.ZERO
+
+
+## Lightning on the 3D stage: the flash, the thing in the fog, its eyes
+## after, the watchers on the roofs.
+func _storm() -> void:
+	var storm = main.stage.storm if main.stage else null
+	_check("storm: the stage has one", storm != null)
+	if storm == null:
+		return
+	main.ambience.auto = false
+	storm.flash(1.0, true)
+	var peak := 0.0
+	var shown := 0.0
+	for i in 30:
+		await process_frame
+		peak = maxf(peak, storm.level)
+		shown = maxf(shown, storm.revealed)
+	_check("storm: a strike flashes and shows the thing in the fog",
+		peak > 0.5 and storm.colossus.visible and shown > 0.9, "flash %.2f shown %.2f" % [peak, shown])
+	for i in 150:
+		await process_frame
+	var near_roofs: bool = main.stage.roofs.any(func(r): return absf((r[0] + r[1]) * 0.5 - main.stage.camera.position.x) < storm.WATCH_RANGE)
+	_check("storm: then dark again, its eyes still open, watchers on the roofs",
+		storm.level < 0.01 and not storm.light.visible and storm.eyes > 0.5 and storm.revealed < 0.2
+		and (storm.watchers.any(func(w): return w.visible) or not near_roofs),
+		"flash %.2f eyes %.2f shown %.2f" % [storm.level, storm.eyes, storm.revealed])
+	for i in 720:
+		await process_frame
+	_check("storm: its eyes close and it's gone", not storm.colossus.visible and storm.eyes == 0.0)
+	main.ambience.auto = true
