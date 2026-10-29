@@ -5,6 +5,9 @@ name: Benchmark A/B
 # CI machines differ by a third from run to run, so only numbers from one
 # machine compare. Start it from the Actions tab, or:
 #   gh workflow run bench-ab.yml -f refs="8a90084 main"
+# The table lands on the bench-ab branch (force-pushed each time):
+#   git fetch origin +bench-ab:refs/remotes/origin/bench-ab
+#   git show origin/bench-ab:ab.md
 on:
   workflow_dispatch:
     inputs:
@@ -14,7 +17,7 @@ on:
         default: 8a90084 main
 
 permissions:
-  contents: read
+  contents: write # publishes the bench-ab branch
 
 env:
   GODOT_VERSION: 4.7.2
@@ -42,6 +45,18 @@ jobs:
         run: |
           python3 tools/bench_ab.py "$HOME/godot-bin" ab-out $REFS
           cat ab-out/ab.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to the bench-ab branch
+        if: always()
+        env:
+          REFS: ${{ inputs.refs }}
+        run: |
+          cd ab-out
+          git init -q -b bench-ab
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" \
+            commit -qm "Benchmark A/B: $REFS"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" bench-ab
 
       - name: Keep the results
         if: always()

@@ -19,7 +19,8 @@ The design lives in `docs/DESIGN.md`. Keep its status markers ([slice] /
   `bench/bench.md`. Failed steps are also annotations on the check run.
   Benchmark numbers from different pushes don't compare (CI machines
   vary by a third); to compare commits run the Benchmark A/B workflow
-  (`gh workflow run bench-ab.yml -f refs="<old> main"`).
+  (`gh workflow run bench-ab.yml -f refs="<old> main"`; the table lands
+  on the `bench-ab` branch: `git show origin/bench-ab:ab.md`).
 - Locally, `gdparse` (pip `gdtoolkit`) catches GDScript syntax errors
   before pushing. It doesn't catch type errors; Godot does, in CI.
   `python3 tools/check_shaders.py` catches GLSL reserved words used as
