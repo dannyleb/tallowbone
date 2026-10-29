@@ -523,7 +523,7 @@ func _dress_cell(lv, c: int, r: int, solid: Callable, stone: Builder, inner: Bui
 		# An arched rib springing from the pilasters, where the room's ceiling is.
 		if solid.call(c, r - 1):
 			var k4 := c % 4
-			var drop := [0.55, 0.22, 0.08, 0.22][k4]
+			var drop: float = [0.55, 0.22, 0.08, 0.22][k4]
 			inner.box(Vector3(x0, yt - drop - 0.18, zb), Vector3(x1, yt, zb + 0.22))
 	if k == "walkway":
 		var z := -1.0
@@ -918,8 +918,8 @@ func _barrel(wood: Builder, iron: Builder, base: Vector3, radius: float) -> void
 			wood.quad(base + p0 * r0 + Vector3(0, y0, 0), base + p1 * r0 + Vector3(0, y0, 0), base + p1 * r1 + Vector3(0, y0 + height * 0.5, 0), base + p0 * r1 + Vector3(0, y0 + height * 0.5, 0), n)
 		wood.tri(base + Vector3(0, height, 0), base + p0 * radius * 0.88 + Vector3(0, height, 0), base + p1 * radius * 0.88 + Vector3(0, height, 0), Vector3.UP)
 	for hy in [0.15, 0.85]:
-		var y := base.y + height * hy
-		var r := radius * (0.93 if hy < 0.5 else 0.93) + 0.012
+		var y: float = base.y + height * hy
+		var r := radius * 0.93 + 0.012
 		iron.box(Vector3(base.x - r, y, base.z - r), Vector3(base.x + r, y + 0.04, base.z + r))
 
 
