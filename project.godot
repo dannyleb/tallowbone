@@ -161,6 +161,10 @@ textures/canvas_textures/default_texture_filter=1
 ; Apple Silicon (the Mac build) needs this texture format available.
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.027, 0.031, 0.051, 1)
+; The browser: a smaller moon-shadow map with hard edges, cheaper glow.
+lights_and_shadows/directional_shadow/size.web=2048
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality.web=0
+environment/glow/upscale_mode.web=0
 ; The volumetric fog's grid: coarser than the default (it's soft anyway).
 environment/volumetric_fog/volume_size=48
 environment/volumetric_fog/volume_depth=48
