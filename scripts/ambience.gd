@@ -27,8 +27,8 @@ const BEDS := {"rain_out": -15.0, "rain_in": -12.0, "wind": -12.0, "water": -12.
 ## first: before the first one; db: level; inside_db: added under a roof;
 ## pitch: random pitch range. A sound listed twice comes twice as often.
 const EVENTS := {
-	"howl": {"sounds": ["howl_a", "howl_b", "howl_a", "howl_b", "howl_c"], "every": [24.0, 60.0], "first": [9.0, 16.0], "db": -8.0, "inside_db": -9.0, "pitch": [0.9, 1.06]},
-	"bell": {"sounds": ["bell"], "every": [80.0, 160.0], "first": [35.0, 55.0], "db": -11.0, "inside_db": -6.0, "pitch": [0.97, 1.0]},
+	"howl": {"sounds": ["howl_a", "howl_b", "howl_a", "howl_b", "howl_c"], "every": [30.0, 75.0], "first": [12.0, 20.0], "db": -18.0, "inside_db": -8.0, "pitch": [0.9, 1.06]},
+	"bell": {"sounds": ["bell"], "every": [80.0, 160.0], "first": [35.0, 55.0], "db": -14.0, "inside_db": -6.0, "pitch": [0.97, 1.0]},
 	"creak": {"sounds": ["creak_a", "creak_b"], "every": [10.0, 26.0], "first": [5.0, 12.0], "db": -17.0, "inside_db": -60.0, "pitch": [0.85, 1.15]},
 	"whisper": {"sounds": ["whisper_a", "whisper_b", "whisper_c"], "every": [35.0, 80.0], "first": [40.0, 70.0], "db": -15.0, "inside_db": 0.0, "pitch": [0.9, 1.05]},
 	"storm": {"sounds": [], "every": [22.0, 55.0], "first": [12.0, 25.0], "db": 0.0, "inside_db": 0.0, "pitch": [1.0, 1.0]},
@@ -44,13 +44,13 @@ const CREAK_GUST := 0.55
 const NEAR := 0.75
 const MID := 0.4
 const THUNDER_DELAY := {"thunder_near": [0.1, 0.4], "thunder_mid": [0.8, 1.8], "thunder_far": [2.2, 4.5]}
-const THUNDER_DB := {"thunder_near": -2.0, "thunder_mid": -5.0, "thunder_far": -9.0}
+const THUNDER_DB := {"thunder_near": -4.0, "thunder_mid": -7.0, "thunder_far": -11.0}
 ## A strong flash shows the thing in the fog this often, but not again for
 ## REVEAL_REST seconds; its call follows CALL_DELAY seconds after.
 const REVEAL_CHANCE := 0.4
 const REVEAL_REST := 90.0
 const CALL_DELAY := 2.2
-const CALL_DB := -3.0
+const CALL_DB := -8.0
 ## After a reveal the dread is raised by this, fading over OMEN_FADE s.
 const OMEN := 0.6
 const OMEN_FADE := 25.0

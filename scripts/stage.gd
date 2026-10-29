@@ -168,7 +168,7 @@ func _ready() -> void:
 	game.positional_shadow_atlas_size = 4096
 	game.use_debanding = true
 	if RenderingServer.get_current_rendering_method() == "forward_plus":
-		game.msaa_3d = Viewport.MSAA_4X
+		game.msaa_3d = Viewport.MSAA_2X
 	_wet_noise = _noise(3, 0.02)
 	_stone_mat = _stone(Color(1, 1, 1), 0.45)
 	_hide_2d()
@@ -189,6 +189,7 @@ func _ready() -> void:
 	storm = Storm.new()
 	storm.stage = self
 	add_child(storm)
+	_prewarm()
 	if main.ambience:
 		main.ambience.lightning.connect(storm.flash)
 	world.level.burnt.connect(func(_cells): _build_veil())
@@ -246,12 +247,14 @@ func _noise(seed_value: int, frequency: float, normal := false) -> NoiseTexture2
 	return t
 
 
-func _stone(tint: Color, puddles: float) -> ShaderMaterial:
+## Wet stone (shaders/stone3d.gdshader): `wall` on the sides, `top` on
+## anything facing up (assets/3d/<set>_*).
+func _stone(tint: Color, puddles: float, wall := "stone", top := "cobble") -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = STONE
 	for part in ["albedo", "normal", "rough"]:
-		m.set_shader_parameter("wall_" + part, load("res://assets/3d/stone_%s.png" % part))
-		m.set_shader_parameter("top_" + part, load("res://assets/3d/cobble_%s.png" % part))
+		m.set_shader_parameter("wall_" + part, load("res://assets/3d/%s_%s.png" % [wall, part]))
+		m.set_shader_parameter("top_" + part, load("res://assets/3d/%s_%s.png" % [top, part]))
 	m.set_shader_parameter("wet_noise", _wet_noise)
 	m.set_shader_parameter("tint", tint)
 	m.set_shader_parameter("puddles", puddles)
@@ -297,13 +300,13 @@ func _environment() -> void:
 	# rather than black.
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.16, 0.19, 0.27)
-	env.ambient_light_energy = 0.55
+	env.ambient_light_energy = 0.9
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_exposure = 1.15
+	env.tonemap_exposure = 1.25
 	env.tonemap_white = 6.0
 	env.ssr_enabled = true
-	env.ssr_max_steps = 48
+	env.ssr_max_steps = 32
 	env.ssr_fade_in = 0.15
 	env.ssr_fade_out = 2.0
 	env.ssr_depth_tolerance = 0.3
@@ -316,6 +319,12 @@ func _environment() -> void:
 	env.glow_bloom = 0.05
 	env.glow_hdr_threshold = 0.9
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
+	# The grade: a little more contrast, a little less colour, shadows
+	# cooled toward blue and highlights warmed toward lamplight.
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.06
+	env.adjustment_saturation = 0.86
+	env.adjustment_color_correction = _grade()
 	# Depth fog starts at the gameplay plane, so the play space stays clear
 	# and everything behind it sinks into the night.
 	env.fog_enabled = true
@@ -348,7 +357,7 @@ func _environment() -> void:
 	moon.shadow_enabled = true
 	moon.shadow_blur = 1.5
 	moon.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if _lite else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-	moon.directional_shadow_max_distance = 40.0 if _lite else 90.0
+	moon.directional_shadow_max_distance = 40.0 if _lite else 64.0
 	moon.basis = Basis.looking_at(-MOON_DIR.normalized(), Vector3.UP)
 	moon.light_cull_mask = 0xFFFFF & ~INDOOR
 	add_child(moon)
@@ -362,6 +371,20 @@ func _environment() -> void:
 	fill.light_volumetric_fog_energy = 0.0
 	fill.basis = Basis.looking_at(Vector3(0.35, -0.45, -1.0).normalized(), Vector3.UP)
 	add_child(fill)
+
+
+## The colour grade's curves: per channel, input level -> output.
+func _grade() -> GradientTexture1D:
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.12, 0.5, 0.85, 1.0])
+	g.colors = PackedColorArray([
+		Color(0.0, 0.0, 0.004), Color(0.104, 0.118, 0.14), Color(0.49, 0.5, 0.505),
+		Color(0.87, 0.85, 0.8), Color(1.0, 0.98, 0.94),
+	])
+	var t := GradientTexture1D.new()
+	t.gradient = g
+	t.width = 256
+	return t
 
 
 func _camera() -> void:
@@ -392,6 +415,7 @@ func _build_level() -> void:
 	water_mat.set_shader_parameter("ripples", _noise(9, 0.03, true))
 	var back_mat := _stone(Color(0.62, 0.6, 0.6), 0.0)
 	var wood_mat := _wood()
+	var iron_mat := _iron()
 	var solid := func(c: int, r: int) -> bool: return lv.kind_at(Vector2i(c, r)) == "stone"
 	counts.stone_faces = 0
 	counts.back_faces = 0
@@ -401,9 +425,12 @@ func _build_level() -> void:
 		var back := Builder.new()
 		var wood := Builder.new()
 		var water := Builder.new()
+		var iron := Builder.new()
 		for r in h:
 			for c in range(c0, mini(w, c0 + CHUNK)):
 				_build_cell(lv, c, r, h, solid, stone, inner, back, wood, water)
+				if not _lite:
+					_dress_cell(lv, c, r, solid, stone, inner, iron)
 		# The stone is open at the back and the back walls are single quads
 		# facing you, and the moon shines from behind: both cast shadows from
 		# either side, or moonlight leaks into the rooms underground.
@@ -414,6 +441,9 @@ func _build_level() -> void:
 				mi.layers = part[2]
 		_add_mesh(wood.mesh(), wood_mat)
 		_add_mesh(water.mesh(), water_mat)
+		var rails := _add_mesh(iron.mesh(), iron_mat)
+		if rails:
+			rails.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		counts.stone_faces += stone.faces() + inner.faces()
 		counts.back_faces += back.faces()
 
@@ -451,6 +481,40 @@ func _build_cell(lv, c: int, r: int, h: int, solid: Callable, stone: Builder, in
 			water.quad(Vector3(x0, top, FRONT), Vector3(x1, top, FRONT), Vector3(x1, yb, FRONT), Vector3(x0, yb, FRONT), Vector3.BACK)
 	if lv.back_wall.get_cell_source_id(cell) != -1:
 		back.quad(Vector3(x0 - 0.03, yt + 0.06, -BACK), Vector3(x1 + 0.03, yt + 0.06, -BACK), Vector3(x1 + 0.03, yb - 0.06, -BACK), Vector3(x0 - 0.03, yb - 0.06, -BACK), Vector3.BACK)
+
+
+## The masonry around the play: a coping stone along the front of every
+## ledge (its lip throws a line of shadow), pilasters at a steady rhythm
+## down the big stone fronts, and iron railings along the back of the
+## walkways, behind you. Desktop only.
+func _dress_cell(lv, c: int, r: int, solid: Callable, stone: Builder, inner: Builder, iron: Builder) -> void:
+	var k: String = lv.kind_at(Vector2i(c, r))
+	var x0 := float(c)
+	var x1 := float(c + 1)
+	var yt := -float(r)
+	var yb := -float(r + 1)
+	if k == "stone":
+		var into: Builder = inner if lv.back_wall.get_cell_source_id(Vector2i(c, r - 1)) != -1 else stone
+		var open_above: bool = not solid.call(c, r - 1) and lv.kind_at(Vector2i(c, r - 1)) != "veil"
+		if open_above:
+			var lip := 0.06 + _hash(c, r) * 0.07
+			var drop := 0.15 + _hash(c + 7, r) * 0.07
+			into.box(Vector3(x0 - 0.01, yt - drop, FRONT), Vector3(x1 + 0.01, yt - 0.004, FRONT + lip))
+		if c % 6 == 3 and solid.call(c, r + 1):
+			var top := yt - (0.24 if open_above else 0.0)
+			stone.box(Vector3(x0 + 0.15, yb, FRONT), Vector3(x0 + 0.8, top, FRONT + 0.1))
+	elif k == "walkway":
+		var z := -1.0
+		for i in 2:
+			var px := x0 + 0.25 + i * 0.5
+			iron.box(Vector3(px - 0.018, yt, z - 0.018), Vector3(px + 0.018, yt + 0.95, z + 0.018))
+		iron.box(Vector3(x0, yt + 0.92, z - 0.03), Vector3(x1, yt + 0.97, z + 0.03))
+		iron.box(Vector3(x0, yt + 0.12, z - 0.02), Vector3(x1, yt + 0.15, z + 0.02))
+
+
+## A steady pseudo-random number in [0, 1) for a cell.
+static func _hash(a: int, b: int) -> float:
+	return fposmod(sin(a * 12.9898 + b * 78.233) * 43758.5453, 1.0)
 
 
 ## The veils, rebuilt whenever one burns: two thin sheets across the
@@ -496,9 +560,9 @@ func _build_city() -> void:
 	var win_mat := ShaderMaterial.new()
 	win_mat.shader = WINDOWS
 	var mats := {
-		"walls": _stone(Color(0.55, 0.55, 0.6), 0.3),
-		"roofs": _stone(Color(0.38, 0.38, 0.42), 0.0),
-		"trim": _stone(Color(0.4, 0.4, 0.44), 0.1),
+		"walls": _stone(Color(0.8, 0.8, 0.84), 0.3, "brick", "cobble"),
+		"roofs": _stone(Color(0.9, 0.9, 0.95), 0.0, "slate", "slate"),
+		"trim": _stone(Color(0.62, 0.62, 0.66), 0.1),
 		"glass": _glass(),
 		"iron": _iron(),
 		"wood": _wood(),
@@ -558,8 +622,61 @@ func _build_city() -> void:
 		var k: Vector3 = corner
 		church.trim.box(k + Vector3(-0.35, 0.0, -0.35), k + Vector3(0.35, 3.5, 0.35))
 	church.windows.quad(Vector3(cx - 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 24.0, cz + 0.03), Vector3(cx + 0.6, STREET + 21.0, cz + 0.03), Vector3(cx - 0.6, STREET + 21.0, cz + 0.03), Vector3.BACK, Color(0.8, 0.0, 0.0))
+	_church_nave(church, cx + 3.5, cz)
 	_add_city_chunk(church, mats, false)
 	counts.buildings = buildings
+
+
+## The church's nave, east of the tower: a long hall under a steep roof,
+## buttresses between tall pointed windows (a few glowing like coals), a
+## pinnacle on each buttress, and a rose window high on the tower's face.
+func _church_nave(b: Dictionary, x0: float, cz: float) -> void:
+	var x1 := x0 + 26.0
+	var front := cz - 1.0
+	var back := cz - 13.0
+	var eave := STREET + 17.0
+	var ridge := STREET + 27.0
+	var mid := (front + back) * 0.5
+	b.walls.box(Vector3(x0, STREET - 2.0, back), Vector3(x1, eave, front))
+	b.roofs.quad(Vector3(x0, eave, front + 0.4), Vector3(x1 + 0.4, eave, front + 0.4), Vector3(x1 + 0.4, ridge, mid), Vector3(x0, ridge, mid), Vector3(0, 0.6, 0.8).normalized())
+	b.roofs.tri(Vector3(x1, eave, front), Vector3(x1, ridge, mid), Vector3(x1, eave, back), Vector3.RIGHT)
+	b.trim.box(Vector3(x0, eave - 0.5, front - 0.1), Vector3(x1, eave, front + 0.5))
+	var bx := x0 + 1.0
+	while bx < x1 - 1.0:
+		# A buttress, stepped, its pinnacle.
+		b.trim.box(Vector3(bx, STREET - 1.0, front), Vector3(bx + 0.9, STREET + 9.0, front + 1.8))
+		b.trim.box(Vector3(bx + 0.1, STREET + 9.0, front), Vector3(bx + 0.8, eave + 0.8, front + 1.0))
+		b.trim.box(Vector3(bx + 0.25, eave + 0.8, front + 0.25), Vector3(bx + 0.65, eave + 3.2, front + 0.65))
+		# A lancet window in the bay beyond it.
+		var wx := bx + 1.7
+		if wx + 1.0 < x1 - 0.5:
+			var glow := Color(0.35, 0.0, 0.0) if fmod(wx, 9.0) < 3.0 else Color(0.0, 0.0, 0.0)
+			var z := front + 0.03
+			var wy := STREET + 6.0
+			if glow.r > 0.0:
+				b.windows.quad(Vector3(wx, wy + 6.5, z), Vector3(wx + 1.0, wy + 6.5, z), Vector3(wx + 1.0, wy, z), Vector3(wx, wy, z), Vector3.BACK, glow)
+				b.windows.tri(Vector3(wx, wy + 6.5, z), Vector3(wx + 1.0, wy + 6.5, z), Vector3(wx + 0.5, wy + 7.6, z), Vector3.BACK, glow)
+			else:
+				b.glass.quad(Vector3(wx, wy + 6.5, z), Vector3(wx + 1.0, wy + 6.5, z), Vector3(wx + 1.0, wy, z), Vector3(wx, wy, z), Vector3.BACK)
+				b.glass.tri(Vector3(wx, wy + 6.5, z), Vector3(wx + 1.0, wy + 6.5, z), Vector3(wx + 0.5, wy + 7.6, z), Vector3.BACK)
+			b.trim.box(Vector3(wx - 0.15, wy - 0.3, front), Vector3(wx + 1.15, wy, front + 0.25))
+		bx += 4.2
+	# The rose window on the tower.
+	var rc := Vector3(x0 - 3.5, STREET + 13.5, cz + 0.04)
+	var spokes := 16
+	for i in spokes:
+		var a0 := TAU * i / spokes
+		var a1 := TAU * (i + 1) / spokes
+		var col := Color(0.55, 0.0, 0.0) if i % 2 == 0 else Color(0.3, 0.0, 0.0)
+		b.windows.tri(rc, rc + Vector3(cos(a0), sin(a0), 0) * 1.9, rc + Vector3(cos(a1), sin(a1), 0) * 1.9, Vector3.BACK, col)
+	for i in spokes:
+		var a0 := TAU * i / spokes
+		var a1 := TAU * (i + 1) / spokes
+		var p0 := rc + Vector3(cos(a0), sin(a0), 0) * 1.9
+		var p1 := rc + Vector3(cos(a1), sin(a1), 0) * 1.9
+		var q0 := rc + Vector3(cos(a0), sin(a0), 0) * 2.3
+		var q1 := rc + Vector3(cos(a1), sin(a1), 0) * 2.3
+		b.trim.quad(p0 + Vector3(0, 0, 0.02), p1 + Vector3(0, 0, 0.02), q1 + Vector3(0, 0, 0.02), q0 + Vector3(0, 0, 0.02), Vector3.BACK)
 
 
 ## One house, its front at z = front, from x to x + bw, bh high.
@@ -568,11 +685,28 @@ func _house(b: Dictionary, rng: RandomNumberGenerator, x: float, bw: float, bh: 
 	var trim: Builder = b.trim
 	var roof: Builder = b.roofs
 	var top := STREET + bh
-	var near := row < 2
+	# The small things (frames, sills, courses, pots, dormers) only on the
+	# desktop, and only on the nearer two rows.
+	var near := row < 2 and not _lite
 	walls.box(Vector3(x, STREET - 2.0, front - depth), Vector3(x + bw, top, front))
 	# The cornice under the eaves.
 	trim.box(Vector3(x - 0.12, top - 0.32, front - 0.05), Vector3(x + bw + 0.12, top, front + 0.3))
-	if rng.randf() < 0.6:
+	var style := rng.randf()
+	if style < 0.3:
+		# A steep gable facing the street, the ridge running back, a finial
+		# at its point: the jagged skyline of the old town.
+		var peak := top + bw * rng.randf_range(0.7, 0.95)
+		var mx := x + bw * 0.5
+		if row == 1:
+			roofs.append([mx - 0.6, mx + 0.6, peak, front - 0.4])
+		walls.tri(Vector3(x, top, front), Vector3(x + bw, top, front), Vector3(mx, peak, front), Vector3.BACK)
+		roof.quad(Vector3(x - 0.25, top - 0.2, front + 0.35), Vector3(mx, peak + 0.15, front + 0.35), Vector3(mx, peak + 0.15, front - depth - 0.3), Vector3(x - 0.25, top - 0.2, front - depth - 0.3), Vector3(-(peak - top), bw * 0.5, 0).normalized())
+		roof.quad(Vector3(x + bw + 0.25, top - 0.2, front + 0.35), Vector3(mx, peak + 0.15, front + 0.35), Vector3(mx, peak + 0.15, front - depth - 0.3), Vector3(x + bw + 0.25, top - 0.2, front - depth - 0.3), Vector3(peak - top, bw * 0.5, 0).normalized())
+		trim.box(Vector3(mx - 0.07, peak, front - 0.07), Vector3(mx + 0.07, peak + 1.1, front + 0.25))
+		if near:
+			# A tall window in the gable.
+			_window(b, rng, mx - 0.3, top + 0.4, front, 0.6, minf(1.6, (peak - top) * 0.45), true)
+	elif style < 0.72:
 		# A gable along the street.
 		var ridge := top + bw * (rng.randf_range(0.2, 0.32) if row == 0 else rng.randf_range(0.25, 0.42))
 		var mid := front - depth / 2.0
@@ -608,6 +742,9 @@ func _house(b: Dictionary, rng: RandomNumberGenerator, x: float, bw: float, bh: 
 			roofs.append([x, x + bw, top + 0.7, front - 0.3])
 		walls.box(Vector3(x, top, front - 0.35), Vector3(x + bw, top + 0.7, front))
 		trim.box(Vector3(x - 0.08, top + 0.7, front - 0.42), Vector3(x + bw + 0.08, top + 0.82, front + 0.08))
+	# A corner turret under a cone, now and then on the nearer rows.
+	if row < 2 and bw > 5.5 and rng.randf() < 0.18:
+		_turret(b, Vector3(x + bw - 0.2, top - 3.0, front + 0.3), rng.randf_range(0.7, 1.0), top + rng.randf_range(1.2, 2.2), rng)
 	# Floors: a string course at each, then the windows.
 	var door_x := x + rng.randf_range(0.6, maxf(0.7, bw - 1.8)) if row == 0 else -1000.0
 	var floor_y := STREET + 1.6
@@ -620,7 +757,7 @@ func _house(b: Dictionary, rng: RandomNumberGenerator, x: float, bw: float, bh: 
 				_window(b, rng, wx, floor_y, front, 0.45, 0.85, near)
 			wx += 1.6
 		floor_y += 3.0
-	if row == 0:
+	if row == 0 and not _lite:
 		# A door, recessed in its frame, a step before it.
 		b.wood.box(Vector3(door_x, STREET, front - 0.12), Vector3(door_x + 1.1, STREET + 2.3, front - 0.02))
 		trim.box(Vector3(door_x - 0.16, STREET, front - 0.12), Vector3(door_x, STREET + 2.5, front + 0.08))
@@ -637,6 +774,29 @@ func _house(b: Dictionary, rng: RandomNumberGenerator, x: float, bw: float, bh: 
 			for band in range(1, int(bh / 2.5)):
 				iron.box(Vector3(px - 0.08, STREET + band * 2.5, front), Vector3(px + 0.08, STREET + band * 2.5 + 0.06, front + 0.2))
 			_pours.append(Vector3(px, STREET + 0.38, front + 0.44))
+
+
+## A round turret standing at `base` (its centre, bottom), up to `top`,
+## under a steep slate cone with a finial.
+func _turret(b: Dictionary, base: Vector3, radius: float, top: float, rng: RandomNumberGenerator) -> void:
+	var sides := 8
+	var cone := top + radius * rng.randf_range(2.6, 3.4)
+	var ring := []
+	for i in sides + 1:
+		var a := TAU * i / sides
+		ring.append(Vector2(cos(a), sin(a)))
+	for i in sides:
+		var p: Vector2 = ring[i]
+		var q: Vector2 = ring[i + 1]
+		var n := Vector3((p.x + q.x) * 0.5, 0, (p.y + q.y) * 0.5).normalized()
+		var a0 := base + Vector3(p.x, 0, p.y) * radius
+		var a1 := base + Vector3(q.x, 0, q.y) * radius
+		b.walls.quad(a0, a1, Vector3(a1.x, top, a1.z), Vector3(a0.x, top, a0.z), n)
+		var e0 := base + Vector3(p.x, 0, p.y) * (radius + 0.2)
+		var e1 := base + Vector3(q.x, 0, q.y) * (radius + 0.2)
+		var apex := Vector3(base.x, cone, base.z)
+		b.roofs.tri(Vector3(e0.x, top, e0.z), Vector3(e1.x, top, e1.z), apex, (n + Vector3(0, 0.35, 0)).normalized())
+	b.trim.box(Vector3(base.x - 0.05, cone - 0.1, base.z - 0.05), Vector3(base.x + 0.05, cone + 0.9, base.z + 0.05))
 
 
 ## A window at (x, y) on a front at z: lit (one in six), or dark glass;
@@ -729,6 +889,12 @@ func _omni(color: Color, energy: float, radius: float, shadow: bool) -> OmniLigh
 	l.shadow_enabled = shadow and not _lite
 	l.light_size = 0.12
 	l.light_volumetric_fog_energy = 2.5
+	# Lights well off screen fade out, and their shadows sooner: every
+	# shadowed light re-renders its shadow whenever the plane moves.
+	l.distance_fade_enabled = true
+	l.distance_fade_begin = 30.0
+	l.distance_fade_length = 6.0
+	l.distance_fade_shadow = 18.0
 	add_child(l)
 	if shadow and not _lite:
 		_shadowed.append(l)
@@ -1126,6 +1292,32 @@ func _build_probes() -> void:
 		p.cull_mask = 0xFFFFF & ~MOVING
 		add_child(p)
 	counts.probes = boxes.size()
+
+
+## Every mesh's material drawn once, tiny, just in front of the camera for
+## the first moments, so shaders compile at load instead of with a hitch the
+## first time each comes into view (the browser compiles them on first
+## draw: the canal, the undercroft, the storm).
+func _prewarm() -> void:
+	var seen := {}
+	var holder := Node3D.new()
+	camera.add_child(holder)
+	for node in find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		var m := mi.material_override
+		if m == null or seen.has(m):
+			continue
+		seen[m] = true
+		var copy := MeshInstance3D.new()
+		copy.mesh = mi.mesh if mi.mesh else QuadMesh.new()
+		copy.material_override = m
+		copy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var box := copy.mesh.get_aabb()
+		copy.scale = Vector3.ONE * (0.02 / maxf(box.size.length(), 0.001))
+		copy.position = Vector3((seen.size() % 8) * 0.03 - 0.1, (seen.size() / 8) * 0.03 - 0.1, -1.0) - box.get_center() * copy.scale.x
+		holder.add_child(copy)
+	counts.prewarmed = seen.size()
+	get_tree().create_timer(0.5).timeout.connect(holder.queue_free)
 
 
 # --- Every frame -------------------------------------------------------------

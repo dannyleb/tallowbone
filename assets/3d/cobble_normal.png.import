@@ -9,8 +9,9 @@ source_file="res://assets/3d/cobble_normal.png"
 
 [params]
 
-compress/mode=0
-compress/normal_map=0
+compress/mode=2
+compress/high_quality=false
+compress/normal_map=1
 mipmaps/generate=true
 mipmaps/limit=-1
 process/fix_alpha_border=true

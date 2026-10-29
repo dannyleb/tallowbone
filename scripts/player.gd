@@ -886,6 +886,7 @@ func _wick() -> Vector2:
 ## painter, with the feet at 0, 0.
 func _paint(ci: CanvasItem) -> void:
 	var pose := art_frame()
+	_fig.set_textured(not Art.frames("lamplighter").has(pose[0]))
 	if state == "dash":
 		for i in range(3, 0, -1):
 			_paint_figure(ci, -dash_dir * i * 11.0, 0.12 * (4 - i), true, pose)

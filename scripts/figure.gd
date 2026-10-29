@@ -11,10 +11,13 @@ extends Sprite2D
 ## Render resolution: viewport pixels per world pixel.
 const RES := 2.0
 const VOLUME := preload("res://shaders/volume.gdshader")
-## Turns the drawing white for a hit flash (painted frames can't be
-## recoloured the way the greybox is).
-const FLASH_CODE := "shader_type canvas_item;\nuniform float flash = 0.0;\nvoid fragment() { COLOR.rgb = mix(COLOR.rgb, vec3(1.0), flash); }\n"
-static var _flash_shader: Shader
+## The painter's shader: turns the drawing white for a hit flash (painted
+## frames can't be recoloured the way the greybox is), and gives the greybox
+## some surface so it isn't flat vector colour: a woven grain, long folds,
+## a darker wet hem, colour a little muted. It works in the actor's own
+## coordinates, so the texture moves with it. Painted frames are shown as
+## painted (`textured` off).
+const PAINTER := preload("res://shaders/figure_paint.gdshader")
 
 ## Repaint whenever the drawing changes, seen or not (the 3D stage shows
 ## figures through its own viewport, which the on-screen check can't see).
@@ -42,12 +45,9 @@ func setup(size: Vector2, origin: Vector2, paint: Callable) -> void:
 	_painter.draw.connect(func(): paint.call(_painter))
 	# Painted frames (scripts/art.gd) are drawn smaller than they're painted.
 	_painter.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	if _flash_shader == null:
-		_flash_shader = Shader.new()
-		_flash_shader.code = FLASH_CODE
-	var flash_mat := ShaderMaterial.new()
-	flash_mat.shader = _flash_shader
-	_painter.material = flash_mat
+	var paint_mat := ShaderMaterial.new()
+	paint_mat.shader = PAINTER
+	_painter.material = paint_mat
 	_viewport.add_child(_painter)
 	texture = _viewport.get_texture()
 	centered = false
@@ -78,6 +78,12 @@ func _render() -> void:
 func set_flash(amount: float) -> void:
 	if _painter:
 		(_painter.material as ShaderMaterial).set_shader_parameter("flash", amount)
+
+
+## Whether the greybox surface texture applies (off for painted frames).
+func set_textured(on: bool) -> void:
+	if _painter:
+		(_painter.material as ShaderMaterial).set_shader_parameter("textured", on)
 
 
 ## Shows or hides the figure and stops or starts its viewport (the

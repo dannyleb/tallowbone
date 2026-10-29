@@ -12,6 +12,7 @@ const Bench = preload("res://scripts/bench.gd")
 const Stage = preload("res://scripts/stage.gd")
 const Controls = preload("res://scripts/controls.gd")
 const Ambience = preload("res://scripts/ambience.gd")
+const POST := preload("res://shaders/post.gdshader")
 
 const INK := Color("07080d")
 const BONE := Color("e8dfcf")
@@ -89,6 +90,10 @@ func _ready() -> void:
 	$HudLayer/Hud.world = world
 	$View/Game/BackdropLayer/Backdrop.world = world
 	view.texture = game.get_texture()
+	var post := ShaderMaterial.new()
+	post.shader = POST
+	post.set_shader_parameter("full", RenderingServer.get_current_rendering_method() != "gl_compatibility")
+	view.material = post
 	_add_vignette()
 	var query := _query()
 	var forced := query.get_slice("scale=", 1).to_float() if query.contains("scale=") else 0.0

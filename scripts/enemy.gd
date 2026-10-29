@@ -243,6 +243,7 @@ func _paint(ci: CanvasItem) -> void:
 		_paint_art(ci, pose)
 		return
 	_fig.set_flash(0.0)
+	_fig.set_textured(true)
 	var a := 1.0 - dead_t / 0.9 if not alive else 1.0
 	var sink := dead_t * 10.0 if not alive else 0.0
 	var rot := 0.0
@@ -267,6 +268,7 @@ func _paint_art(ci: CanvasItem, pose: Array) -> void:
 	var a := clampf((0.9 - dead_t) / 0.3, 0.0, 1.0) if not alive else 1.0
 	var tint := Color(1.0, 0.72, 0.66, a) if gorged > 0 else Color(1, 1, 1, a)
 	_fig.set_flash(1.0 if flash > 0.0 else 0.0)
+	_fig.set_textured(false)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing, 1))
 	Art.draw(ci, kind, pose, FIGS[kind][0], FIGS[kind][1], tint)
 	ci.draw_set_transform(Vector2.ZERO)

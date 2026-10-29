@@ -1,9 +1,11 @@
 // Wet stone for the 3D stage, mapped in world space (triplanar), so the
-// generated level geometry needs no UVs. Faces looking up get cobbles,
-// everything else cut-stone blocks. The rain does the rest: darker, glossy
-// stone; standing water in the dips of anything flat, rings spreading
-// where the drops land in it; thin sheets of water running down walls,
-// catching the lamps.
+// generated level geometry needs no UVs. Faces looking up get the top set
+// (cobbles), everything else the wall set (ashlar; brick and slate in the
+// city). Each colour map carries its height in alpha. The rain does the
+// rest: darker, glossy stone; water standing in the joints and filling the
+// low parts of anything flat, rings spreading where the drops land in it;
+// thin sheets of water running down walls, catching the lamps. A slow
+// variation over the whole city breaks up the tiling.
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
@@ -78,10 +80,11 @@ void fragment() {
 	vec2 uv_z = vec2(wpos.x * sz, -wpos.y) / tile_m;
 	bool up = n.y > 0.0;
 
-	vec3 alb_x = texture(wall_albedo, uv_x).rgb;
-	vec3 alb_z = texture(wall_albedo, uv_z).rgb;
-	vec3 alb_y = up ? texture(top_albedo, uv_y).rgb : texture(wall_albedo, uv_y).rgb;
-	vec3 albedo = alb_x * blend.x + alb_y * blend.y + alb_z * blend.z;
+	vec4 alb_x = texture(wall_albedo, uv_x);
+	vec4 alb_z = texture(wall_albedo, uv_z);
+	vec4 alb_y = up ? texture(top_albedo, uv_y) : texture(wall_albedo, uv_y);
+	vec3 albedo = alb_x.rgb * blend.x + alb_y.rgb * blend.y + alb_z.rgb * blend.z;
+	float height = alb_x.a * blend.x + alb_y.a * blend.y + alb_z.a * blend.z;
 
 	float r_x = texture(wall_rough, uv_x).r;
 	float r_z = texture(wall_rough, uv_z).r;
@@ -90,9 +93,13 @@ void fragment() {
 
 	// Tangent-space normals per projection, blended in world space
 	// ("whiteout" blend), then into view space.
-	vec3 t_x = texture(wall_normal, uv_x).xyz * 2.0 - 1.0;
-	vec3 t_z = texture(wall_normal, uv_z).xyz * 2.0 - 1.0;
-	vec3 t_y = (up ? texture(top_normal, uv_y).xyz : texture(wall_normal, uv_y).xyz) * 2.0 - 1.0;
+	// (z rebuilt from x and y: compressed normal maps keep only those.)
+	vec3 t_x = vec3(texture(wall_normal, uv_x).xy * 2.0 - 1.0, 0.0);
+	vec3 t_z = vec3(texture(wall_normal, uv_z).xy * 2.0 - 1.0, 0.0);
+	vec3 t_y = vec3((up ? texture(top_normal, uv_y).xy : texture(wall_normal, uv_y).xy) * 2.0 - 1.0, 0.0);
+	t_x.z = sqrt(max(0.0, 1.0 - dot(t_x.xy, t_x.xy)));
+	t_y.z = sqrt(max(0.0, 1.0 - dot(t_y.xy, t_y.xy)));
+	t_z.z = sqrt(max(0.0, 1.0 - dot(t_z.xy, t_z.xy)));
 	t_x.xy *= bump;
 	t_y.xy *= bump;
 	t_z.xy *= bump;
@@ -104,16 +111,24 @@ void fragment() {
 	vec3 w_z = vec3(t_z.x * sz + n.x, t_z.y + n.y, abs(t_z.z) * n.z);
 	vec3 wn = normalize(w_x * blend.x + w_y * blend.y + w_z * blend.z);
 
-	// Puddles: where the noise dips on anything facing up.
+	// Water on anything facing up: always in the joints, and where the
+	// ground dips (the noise), filling from the lowest parts up.
+	float flat = smoothstep(0.75, 0.95, n.y);
 	float noise_top = texture(wet_noise, wpos.xz * 0.23).r;
-	float puddle = smoothstep(1.0 - puddles, 1.0 - puddles + 0.08, 1.0 - noise_top) * smoothstep(0.75, 0.95, n.y);
+	float level = clamp((noise_top - (1.0 - puddles)) * 6.0, 0.0, 1.0);
+	float pool = smoothstep(level - 0.08, level, 1.0 - height) * step(0.01, level);
+	float joints = smoothstep(0.34, 0.22, height) * wetness;
+	float puddle = max(pool, joints) * flat;
 	// Running water down the walls: thin streaks that slide downward.
 	float across = texture(wet_noise, vec2(wpos.x * 1.7 + wpos.z * 1.7, 0.37)).r;
 	float flow = texture(wet_noise, vec2(wpos.x * 3.1 + wpos.z * 3.1, wpos.y * 0.35 + TIME * 0.18)).r;
 	float sheet = smoothstep(0.62, 0.8, across) * smoothstep(0.45, 0.7, flow) * (1.0 - abs(n.y));
 
 	float wet = wetness * (0.65 + 0.35 * texture(wet_noise, wpos.xy * 0.11 + wpos.zz * 0.11).r);
-	albedo *= tint;
+	// Over the whole city, some walls dirtier, some cleaner.
+	float macro = texture(wet_noise, wpos.xy * 0.021 + wpos.zx * 0.017).r;
+	albedo *= tint * (0.72 + 0.56 * macro);
+	rough *= 0.9 + 0.2 * macro;
 	albedo *= mix(1.0, 0.55, wet);              // wet stone darkens
 	albedo = mix(albedo, albedo * 0.45, puddle);
 	rough = mix(rough, rough * 0.35, wet);
