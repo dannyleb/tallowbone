@@ -2210,6 +2210,8 @@ func _update_lights() -> void:
 		var glass: MeshInstance3D = e.glass
 		light.visible = lamp.lit
 		glass.material_override = _lamp_lit if lamp.lit else _lamp_dark
+		var x: float = lamp.position.x
+		light.light_energy = 5.0 * (1.0 + sin(_time * 11.0 + x) * sin(_time * 6.7 + x * 2.0) * 0.05)
 	for e in _signs:
 		(e.paper as MeshInstance3D).material_override = _paper_near if e.sign.near else _paper
 	for e in _gates:
@@ -2217,8 +2219,6 @@ func _update_lights() -> void:
 		var rise: float = gate.lift() * (Gate.HEIGHT - 8.0) / Gate.HEIGHT
 		(e.bars as MeshInstance3D).scale.y = maxf(0.02, 1.0 - rise)
 		(e.lock as MeshInstance3D).visible = not gate.open
-		var x: float = lamp.position.x
-		light.light_energy = 5.0 * (1.0 + sin(_time * 11.0 + x) * sin(_time * 6.7 + x * 2.0) * 0.05)
 	var p = world.player
 	var flame: Vector2 = p.flame_at()
 	var burns: bool = p.form_data().burns

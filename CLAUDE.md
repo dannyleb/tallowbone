@@ -22,7 +22,8 @@ The design lives in `docs/DESIGN.md`. Keep its status markers ([slice] /
   `python3 tools/check_shaders.py` catches GLSL reserved words used as
   names in shaders (`flat`, `sample`, `filter`...), which break a whole
   shader; `python3 tools/check_gd.py` catches the usual `:=` from a
-  Variant (see Conventions). Run all three before pushing.
+  Variant (see Conventions) and a local used outside the block it was
+  declared in. Run all three before pushing.
 - When adding a mechanic, add a check for it to `tests/playtest.gd`.
   Abilities (`ABILITIES` in tuning) start locked and pickups unlock them
   (`player.has("pistol")`); scenarios that need one run after `_finds`.

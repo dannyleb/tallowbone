@@ -24,6 +24,8 @@ const MIN_FRAMES := 5
 const MAX_SECONDS := 6.0
 ## A frame this long (ms) counts as a hitch.
 const HITCH_MS := 50.0
+## The longest it waits on the title for the shaders to finish (s).
+const SETTLE_MAX := 60.0
 
 var main
 var world
@@ -72,8 +74,11 @@ func _run() -> void:
 		"view": str(world.view_size()),
 		"agent": _agent(),
 	}
-	# Title screen first: the world draws behind it.
+	# Title screen first: the world draws behind it, and the shaders compile
+	# (the stage's prewarm). Wait for that, as a player reading it would.
+	var settled := await _settle()
 	var title := await _measure(1.0)
+	title.settled_s = settled
 	main.start_game()
 	world.teaching = false
 	player.unlock_all()
@@ -175,6 +180,24 @@ func _put(at: Vector2) -> void:
 
 
 ## Times frames for `seconds` of wall-clock time (at least MIN_FRAMES).
+## Waits until frames come steadily (8 in a row, none over twice the
+## quickest), up to SETTLE_MAX seconds; returns how long that took.
+func _settle() -> float:
+	var start := Time.get_ticks_usec()
+	var last := start
+	var recent: Array[float] = []
+	while (Time.get_ticks_usec() - start) / 1e6 < SETTLE_MAX:
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		recent.append((now - last) / 1000.0)
+		last = now
+		if recent.size() > 8:
+			recent.pop_front()
+		if recent.size() == 8 and recent.max() <= recent.min() * 2.0:
+			break
+	return (Time.get_ticks_usec() - start) / 1e6
+
+
 func _measure(seconds: float) -> Dictionary:
 	await get_tree().process_frame
 	_frame_ms = PackedFloat32Array()
@@ -247,7 +270,7 @@ func _switch_system(system: String, off: bool) -> void:
 
 func _summary(r: Dictionary) -> String:
 	var lines := PackedStringArray(["BENCHMARK  %s" % r.info.agent, "%s   window %s   view %s   world drawn at %s" % [r.info.adapter, r.info.window, r.info.view, r.info.render]])
-	lines.append("title screen: %.1f ms" % r.title.avg_ms)
+	lines.append("title screen: %.1f ms, steady after %.1f s (shaders compiling behind it)" % [r.title.avg_ms, r.title.get("settled_s", 0.0)])
 	var first := PackedStringArray()
 	for m in r.first_visit:
 		first.append("%s worst %.0f ms (%d hitches)" % [m.spot, m.max_ms, m.hitches])
